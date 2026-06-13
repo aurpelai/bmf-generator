@@ -5,6 +5,7 @@ import type { Glyph } from '@/core/project/types'
 
 const MIN_ZOOM = 2
 const MAX_ZOOM = 32
+const ZOOM_PRESETS = [2, 4, 8, 12, 16, 24, 32]
 
 function clamp(v: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, v))
@@ -133,9 +134,9 @@ export function PixelEditor() {
       ctx.textAlign = 'left'
       ctx.textBaseline = 'middle'
       ctx.fillStyle = 'rgba(251,191,36,0.7)'
-      ctx.fillText('base', gutterX, baselineY + 0.5)
+      ctx.fillText('Baseline', gutterX, baselineY + 0.5)
       ctx.fillStyle = 'rgba(34,211,238,0.6)'
-      ctx.fillText('cap', gutterX, capY + 0.5)
+      ctx.fillText('Cap height', gutterX, capY + 0.5)
       ctx.restore()
     }
 
@@ -192,6 +193,20 @@ export function PixelEditor() {
     drawCanvas()
   }, [glyph, zoomLevel, showGrid, drawCanvas])
 
+  // Prevent the browser from scrolling the container when dragging on the canvas.
+  // Must be native non-passive listeners — React synthetic events are passive by default.
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    function prevent(e: PointerEvent) { e.preventDefault() }
+    canvas.addEventListener('pointerdown', prevent, { passive: false })
+    canvas.addEventListener('pointermove', prevent, { passive: false })
+    return () => {
+      canvas.removeEventListener('pointerdown', prevent)
+      canvas.removeEventListener('pointermove', prevent)
+    }
+  }, [])
+
   function cellFromEvent(e: React.PointerEvent): { col: number; row: number } | null {
     const canvas = canvasRef.current
     const g = stateRef.current.glyph
@@ -234,6 +249,38 @@ export function PixelEditor() {
   function onPointerDown(e: React.PointerEvent) {
     const g = stateRef.current.glyph
     if (!g) return
+
+    if (stateRef.current.activeTool === 'zoom') {
+      const zoomIn = !e.altKey
+      const currentZoom = stateRef.current.zoomLevel
+      const nextZoom = zoomIn
+        ? ZOOM_PRESETS.find((z) => z > currentZoom) ?? currentZoom
+        : [...ZOOM_PRESETS].reverse().find((z) => z < currentZoom) ?? currentZoom
+      if (nextZoom === currentZoom) return
+
+      // Zoom towards cursor: keep the canvas point under the cursor fixed
+      const canvas = canvasRef.current
+      const container = containerRef.current
+      if (canvas && container) {
+        const rect = canvas.getBoundingClientRect()
+        const cx = e.clientX - rect.left  // cursor offset within canvas
+        const cy = e.clientY - rect.top
+        const scale = nextZoom / currentZoom
+        // After zoom the canvas resizes; adjust scroll so cursor point stays put
+        const containerRect = container.getBoundingClientRect()
+        const scrollX = container.scrollLeft + cx * scale - (e.clientX - containerRect.left)
+        const scrollY = container.scrollTop + cy * scale - (e.clientY - containerRect.top)
+        setZoomLevel(nextZoom)
+        requestAnimationFrame(() => {
+          container.scrollLeft = scrollX
+          container.scrollTop = scrollY
+        })
+      } else {
+        setZoomLevel(nextZoom)
+      }
+      return
+    }
+
     e.currentTarget.setPointerCapture(e.pointerId)
     pushUndo(g.codePoint, { pixels: new Uint8Array(g.pixels), xoffset: g.xoffset, yoffset: g.yoffset })
     stateRef.current.isDrawing = true
@@ -331,6 +378,7 @@ export function PixelEditor() {
     <div
       ref={containerRef}
       className="flex flex-1 items-center justify-center overflow-auto bg-[#111]"
+      style={{ touchAction: 'none' }}
       onWheel={onWheel}
     >
       {!glyph ? (
@@ -340,7 +388,7 @@ export function PixelEditor() {
           ref={canvasRef}
           role="img"
           aria-label={`Pixel editor — ${activeTool} tool`}
-          style={{ imageRendering: 'pixelated', cursor: activeTool === 'move' ? 'grab' : activeTool === 'eraser' ? 'cell' : 'crosshair' }}
+          style={{ imageRendering: 'pixelated', touchAction: 'none', cursor: activeTool === 'move' ? 'grab' : activeTool === 'zoom' ? 'zoom-in' : activeTool === 'eraser' ? 'cell' : 'crosshair' }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerLeave={onPointerLeave}

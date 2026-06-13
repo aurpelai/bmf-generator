@@ -143,6 +143,7 @@ export function EditorScreen() {
         case 'b': setActiveTool('pencil'); break
         case 'e': setActiveTool('eraser'); break
         case 'm': setActiveTool('move'); break
+        case 'z': setActiveTool('zoom'); break
         case 'g': setShowGrid(!showGrid); break
       }
 

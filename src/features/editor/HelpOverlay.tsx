@@ -9,10 +9,11 @@ const TOOLS = [
   { key: 'B', tool: 'Pencil', description: 'Draw pixels onto the glyph' },
   { key: 'E', tool: 'Eraser', description: 'Erase pixels from the glyph' },
   { key: 'M', tool: 'Move', description: 'Drag the glyph bitmap to reposition it' },
+  { key: 'Z', tool: 'Zoom', description: 'Click to zoom in; Alt+click to zoom out' },
 ]
 
 const MODIFIERS = [
-  { keys: ['Alt'], description: 'Hold to invert the active tool (pencil↔eraser)' },
+  { keys: ['Alt'], description: 'Hold to invert the active tool (pencil↔eraser, zoom in↔out)' },
   { keys: ['Space'], description: 'Hold to temporarily activate the move tool' },
 ]
 
