@@ -223,6 +223,7 @@ export function EditorScreen() {
               e.preventDefault()
               draggingRef.current = { panel: 'left', startX: e.clientX, startWidth: glyphListWidth }
             }}
+            onDoubleClick={() => setGlyphListCollapsed(true)}
           />
         )}
 
@@ -242,6 +243,7 @@ export function EditorScreen() {
               e.preventDefault()
               draggingRef.current = { panel: 'right', startX: e.clientX, startWidth: rightPanelWidth }
             }}
+            onDoubleClick={() => setRightPanelCollapsed(true)}
           />
         )}
 
