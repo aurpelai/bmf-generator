@@ -17,6 +17,33 @@ export function EditorScreen() {
   const [helpOpen, setHelpOpen] = useState(false)
   const [glyphListCollapsed, setGlyphListCollapsed] = useState(false)
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false)
+  const [glyphListWidth, setGlyphListWidth] = useState(192)
+  const [rightPanelWidth, setRightPanelWidth] = useState(256)
+  const draggingRef = useRef<{ panel: 'left' | 'right'; startX: number; startWidth: number } | null>(null)
+
+  useEffect(() => {
+    function onMouseMove(e: MouseEvent) {
+      const d = draggingRef.current
+      if (!d) return
+      const delta = e.clientX - d.startX
+      if (d.panel === 'left') {
+        const w = d.startWidth + delta
+        if (w < 80) { setGlyphListCollapsed(true); draggingRef.current = null }
+        else setGlyphListWidth(Math.min(400, Math.max(120, w)))
+      } else {
+        const w = d.startWidth - delta
+        if (w < 100) { setRightPanelCollapsed(true); draggingRef.current = null }
+        else setRightPanelWidth(Math.min(480, Math.max(180, w)))
+      }
+    }
+    function onMouseUp() { draggingRef.current = null }
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup', onMouseUp)
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', onMouseUp)
+    }
+  }, [])
 
   const currentProject = useStore((s) => s.currentProject)
   const setView = useStore((s) => s.setView)
@@ -157,12 +184,38 @@ export function EditorScreen() {
       {/* Editor workspace */}
       <div className="flex flex-1 overflow-hidden">
         {/* Glyph list — full or collapsed strip */}
-        <GlyphList collapsed={glyphListCollapsed} onCollapse={() => setGlyphListCollapsed(!glyphListCollapsed)} />
+        <GlyphList
+          collapsed={glyphListCollapsed}
+          onCollapse={() => setGlyphListCollapsed(!glyphListCollapsed)}
+          width={glyphListCollapsed ? 40 : glyphListWidth}
+        />
+
+        {/* Left drag handle */}
+        {!glyphListCollapsed && (
+          <div
+            className="hover:bg-primary/40 w-1 shrink-0 cursor-col-resize transition-colors"
+            onMouseDown={(e) => {
+              e.preventDefault()
+              draggingRef.current = { panel: 'left', startX: e.clientX, startWidth: glyphListWidth }
+            }}
+          />
+        )}
 
         <div className="flex flex-1 flex-col overflow-hidden">
           <EditorToolbar />
           <PixelEditor />
         </div>
+
+        {/* Right drag handle */}
+        {!rightPanelCollapsed && (
+          <div
+            className="hover:bg-primary/40 w-1 shrink-0 cursor-col-resize transition-colors"
+            onMouseDown={(e) => {
+              e.preventDefault()
+              draggingRef.current = { panel: 'right', startX: e.clientX, startWidth: rightPanelWidth }
+            }}
+          />
+        )}
 
         {/* Right panel — full or collapsed sliver */}
         {rightPanelCollapsed ? (
@@ -176,7 +229,7 @@ export function EditorScreen() {
             </div>
           </div>
         ) : (
-          <RightPanel onCollapse={() => setRightPanelCollapsed(true)} />
+          <RightPanel onCollapse={() => setRightPanelCollapsed(true)} width={rightPanelWidth} />
         )}
       </div>
 

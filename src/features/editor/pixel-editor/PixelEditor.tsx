@@ -24,7 +24,11 @@ export function PixelEditor() {
   const setBrushSize = useStore((s) => s.setBrushSize)
   const upsertGlyph = useStore((s) => s.upsertGlyph)
   const pushUndo = useStore((s) => s.pushUndo)
+  const addToast = useStore((s) => s.addToast)
   const currentProject = useStore((s) => s.currentProject)
+
+  const autoSaveToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const autoSaveToastShown = useRef(false)
 
   const glyph = glyphs.find((g) => g.codePoint === selectedCodePoint) ?? null
 
@@ -270,13 +274,27 @@ export function PixelEditor() {
 
   function onPointerUp(e: React.PointerEvent) {
     const g = stateRef.current.glyph
+    let didSave = false
     if (stateRef.current.activeTool === 'move' && g && stateRef.current.moveOrigin) {
       const { xoffset, yoffset } = stateRef.current.moveOrigin
       const { dx, dy } = stateRef.current.moveDelta
-      const updated: Glyph = { ...g, xoffset: xoffset + dx, yoffset: yoffset + dy, isDirty: true }
-      upsertGlyph(updated)
-      saveGlyphs([updated]);
-      (e.currentTarget as HTMLCanvasElement).style.cursor = 'grab'
+      if (dx !== 0 || dy !== 0) {
+        const updated: Glyph = { ...g, xoffset: xoffset + dx, yoffset: yoffset + dy, isDirty: true }
+        upsertGlyph(updated)
+        saveGlyphs([updated])
+        didSave = true
+      }
+      ;(e.currentTarget as HTMLCanvasElement).style.cursor = 'grab'
+    } else if (stateRef.current.isDrawing) {
+      didSave = true
+    }
+    if (didSave && !autoSaveToastShown.current) {
+      if (autoSaveToastTimer.current) clearTimeout(autoSaveToastTimer.current)
+      autoSaveToastTimer.current = setTimeout(() => {
+        addToast('Auto-saved')
+        autoSaveToastShown.current = true
+        setTimeout(() => { autoSaveToastShown.current = false }, 3000)
+      }, 800)
     }
     stateRef.current.isDrawing = false
     stateRef.current.lastPixel = -1

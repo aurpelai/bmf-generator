@@ -48,6 +48,7 @@ export function ExportDialog({ open, onOpenChange }: Props) {
   const currentProject = useStore((s) => s.currentProject)
   const glyphs = useStore((s) => s.glyphs)
   const atlasPlacements = useStore((s) => s.atlasPlacements)
+  const addToast = useStore((s) => s.addToast)
   const atlasImageData = useStore((s) => s.atlasImageData)
   const atlasWidth = useStore((s) => s.atlasWidth)
   const atlasHeight = useStore((s) => s.atlasHeight)
@@ -110,6 +111,9 @@ export function ExportDialog({ open, onOpenChange }: Props) {
         [atlasFilename]: pngBytes,
       })
       download(new Blob([zip], { type: 'application/zip' }), `${baseName}.zip`)
+      addToast(`Exported ${baseName}.zip`, 'success')
+    } catch {
+      addToast('Export failed', 'error')
     } finally {
       setExporting(false)
     }
@@ -119,6 +123,7 @@ export function ExportDialog({ open, onOpenChange }: Props) {
     if (!currentProject) return
     const json = exportPortableProject(currentProject, glyphs)
     download(new Blob([json], { type: 'application/json' }), `${baseName}.bmffont.json`)
+    addToast(`Exported ${baseName}.bmffont.json`, 'success')
   }
 
   const canExport = !!atlasImageData && !!fntText
