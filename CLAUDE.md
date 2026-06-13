@@ -27,14 +27,15 @@ This project uses [Conventional Commits](https://www.conventionalcommits.org). T
 
 - `feat:` — new user-facing feature
 - `fix:` — bug fix visible to end users of the app
-- `chore:` — tooling, dependencies, config, CI (no production code change)
+- `chore:` — tooling, dependencies, config (no production code change)
+- `ci:` — GitHub Actions, release pipeline, CI/CD changes
 - `refactor:` — code change with no behaviour change
 - `test:` — adding or updating tests
 - `docs:` — documentation only
 
 Not enforced by tooling — use good judgement. Consistent messages keep the auto-generated changelog useful.
 
-**Changelog visibility:** changelogen includes `feat:` and `fix:` in the changelog and hides everything else. Use `chore:` for any fix that is not visible to end users (CI, GitHub Actions, build config, tooling) — never `fix:`.
+**Changelog visibility:** changelogen includes `feat:` and `fix:` in the changelog and hides everything else. Take this into account when generating commit message titles. See the commit convention above for the correct prefix to use for any given commit.
 
 ## Releases
 
