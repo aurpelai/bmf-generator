@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { Plus, Upload, Pencil, Trash2, FileType } from 'lucide-react'
+import { Plus, Upload, FolderOpen, Pencil, Trash2, FileType } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { getAllProjects, saveProject, deleteProject } from '@/db'
@@ -7,12 +7,14 @@ import { useStore } from '@/store'
 import type { Project } from '@/core/project'
 import { NewProjectDialog } from './NewProjectDialog'
 import { FontImportWizard } from './FontImportWizard'
+import { BmfImportDialog } from './BmfImportDialog'
 import { DeleteProjectDialog } from './DeleteProjectDialog'
 
 export function HomeScreen() {
   const [projects, setProjects] = useState<Project[]>([])
   const [newProjectOpen, setNewProjectOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
+  const [bmfImportOpen, setBmfImportOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null)
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
@@ -78,6 +80,10 @@ export function HomeScreen() {
           <Button variant="outline" onClick={() => setImportOpen(true)}>
             <Upload className="mr-2 h-4 w-4" />
             Import font
+          </Button>
+          <Button variant="outline" onClick={() => setBmfImportOpen(true)}>
+            <FolderOpen className="mr-2 h-4 w-4" />
+            Load existing project
           </Button>
         </div>
 
@@ -148,6 +154,7 @@ export function HomeScreen() {
 
       <NewProjectDialog open={newProjectOpen} onOpenChange={setNewProjectOpen} />
       <FontImportWizard open={importOpen} onOpenChange={setImportOpen} />
+      <BmfImportDialog open={bmfImportOpen} onOpenChange={(o) => { setBmfImportOpen(o); if (!o) loadProjects() }} />
       {deleteTarget && (
         <DeleteProjectDialog
           projectName={deleteTarget.name}
