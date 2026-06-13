@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { GLYPH_SETS } from '@/core/project/glyphSets'
-import { createProject } from '@/core/project'
-import { saveProject } from '@/db'
+import { createProject, initializeGlyphs } from '@/core/project'
+import { saveProject, saveGlyphs } from '@/db'
 import { useStore } from '@/store'
 
 interface Props {
@@ -22,6 +22,7 @@ export function NewProjectDialog({ open, onOpenChange }: Props) {
   const [spacingY, setSpacingY] = useState(1)
 
   const setCurrentProject = useStore((s) => s.setCurrentProject)
+  const setGlyphs = useStore((s) => s.setGlyphs)
   const setView = useStore((s) => s.setView)
 
   async function handleCreate() {
@@ -34,8 +35,11 @@ export function NewProjectDialog({ open, onOpenChange }: Props) {
       base: Math.round(fontSize * 0.8),
     })
     project.glyphs = glyphSet.codePoints
+    const glyphs = initializeGlyphs(project.id, glyphSet.codePoints, fontSize, Math.round(fontSize * 1.2))
     await saveProject(project)
+    await saveGlyphs(glyphs)
     setCurrentProject(project)
+    setGlyphs(glyphs)
     setView('editor')
     onOpenChange(false)
   }
