@@ -10,7 +10,7 @@ A `plans/` directory may be present locally with design and implementation plann
 
 ## Branching model
 
-All work happens on feature branches merged to `main` via PRs — never commit directly to `main`.
+All work happens on feature branches merged to `main` via PRs. **Never commit directly to `main`** — it is protected by a GitHub branch ruleset that blocks direct pushes. Always create a branch, commit there, and open a PR.
 
 **Branch naming:** mirrors the commit type prefix:
 - `feat/short-description` — new feature
