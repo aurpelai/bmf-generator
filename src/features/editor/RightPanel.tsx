@@ -556,12 +556,20 @@ export function RightPanel({ onCollapse, width }: { onCollapse: () => void; widt
   return (
     <div className="border-border flex h-full shrink-0 flex-col border-l" style={{ width }}>
       <div className="border-border flex h-9 shrink-0 items-end border-b">
-        <button className="text-muted-foreground hover:text-foreground cursor-pointer self-stretch flex items-center px-2 transition-colors" title="Collapse panel" onClick={onCollapse}>
+        <button
+          className="text-muted-foreground hover:text-foreground cursor-pointer self-stretch flex items-center px-2 transition-colors"
+          title="Collapse panel"
+          aria-label="Collapse panel"
+          aria-expanded={true}
+          onClick={onCollapse}
+        >
           <ChevronRight className="h-3.5 w-3.5" />
         </button>
-        <button className={tabClass('metrics')} onClick={() => setTab('metrics')}>Metrics</button>
-        <button className={tabClass('atlas')} onClick={() => setTab('atlas')}>Atlas</button>
-        <button className={tabClass('settings')} onClick={() => setTab('settings')}>Settings</button>
+        <div role="tablist" aria-label="Panel tabs" className="flex self-stretch">
+          <button role="tab" aria-selected={tab === 'metrics'} aria-controls="rightpanel-metrics" id="tab-metrics" className={tabClass('metrics')} onClick={() => setTab('metrics')}>Metrics</button>
+          <button role="tab" aria-selected={tab === 'atlas'} aria-controls="rightpanel-atlas" id="tab-atlas" className={tabClass('atlas')} onClick={() => setTab('atlas')}>Atlas</button>
+          <button role="tab" aria-selected={tab === 'settings'} aria-controls="rightpanel-settings" id="tab-settings" className={tabClass('settings')} onClick={() => setTab('settings')}>Settings</button>
+        </div>
       </div>
       {tab === 'metrics' && <MetricsTab />}
       {tab === 'atlas' && <AtlasTab />}

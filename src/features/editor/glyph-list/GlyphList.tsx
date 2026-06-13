@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { memo, useState, useMemo } from 'react'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { useStore } from '@/store'
 import type { Glyph } from '@/core/project'
@@ -31,7 +31,7 @@ function sortGlyphs(glyphs: Glyph[]): Glyph[] {
   })
 }
 
-function GlyphThumbnail({ pixels, width, height }: { pixels: Uint8Array; width: number; height: number }) {
+const GlyphThumbnail = memo(function GlyphThumbnail({ pixels, width, height }: { pixels: Uint8Array; width: number; height: number }) {
   const size = 28
 
   return (
@@ -60,7 +60,7 @@ function GlyphThumbnail({ pixels, width, height }: { pixels: Uint8Array; width: 
       })}
     </svg>
   )
-}
+})
 
 function AddGlyphDialog({
   open,
@@ -155,18 +155,22 @@ export function GlyphList({ collapsed, onCollapse, width }: { collapsed: boolean
     return (
       <div className="border-border flex h-full shrink-0 flex-col border-r" style={{ width }}>
         <div className="border-border flex h-9 shrink-0 items-center justify-center border-b">
-          <Button variant="ghost" size="icon" className="h-6 w-6" title="Expand glyph list" onClick={onCollapse}>
+          <Button variant="ghost" size="icon" className="h-6 w-6" title="Expand glyph list" aria-label="Expand glyph list" aria-expanded={false} onClick={onCollapse}>
             <ChevronRight className="h-3.5 w-3.5" />
           </Button>
         </div>
-        <div className="flex-1 overflow-y-auto">
+        <div role="listbox" aria-label="Glyphs" className="flex-1 overflow-y-auto">
           {sortedGlyphs.map((glyph) => {
             const isSelected = glyph.codePoint === selectedCodePoint
+            const label = `${String.fromCodePoint(glyph.codePoint)} U+${glyph.codePoint.toString(16).toUpperCase().padStart(4, '0')}`
             return (
               <button
                 key={glyph.codePoint}
+                role="option"
+                aria-selected={isSelected}
                 onClick={() => setSelectedCodePoint(glyph.codePoint)}
-                title={`U+${glyph.codePoint.toString(16).toUpperCase().padStart(4, '0')}`}
+                title={label}
+                aria-label={label}
                 className={cn(
                   'flex w-full cursor-pointer items-center justify-center py-1.5 transition-colors',
                   isSelected ? 'bg-accent text-accent-foreground' : 'hover:bg-muted',
@@ -195,22 +199,26 @@ export function GlyphList({ collapsed, onCollapse, width }: { collapsed: boolean
           Glyphs ({glyphs.length})
         </span>
         <div className="flex items-center gap-0.5">
-          <Button variant="ghost" size="icon" className="h-6 w-6" title="Add glyph" onClick={() => setAddOpen(true)}>
+          <Button variant="ghost" size="icon" className="h-6 w-6" title="Add glyph" aria-label="Add glyph" onClick={() => setAddOpen(true)}>
             <Plus className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-6 w-6" title="Collapse glyph list" onClick={onCollapse}>
+          <Button variant="ghost" size="icon" className="h-6 w-6" title="Collapse glyph list" aria-label="Collapse glyph list" aria-expanded={true} onClick={onCollapse}>
             <ChevronLeft className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div role="listbox" aria-label="Glyphs" className="flex-1 overflow-y-auto">
         {sortedGlyphs.map((glyph) => {
           const char = String.fromCodePoint(glyph.codePoint)
           const isSelected = glyph.codePoint === selectedCodePoint
+          const label = `${char} U+${glyph.codePoint.toString(16).toUpperCase().padStart(4, '0')}`
           return (
             <button
               key={glyph.codePoint}
+              role="option"
+              aria-selected={isSelected}
+              aria-label={label}
               onClick={() => setSelectedCodePoint(glyph.codePoint)}
               className={cn(
                 'flex w-full cursor-pointer items-center gap-2 px-2 py-1.5 text-left transition-colors',

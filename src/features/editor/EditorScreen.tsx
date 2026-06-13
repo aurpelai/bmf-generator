@@ -20,28 +20,38 @@ export function EditorScreen() {
   const [glyphListWidth, setGlyphListWidth] = useState(192)
   const [rightPanelWidth, setRightPanelWidth] = useState(256)
   const draggingRef = useRef<{ panel: 'left' | 'right'; startX: number; startWidth: number } | null>(null)
+  const rafRef = useRef<number | null>(null)
 
   useEffect(() => {
     function onMouseMove(e: MouseEvent) {
       const d = draggingRef.current
       if (!d) return
-      const delta = e.clientX - d.startX
-      if (d.panel === 'left') {
-        const w = d.startWidth + delta
-        if (w < 80) { setGlyphListCollapsed(true); draggingRef.current = null }
-        else setGlyphListWidth(Math.min(400, Math.max(120, w)))
-      } else {
-        const w = d.startWidth - delta
-        if (w < 100) { setRightPanelCollapsed(true); draggingRef.current = null }
-        else setRightPanelWidth(Math.min(480, Math.max(180, w)))
-      }
+      const clientX = e.clientX
+      if (rafRef.current !== null) return
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null
+        const delta = clientX - d.startX
+        if (d.panel === 'left') {
+          const w = d.startWidth + delta
+          if (w < 80) { setGlyphListCollapsed(true); draggingRef.current = null }
+          else setGlyphListWidth(Math.min(400, Math.max(120, w)))
+        } else {
+          const w = d.startWidth - delta
+          if (w < 100) { setRightPanelCollapsed(true); draggingRef.current = null }
+          else setRightPanelWidth(Math.min(480, Math.max(180, w)))
+        }
+      })
     }
-    function onMouseUp() { draggingRef.current = null }
+    function onMouseUp() {
+      draggingRef.current = null
+      if (rafRef.current !== null) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
+    }
     window.addEventListener('mousemove', onMouseMove)
     window.addEventListener('mouseup', onMouseUp)
     return () => {
       window.removeEventListener('mousemove', onMouseMove)
       window.removeEventListener('mouseup', onMouseUp)
+      if (rafRef.current !== null) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
     }
   }, [])
 
@@ -193,6 +203,9 @@ export function EditorScreen() {
         {/* Left drag handle */}
         {!glyphListCollapsed && (
           <div
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize glyph list"
             className="hover:bg-primary/40 w-1 shrink-0 cursor-col-resize transition-colors"
             onMouseDown={(e) => {
               e.preventDefault()
@@ -209,6 +222,9 @@ export function EditorScreen() {
         {/* Right drag handle */}
         {!rightPanelCollapsed && (
           <div
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize right panel"
             className="hover:bg-primary/40 w-1 shrink-0 cursor-col-resize transition-colors"
             onMouseDown={(e) => {
               e.preventDefault()
@@ -220,13 +236,15 @@ export function EditorScreen() {
         {/* Right panel — full or collapsed sliver */}
         {rightPanelCollapsed ? (
           <div className="border-border flex w-6 shrink-0 flex-col border-l">
-            <div
+            <button
               className="border-border flex h-9 shrink-0 cursor-pointer items-center justify-center border-b transition-colors hover:bg-muted"
               onClick={() => setRightPanelCollapsed(false)}
               title="Show panel"
+              aria-label="Expand right panel"
+              aria-expanded={false}
             >
               <ChevronLeft className="text-muted-foreground h-3.5 w-3.5" />
-            </div>
+            </button>
           </div>
         ) : (
           <RightPanel onCollapse={() => setRightPanelCollapsed(true)} width={rightPanelWidth} />
