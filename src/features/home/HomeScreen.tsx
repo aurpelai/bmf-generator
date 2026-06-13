@@ -77,13 +77,13 @@ export function HomeScreen() {
             <Plus className="mr-2 h-4 w-4" />
             New blank project
           </Button>
-          <Button variant="outline" onClick={() => setImportOpen(true)}>
-            <Upload className="mr-2 h-4 w-4" />
-            Import font
-          </Button>
           <Button variant="outline" onClick={() => setBmfImportOpen(true)}>
             <FolderOpen className="mr-2 h-4 w-4" />
             Load existing project
+          </Button>
+          <Button variant="outline" onClick={() => setImportOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" />
+            Import font
           </Button>
         </div>
 
