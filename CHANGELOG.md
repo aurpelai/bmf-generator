@@ -2,6 +2,47 @@
 
 All notable changes to this project will be documented in this file.
 
+## v0.0.3
+
+[compare changes](https://github.com/aurpelai/bmf-generator/compare/v0.0.2...v0.0.3)
+
+### 🚀 Enhancements
+
+- Add Settings tab to right panel with editable project settings ([e6aed93](https://github.com/aurpelai/bmf-generator/commit/e6aed93))
+- Resize pixel editor canvas to font cell (fontSize × lineHeight) ([cd43fc1](https://github.com/aurpelai/bmf-generator/commit/cd43fc1))
+- Live canvas preview when editing fontSize, lineHeight, and baseline ([a18dcbb](https://github.com/aurpelai/bmf-generator/commit/a18dcbb))
+- Add editable capHeight setting with guide line labels ([e466e9c](https://github.com/aurpelai/bmf-generator/commit/e466e9c))
+- Apply dark aquatic teal accent colour and refine background and borders ([7d25c30](https://github.com/aurpelai/bmf-generator/commit/7d25c30))
+- Move tool for repositioning glyph on the pixel grid ([17f8d7d](https://github.com/aurpelai/bmf-generator/commit/17f8d7d))
+- Move tool for repositioning glyph on the pixel grid ([3783074](https://github.com/aurpelai/bmf-generator/commit/3783074))
+- Brush size for pencil and eraser tools ([0e81a85](https://github.com/aurpelai/bmf-generator/commit/0e81a85))
+- Keyboard shortcuts, tool modifiers, and undo/redo ([6a1c63a](https://github.com/aurpelai/bmf-generator/commit/6a1c63a))
+- Keyboard shortcuts, tool modifiers, and undo/redo ([650d726](https://github.com/aurpelai/bmf-generator/commit/650d726))
+- Collapsible glyph list and right panel ([cd5da67](https://github.com/aurpelai/bmf-generator/commit/cd5da67))
+- In-app keyboard shortcut help overlay ([7b8c6ec](https://github.com/aurpelai/bmf-generator/commit/7b8c6ec))
+- Toast notifications for auto-save and export ([6e2213e](https://github.com/aurpelai/bmf-generator/commit/6e2213e))
+- Resizable panels with collapse-on-drag ([a925342](https://github.com/aurpelai/bmf-generator/commit/a925342))
+- Accessibility pass and performance improvements ([4fc04cf](https://github.com/aurpelai/bmf-generator/commit/4fc04cf))
+- Cmd+' shortcut to toggle both side panels ([74f63cc](https://github.com/aurpelai/bmf-generator/commit/74f63cc))
+- Zoom tool with Alt-to-invert and cursor-centred zoom ([fbaf2ed](https://github.com/aurpelai/bmf-generator/commit/fbaf2ed))
+- Double-click drag handles to collapse panels ([7236a01](https://github.com/aurpelai/bmf-generator/commit/7236a01))
+
+### 🩹 Fixes
+
+- Baseline indicator not visible when importing a BMF font ([543e1b7](https://github.com/aurpelai/bmf-generator/commit/543e1b7))
+- Show cap-height guide when glyph box is smaller than cap height ([0fb1f6b](https://github.com/aurpelai/bmf-generator/commit/0fb1f6b))
+- Glyphs lost when switching between projects ([2b800f5](https://github.com/aurpelai/bmf-generator/commit/2b800f5))
+- Font import rasterisation slow and silently fails on confirm ([3d0440f](https://github.com/aurpelai/bmf-generator/commit/3d0440f))
+- Right panel tab bar height to match glyph list header and toolbar ([db7104e](https://github.com/aurpelai/bmf-generator/commit/db7104e))
+- Cursor pointer on buttons and tabs, active tab underline alignment, placeholder text consistency ([7bee7a3](https://github.com/aurpelai/bmf-generator/commit/7bee7a3))
+- Add px unit to brush size stepper ([584c63f](https://github.com/aurpelai/bmf-generator/commit/584c63f))
+- Clamp baseline and cap height to line height, improve guide labels ([adc4524](https://github.com/aurpelai/bmf-generator/commit/adc4524))
+- Match right panel collapse button style to glyph list ([88a08cc](https://github.com/aurpelai/bmf-generator/commit/88a08cc))
+
+### ❤️ Contributors
+
+- Antti Urpelainen <antti.urpelainen@gmail.com>
+
 ## v0.0.2
 
 
