@@ -8,6 +8,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A `plans/` directory may be present locally with design and implementation planning documents.
 
+## Branching model
+
+All work happens on feature branches merged to `main` via PRs — never commit directly to `main`.
+
+**Branch naming:** mirrors the commit type prefix:
+- `feat/short-description` — new feature
+- `fix/short-description` — bug fix
+- `chore/short-description` — tooling, deps, config
+
+**Merge strategy: regular merge commit (no squash).** Granular conventional commits on the branch are preserved in `main`'s history. Changelogen reads each individual commit when generating the changelog, so a well-documented branch produces a well-documented release. Squash merge is explicitly avoided for this reason.
+
+**Commit granularity on branches:** each logical unit of work gets its own conventional commit. A branch implementing a feature may have several `feat:`, `fix:`, and `refactor:` commits — that's correct and intentional.
+
 ## Commit convention
 
 This project uses [Conventional Commits](https://www.conventionalcommits.org). Types:
