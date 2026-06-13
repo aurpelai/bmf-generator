@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+
+# Vite / TypeScript
+*.local
+*.tsbuildinfo
+
+# Test coverage
+coverage/
+
+# Editor directories
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Planning documents (living docs, not part of history)
+plans/
+
+# Env files
+.env
+.env.local
+.env.*.local
