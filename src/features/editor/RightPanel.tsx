@@ -6,10 +6,10 @@ import { Label } from '@/components/ui/label'
 import { useStore } from '@/store'
 import { useAtlas } from '@/hooks/useAtlas'
 import { useRasterize } from '@/hooks/useRasterize'
-import { getFontFile, saveGlyphs } from '@/db'
+import { getFontFile, saveGlyphs, saveProject } from '@/db'
 import type { Glyph } from '@/core/project/types'
 
-type Tab = 'metrics' | 'atlas'
+type Tab = 'metrics' | 'atlas' | 'settings'
 
 // Debounce helper
 function useDebounce<T>(value: T, ms: number): T {
@@ -211,6 +211,229 @@ const PRESETS: Array<{ id: import('@/store').GlyphPreset; label: string }> = [
   { id: 'custom', label: 'Custom' },
 ]
 
+function GlyphSelection() {
+  const glyphs = useStore((s) => s.glyphs)
+  const exportSelection = useStore((s) => s.exportSelection)
+  const exportPreset = useStore((s) => s.exportPreset)
+  const setExportPreset = useStore((s) => s.setExportPreset)
+  const toggleExportGlyph = useStore((s) => s.toggleExportGlyph)
+  const allCodePoints = glyphs.map((g) => g.codePoint)
+
+  return (
+    <div className="grid gap-1.5">
+      <span className="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">Glyph selection</span>
+      <div className="flex flex-wrap gap-1">
+        {PRESETS.map((p) => (
+          <button
+            key={p.id}
+            onClick={() => setExportPreset(p.id, allCodePoints)}
+            className={`rounded px-2 py-0.5 text-[11px] transition-colors ${
+              exportPreset === p.id
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-0.5 pt-0.5">
+        {glyphs.map((g) => {
+          const selected = exportSelection === null || exportSelection.has(g.codePoint)
+          const char = String.fromCodePoint(g.codePoint)
+          return (
+            <button
+              key={g.codePoint}
+              title={`U+${g.codePoint.toString(16).toUpperCase().padStart(4, '0')} ${char}`}
+              onClick={() => toggleExportGlyph(g.codePoint, allCodePoints)}
+              className={`flex h-6 w-6 items-center justify-center rounded text-[11px] transition-colors ${
+                selected
+                  ? 'bg-accent text-accent-foreground'
+                  : 'bg-muted text-muted-foreground/30'
+              }`}
+            >
+              {char}
+            </button>
+          )
+        })}
+      </div>
+      <div className="text-muted-foreground text-[10px]">
+        {exportSelection === null ? glyphs.length : exportSelection.size} / {glyphs.length} glyphs selected
+      </div>
+    </div>
+  )
+}
+
+function SettingsTab() {
+  const currentProject = useStore((s) => s.currentProject)
+  const updateCurrentProject = useStore((s) => s.updateCurrentProject)
+
+  const s = currentProject?.settings
+  const [name, setName] = useState(currentProject?.name ?? '')
+  const [fontSize, setFontSize] = useState(s?.fontSize ?? 32)
+  const [lineHeight, setLineHeight] = useState(s?.lineHeight ?? 36)
+  const [base, setBase] = useState(s?.base ?? 28)
+  const [paddingTop, setPaddingTop] = useState(s?.padding.top ?? 1)
+  const [paddingRight, setPaddingRight] = useState(s?.padding.right ?? 1)
+  const [paddingBottom, setPaddingBottom] = useState(s?.padding.bottom ?? 1)
+  const [paddingLeft, setPaddingLeft] = useState(s?.padding.left ?? 1)
+  const [spacingX, setSpacingX] = useState(s?.spacing.x ?? 1)
+  const [spacingY, setSpacingY] = useState(s?.spacing.y ?? 1)
+
+  useEffect(() => {
+    if (!currentProject) return
+    setName(currentProject.name)
+    const s = currentProject.settings
+    setFontSize(s.fontSize)
+    setLineHeight(s.lineHeight)
+    setBase(s.base)
+    setPaddingTop(s.padding.top)
+    setPaddingRight(s.padding.right)
+    setPaddingBottom(s.padding.bottom)
+    setPaddingLeft(s.padding.left)
+    setSpacingX(s.spacing.x)
+    setSpacingY(s.spacing.y)
+  }, [currentProject?.id])
+
+  if (!currentProject) return null
+
+  function commit(changes: Parameters<typeof updateCurrentProject>[0]) {
+    updateCurrentProject(changes)
+    saveProject({ ...currentProject!, ...changes, updatedAt: Date.now() })
+  }
+
+  function commitSettings(partial: Partial<NonNullable<typeof currentProject>['settings']>) {
+    commit({ settings: { ...currentProject!.settings, ...partial } })
+  }
+
+  return (
+    <div className="flex flex-1 flex-col gap-4 overflow-auto p-3">
+      {/* Project name */}
+      <div className="grid gap-1">
+        <Label htmlFor="rp-name" className="text-[10px]">Project name</Label>
+        <Input
+          id="rp-name"
+          className="h-7 text-xs"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onBlur={() => commit({ name })}
+          onKeyDown={(e) => e.key === 'Enter' && commit({ name })}
+        />
+      </div>
+
+      {/* Font metrics */}
+      <div className="grid gap-2">
+        <span className="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">Font metrics</span>
+        <div className="grid gap-1">
+          <Label htmlFor="rp-fontsize" className="text-[10px]">Font size</Label>
+          <Input
+            id="rp-fontsize"
+            type="number"
+            className="h-7 text-xs"
+            value={fontSize}
+            onChange={(e) => setFontSize(Number(e.target.value))}
+            onBlur={() => commitSettings({ fontSize })}
+            onKeyDown={(e) => e.key === 'Enter' && commitSettings({ fontSize })}
+          />
+        </div>
+        <div className="grid gap-1">
+          <Label htmlFor="rp-lineheight" className="text-[10px]">Line height</Label>
+          <Input
+            id="rp-lineheight"
+            type="number"
+            className="h-7 text-xs"
+            value={lineHeight}
+            onChange={(e) => setLineHeight(Number(e.target.value))}
+            onBlur={() => commitSettings({ lineHeight })}
+            onKeyDown={(e) => e.key === 'Enter' && commitSettings({ lineHeight })}
+          />
+        </div>
+        <div className="grid gap-1">
+          <Label htmlFor="rp-base" className="text-[10px]">Baseline</Label>
+          <Input
+            id="rp-base"
+            type="number"
+            className="h-7 text-xs"
+            value={base}
+            onChange={(e) => setBase(Number(e.target.value))}
+            onBlur={() => commitSettings({ base })}
+            onKeyDown={(e) => e.key === 'Enter' && commitSettings({ base })}
+          />
+        </div>
+      </div>
+
+      {/* Padding */}
+      <div className="grid gap-2">
+        <span className="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">Padding</span>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="grid gap-1">
+            <Label htmlFor="rp-pad-top" className="text-[10px]">Top</Label>
+            <Input id="rp-pad-top" type="number" className="h-7 text-xs" value={paddingTop}
+              onChange={(e) => setPaddingTop(Number(e.target.value))}
+              onBlur={() => commitSettings({ padding: { top: paddingTop, right: paddingRight, bottom: paddingBottom, left: paddingLeft } })}
+              onKeyDown={(e) => e.key === 'Enter' && commitSettings({ padding: { top: paddingTop, right: paddingRight, bottom: paddingBottom, left: paddingLeft } })} />
+          </div>
+          <div className="grid gap-1">
+            <Label htmlFor="rp-pad-right" className="text-[10px]">Right</Label>
+            <Input id="rp-pad-right" type="number" className="h-7 text-xs" value={paddingRight}
+              onChange={(e) => setPaddingRight(Number(e.target.value))}
+              onBlur={() => commitSettings({ padding: { top: paddingTop, right: paddingRight, bottom: paddingBottom, left: paddingLeft } })}
+              onKeyDown={(e) => e.key === 'Enter' && commitSettings({ padding: { top: paddingTop, right: paddingRight, bottom: paddingBottom, left: paddingLeft } })} />
+          </div>
+          <div className="grid gap-1">
+            <Label htmlFor="rp-pad-bottom" className="text-[10px]">Bottom</Label>
+            <Input id="rp-pad-bottom" type="number" className="h-7 text-xs" value={paddingBottom}
+              onChange={(e) => setPaddingBottom(Number(e.target.value))}
+              onBlur={() => commitSettings({ padding: { top: paddingTop, right: paddingRight, bottom: paddingBottom, left: paddingLeft } })}
+              onKeyDown={(e) => e.key === 'Enter' && commitSettings({ padding: { top: paddingTop, right: paddingRight, bottom: paddingBottom, left: paddingLeft } })} />
+          </div>
+          <div className="grid gap-1">
+            <Label htmlFor="rp-pad-left" className="text-[10px]">Left</Label>
+            <Input id="rp-pad-left" type="number" className="h-7 text-xs" value={paddingLeft}
+              onChange={(e) => setPaddingLeft(Number(e.target.value))}
+              onBlur={() => commitSettings({ padding: { top: paddingTop, right: paddingRight, bottom: paddingBottom, left: paddingLeft } })}
+              onKeyDown={(e) => e.key === 'Enter' && commitSettings({ padding: { top: paddingTop, right: paddingRight, bottom: paddingBottom, left: paddingLeft } })} />
+          </div>
+        </div>
+      </div>
+
+      {/* Spacing */}
+      <div className="grid gap-2">
+        <span className="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">Spacing</span>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="grid gap-1">
+            <Label htmlFor="rp-spacingx" className="text-[10px]">X</Label>
+            <Input
+              id="rp-spacingx"
+              type="number"
+              className="h-7 text-xs"
+              value={spacingX}
+              onChange={(e) => setSpacingX(Number(e.target.value))}
+              onBlur={() => commitSettings({ spacing: { x: spacingX, y: spacingY } })}
+              onKeyDown={(e) => e.key === 'Enter' && commitSettings({ spacing: { x: spacingX, y: spacingY } })}
+            />
+          </div>
+          <div className="grid gap-1">
+            <Label htmlFor="rp-spacingy" className="text-[10px]">Y</Label>
+            <Input
+              id="rp-spacingy"
+              type="number"
+              className="h-7 text-xs"
+              value={spacingY}
+              onChange={(e) => setSpacingY(Number(e.target.value))}
+              onBlur={() => commitSettings({ spacing: { x: spacingX, y: spacingY } })}
+              onKeyDown={(e) => e.key === 'Enter' && commitSettings({ spacing: { x: spacingX, y: spacingY } })}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Glyph selection */}
+      <GlyphSelection />
+    </div>
+  )
+}
+
 function AtlasTab() {
   const [packing, setPacking] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -223,13 +446,9 @@ function AtlasTab() {
   const atlasEfficiency = useStore((s) => s.atlasEfficiency)
   const setAtlasResult = useStore((s) => s.setAtlasResult)
   const exportSelection = useStore((s) => s.exportSelection)
-  const exportPreset = useStore((s) => s.exportPreset)
-  const setExportPreset = useStore((s) => s.setExportPreset)
-  const toggleExportGlyph = useStore((s) => s.toggleExportGlyph)
 
   const { packAtlas } = useAtlas()
 
-  const allCodePoints = glyphs.map((g) => g.codePoint)
   // Glyphs to pack: selection or all
   const selectedGlyphs = exportSelection === null
     ? glyphs
@@ -276,52 +495,6 @@ function AtlasTab() {
 
   return (
     <div className="flex flex-1 flex-col gap-3 overflow-auto p-3">
-      {/* Preset selector */}
-      <div className="grid gap-1.5">
-        <span className="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">Glyph selection</span>
-        <div className="flex flex-wrap gap-1">
-          {PRESETS.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => setExportPreset(p.id, allCodePoints)}
-              className={`rounded px-2 py-0.5 text-[11px] transition-colors ${
-                exportPreset === p.id
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Per-glyph toggles */}
-      <div className="flex flex-wrap gap-0.5">
-        {glyphs.map((g) => {
-          const selected = exportSelection === null || exportSelection.has(g.codePoint)
-          const char = String.fromCodePoint(g.codePoint)
-          return (
-            <button
-              key={g.codePoint}
-              title={`U+${g.codePoint.toString(16).toUpperCase().padStart(4, '0')} ${char}`}
-              onClick={() => toggleExportGlyph(g.codePoint, allCodePoints)}
-              className={`flex h-6 w-6 items-center justify-center rounded text-[11px] transition-colors ${
-                selected
-                  ? 'bg-accent text-accent-foreground'
-                  : 'bg-muted text-muted-foreground/30'
-              }`}
-            >
-              {char}
-            </button>
-          )
-        })}
-      </div>
-
-      <div className="text-muted-foreground text-[10px]">
-        {exportSelection === null ? glyphs.length : exportSelection.size} / {glyphs.length} glyphs selected
-      </div>
-
       {/* Atlas preview */}
       {packing ? (
         <div className="text-muted-foreground flex items-center justify-center gap-2 py-4 text-xs">
@@ -353,7 +526,7 @@ function AtlasTab() {
 }
 
 export function RightPanel() {
-  const [tab, setTab] = useState<Tab>('atlas')
+  const [tab, setTab] = useState<Tab>('metrics')
 
   const tabClass = (t: Tab) =>
     `px-3 py-1.5 text-xs font-medium transition-colors ${
@@ -367,8 +540,11 @@ export function RightPanel() {
       <div className="border-border flex border-b">
         <button className={tabClass('metrics')} onClick={() => setTab('metrics')}>Metrics</button>
         <button className={tabClass('atlas')} onClick={() => setTab('atlas')}>Atlas</button>
+        <button className={tabClass('settings')} onClick={() => setTab('settings')}>Settings</button>
       </div>
-      {tab === 'metrics' ? <MetricsTab /> : <AtlasTab />}
+      {tab === 'metrics' && <MetricsTab />}
+      {tab === 'atlas' && <AtlasTab />}
+      {tab === 'settings' && <SettingsTab />}
     </div>
   )
 }
