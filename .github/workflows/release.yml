@@ -29,8 +29,22 @@ jobs:
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
+      - name: Check for user-facing changes
+        id: check
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then
+            RANGE="HEAD"
+          else
+            RANGE="${LAST_TAG}..HEAD"
+          fi
+          COUNT=$(git log "$RANGE" --pretty=format:"%s" | grep -cE "^(feat|fix)(\(.+\))?!?:" || true)
+          echo "releasable=$( [ "$COUNT" -gt 0 ] && echo true || echo false )" >> "$GITHUB_OUTPUT"
+
       - name: Bump version and tag
+        if: steps.check.outputs.releasable == 'true'
         run: pnpm release
 
       - name: Push commit and tag
+        if: steps.check.outputs.releasable == 'true'
         run: git push --follow-tags
