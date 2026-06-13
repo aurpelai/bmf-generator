@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## v0.0.7
+
+[compare changes](https://github.com/aurpelai/bmf-generator/compare/v0.0.6...v0.0.7)
+
+### 🚀 Enhancements
+
+- Load existing BMF project from .fnt + atlas PNG ([5a1f133](https://github.com/aurpelai/bmf-generator/commit/5a1f133))
+
+### 🩹 Fixes
+
+- Auto-detect 1-bit vs alpha atlas when slicing glyph pixels ([2cf7f7e](https://github.com/aurpelai/bmf-generator/commit/2cf7f7e))
+- Handle black-on-white RGB atlases by inverting pixel values ([b40613a](https://github.com/aurpelai/bmf-generator/commit/b40613a))
+
+### 💅 Refactors
+
+- Move Load existing project button next to New blank project ([9151055](https://github.com/aurpelai/bmf-generator/commit/9151055))
+
+### 🤖 CI
+
+- Create GitHub Release from CHANGELOG after each version tag ([b3e4dfd](https://github.com/aurpelai/bmf-generator/commit/b3e4dfd))
+
+### ❤️ Contributors
+
+- Antti Urpelainen <antti.urpelainen@gmail.com>
+
 ## v0.0.6
 
 [compare changes](https://github.com/aurpelai/bmf-generator/compare/v0.0.5...v0.0.6)
