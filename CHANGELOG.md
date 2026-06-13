@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## v0.0.6
+
+[compare changes](https://github.com/aurpelai/bmf-generator/compare/v0.0.5...v0.0.6)
+
+### 🚀 Enhancements
+
+- Baseline/cap-height guides, metrics tab, reset to font, atlas auto-update ([011c188](https://github.com/aurpelai/bmf-generator/commit/011c188))
+
+### ❤️ Contributors
+
+- Antti Urpelainen <antti.urpelainen@gmail.com>
+
 ## v0.0.5
 
 [compare changes](https://github.com/aurpelai/bmf-generator/compare/v0.0.4...v0.0.5)
