@@ -20,15 +20,18 @@ export interface RasterizeResult {
   glyphs: RasterizedGlyph[]
   lineHeight: number
   base: number
+  capHeight: number
 }
 
 export function rasterizeFont(req: RasterizeRequest): RasterizeResult {
   const font = opentype.parse(req.fontBuffer)
   const scale = req.fontSize / font.unitsPerEm
 
-  const lineGap = (font.tables.os2 as { sTypoLineGap?: number } | undefined)?.sTypoLineGap ?? 0
+  const os2 = font.tables.os2 as { sTypoLineGap?: number; sCapHeight?: number } | undefined
+  const lineGap = os2?.sTypoLineGap ?? 0
   const lineHeight = Math.round((font.ascender - font.descender + lineGap) * scale)
   const base = Math.round(font.ascender * scale)
+  const capHeight = Math.round((os2?.sCapHeight ?? Math.round(font.ascender * 0.7)) * scale)
 
   const glyphs: RasterizedGlyph[] = []
 
@@ -82,5 +85,5 @@ export function rasterizeFont(req: RasterizeRequest): RasterizeResult {
     glyphs.push({ codePoint, pixels, width, height, xoffset, yoffset, xadvance })
   }
 
-  return { glyphs, lineHeight, base }
+  return { glyphs, lineHeight, base, capHeight }
 }

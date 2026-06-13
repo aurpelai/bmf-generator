@@ -5,6 +5,7 @@ export interface FontSettings {
   spacing: { x: number; y: number }
   lineHeight: number
   base: number
+  capHeight: number
 }
 
 export interface Project {
@@ -51,5 +52,6 @@ export function defaultFontSettings(): FontSettings {
     spacing: { x: 1, y: 1 },
     lineHeight: 36,
     base: 28,
+    capHeight: 22,
   }
 }

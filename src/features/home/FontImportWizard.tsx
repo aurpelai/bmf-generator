@@ -72,6 +72,7 @@ export function FontImportWizard({ open, onOpenChange }: Props) {
   const [rasterizeError, setRasterizeError] = useState<string | null>(null)
   const [confirming, setConfirming] = useState(false)
   const fontBufferRef = useRef<ArrayBuffer | null>(null)
+  const fontMetricsRef = useRef({ lineHeight: 0, base: 0, capHeight: 0 })
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { rasterize } = useRasterize()
@@ -104,6 +105,7 @@ export function FontImportWizard({ open, onOpenChange }: Props) {
       const bufferCopy = fontBufferRef.current.slice(0)
       const result = await rasterize(bufferCopy, glyphSet.codePoints, fontSize)
       setRasterizedGlyphs(result.glyphs)
+      fontMetricsRef.current = { lineHeight: result.lineHeight, base: result.base, capHeight: result.capHeight }
     } catch (err) {
       setRasterizeError(err instanceof Error ? err.message : 'Rasterisation failed')
     } finally {
@@ -128,8 +130,9 @@ export function FontImportWizard({ open, onOpenChange }: Props) {
         fontSize,
         padding: { top: paddingVal, right: paddingVal, bottom: paddingVal, left: paddingVal },
         spacing: { x: spacingX, y: spacingY },
-        lineHeight: Math.round(fontSize * 1.2),
-        base: Math.round(fontSize * 0.8),
+        lineHeight: fontMetricsRef.current.lineHeight || Math.round(fontSize * 1.2),
+        base: fontMetricsRef.current.base || Math.round(fontSize * 0.8),
+        capHeight: fontMetricsRef.current.capHeight || Math.round(fontSize * 0.7),
       })
       project.glyphs = glyphSet.codePoints
 
