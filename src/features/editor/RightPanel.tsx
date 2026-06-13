@@ -555,7 +555,7 @@ export function RightPanel() {
 
   return (
     <div className="border-border flex h-full w-64 shrink-0 flex-col border-l">
-      <div className="border-border flex border-b">
+      <div className="border-border flex h-9 shrink-0 items-center border-b">
         <button className={tabClass('metrics')} onClick={() => setTab('metrics')}>Metrics</button>
         <button className={tabClass('atlas')} onClick={() => setTab('atlas')}>Atlas</button>
         <button className={tabClass('settings')} onClick={() => setTab('settings')}>Settings</button>
