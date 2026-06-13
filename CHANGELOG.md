@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## v0.0.5
+
+[compare changes](https://github.com/aurpelai/bmf-generator/compare/v0.0.4...v0.0.5)
+
+### 🚀 Enhancements
+
+- Sort glyph list by uppercase letters, lowercase, digits, then rest ([ebf3cc1](https://github.com/aurpelai/bmf-generator/commit/ebf3cc1))
+
+### ❤️ Contributors
+
+- Antti Urpelainen <antti.urpelainen@gmail.com>
+
 ## v0.0.4
 
 [compare changes](https://github.com/aurpelai/bmf-generator/compare/v0.0.3...v0.0.4)
