@@ -54,15 +54,24 @@ function DropZone({
   )
 }
 
-function detectAtlasMode(data: Uint8ClampedArray): 'alpha' | 'rgb' {
-  // Sample every pixel's alpha. If all values are 0 or 255 the atlas is either
-  // 1-bit or a fully-opaque RGB image — use the red channel as coverage.
-  // Any intermediate alpha value means it's an anti-aliased alpha atlas.
+type AtlasMode = 'alpha' | 'rgb-white-on-black' | 'rgb-black-on-white'
+
+function detectAtlasMode(data: Uint8ClampedArray, width: number, height: number): AtlasMode {
+  // Any intermediate alpha value → anti-aliased alpha atlas
   for (let i = 3; i < data.length; i += 4) {
     const a = data[i]
     if (a !== 0 && a !== 255) return 'alpha'
   }
-  return 'rgb'
+  // Fully opaque RGB atlas — check corners to determine background colour.
+  // Corners are almost always background. Sum their red values: bright = white bg.
+  const corners = [
+    0,
+    (width - 1) * 4,
+    (height - 1) * width * 4,
+    ((height - 1) * width + width - 1) * 4,
+  ]
+  const avgCornerRed = corners.reduce((s, i) => s + data[i], 0) / corners.length
+  return avgCornerRed >= 128 ? 'rgb-black-on-white' : 'rgb-white-on-black'
 }
 
 function sliceGlyphsFromAtlas(
@@ -70,8 +79,8 @@ function sliceGlyphsFromAtlas(
   chars: Array<{ id: number; x: number; y: number; width: number; height: number; xoffset: number; yoffset: number; xadvance: number }>,
   projectId: string,
 ): Glyph[] {
-  const { data, width: atlasW } = imageData
-  const mode = detectAtlasMode(data)
+  const { data, width: atlasW, height: atlasH } = imageData
+  const mode = detectAtlasMode(data, atlasW, atlasH)
   return chars.map((c) => {
     if (c.width === 0 || c.height === 0) {
       return {
@@ -90,7 +99,12 @@ function sliceGlyphsFromAtlas(
     for (let row = 0; row < c.height; row++) {
       for (let col = 0; col < c.width; col++) {
         const atlasIdx = ((c.y + row) * atlasW + (c.x + col)) * 4
-        pixels[row * c.width + col] = mode === 'alpha' ? data[atlasIdx + 3] : data[atlasIdx]
+        const v = mode === 'alpha'
+          ? data[atlasIdx + 3]
+          : mode === 'rgb-black-on-white'
+            ? 255 - data[atlasIdx]
+            : data[atlasIdx]
+        pixels[row * c.width + col] = v
       }
     }
     return {
