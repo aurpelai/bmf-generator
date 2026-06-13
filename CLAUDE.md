@@ -12,6 +12,14 @@ A `plans/` directory may be present locally with design and implementation plann
 
 All work happens on feature branches merged to `main` via PRs. **Never commit directly to `main`** — it is protected by a GitHub branch ruleset that blocks direct pushes. Always create a branch, commit there, and open a PR.
 
+**Before starting any new work**, create a fresh branch off an up-to-date `main`:
+```bash
+git fetch origin
+git checkout main
+git merge --ff-only origin/main
+git checkout -b <type>/short-description
+```
+
 **Branch naming:** mirrors the commit type prefix:
 - `feat/short-description` — new feature
 - `fix/short-description` — bug fix

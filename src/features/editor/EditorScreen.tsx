@@ -3,6 +3,9 @@ import { ArrowLeft, FileType } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useStore } from '@/store'
 import { getGlyphsForProject } from '@/db/glyphs'
+import { GlyphList } from './glyph-list/GlyphList'
+import { PixelEditor } from './pixel-editor/PixelEditor'
+import { EditorToolbar } from './toolbar/EditorToolbar'
 import { RightPanel } from './RightPanel'
 
 export function EditorScreen() {
@@ -10,12 +13,29 @@ export function EditorScreen() {
   const setView = useStore((s) => s.setView)
   const glyphs = useStore((s) => s.glyphs)
   const setGlyphs = useStore((s) => s.setGlyphs)
+  const setActiveTool = useStore((s) => s.setActiveTool)
+  const showGrid = useStore((s) => s.showGrid)
+  const setShowGridFn = useStore((s) => s.setShowGrid)
 
   // Load glyphs from IndexedDB when editor opens (e.g. after page refresh)
   useEffect(() => {
     if (!currentProject || glyphs.length > 0) return
     getGlyphsForProject(currentProject.id).then(setGlyphs)
   }, [currentProject?.id])
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      switch (e.key.toLowerCase()) {
+        case 'b': setActiveTool('pencil'); break
+        case 'e': setActiveTool('eraser'); break
+        case 'g': setShowGridFn(!showGrid); break
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [showGrid])
 
   return (
     <div className="flex h-full flex-col">
@@ -36,11 +56,11 @@ export function EditorScreen() {
 
       {/* Editor workspace */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Centre placeholder — replaced in Phase 4 */}
-        <div className="text-muted-foreground flex flex-1 items-center justify-center text-sm">
-          {glyphs.length > 0
-            ? `${glyphs.length} glyphs loaded — pixel editor coming in Phase 4.`
-            : 'No glyphs loaded.'}
+        <GlyphList />
+
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <EditorToolbar />
+          <PixelEditor />
         </div>
 
         <RightPanel />
