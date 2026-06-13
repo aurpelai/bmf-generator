@@ -62,9 +62,9 @@ export function PixelEditor() {
       const { base } = project.settings
       // baseline within glyph box = distance from cell top to baseline, minus glyph's own top offset
       const baselineY = (base - g.yoffset) * zoom
-      // cap-height: approximate at ~70% of fontSize above baseline
+      // cap-height: approximate at ~70% of fontSize above baseline, clamped to canvas top
       const capHeight = Math.round(project.settings.fontSize * 0.7)
-      const capY = baselineY - capHeight * zoom
+      const capY = Math.max(0, baselineY - capHeight * zoom)
 
       ctx.save()
       // Baseline — amber
@@ -77,8 +77,8 @@ export function PixelEditor() {
         ctx.lineTo(canvas.width, baselineY + 0.5)
         ctx.stroke()
       }
-      // Cap-height — cyan
-      if (capY >= 0 && capY <= canvas.height) {
+      // Cap-height — cyan (always draw when baseline is visible; capY is clamped to 0)
+      if (baselineY >= 0 && baselineY <= canvas.height) {
         ctx.strokeStyle = 'rgba(34,211,238,0.4)'
         ctx.lineWidth = 1
         ctx.setLineDash([4, 3])
