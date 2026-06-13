@@ -1,6 +1,6 @@
 import type { StateCreator } from 'zustand'
 
-export type EditorTool = 'pencil' | 'eraser' | 'move'
+export type EditorTool = 'pencil' | 'eraser' | 'move' | 'zoom'
 
 export interface GlyphSnapshot {
   pixels: Uint8Array

@@ -1,4 +1,4 @@
-import { Grid2x2, Grid2x2X, Minus, Move, Pencil, Plus } from 'lucide-react'
+import { Grid2x2, Grid2x2X, Minus, Move, Pencil, Plus, ZoomIn } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useStore } from '@/store'
 import { cn } from '@/lib/utils'
@@ -43,10 +43,6 @@ export function EditorToolbar() {
 
   return (
     <div className="border-border flex h-9 shrink-0 items-center gap-1 border-b px-2">
-      {toolBtn('move', <Move className="h-3.5 w-3.5" />, 'Move (M)')}
-
-      <div className="bg-border mx-1 h-5 w-px" />
-
       {toolBtn('pencil', <Pencil className="h-3.5 w-3.5" />, 'Pencil (B)')}
       {toolBtn('eraser', <Grid2x2X className="h-3.5 w-3.5" />, 'Eraser (E)')}
 
@@ -62,6 +58,8 @@ export function EditorToolbar() {
 
       <div className="bg-border mx-1 h-5 w-px" />
 
+      {toolBtn('move', <Move className="h-3.5 w-3.5" />, 'Move (M)')}
+      {toolBtn('zoom', <ZoomIn className="h-3.5 w-3.5" />, 'Zoom (Z)')}
       <Button variant="ghost" size="icon" className="h-7 w-7" title="Zoom out" aria-label="Zoom out" onClick={zoomOut} disabled={zoomLevel <= ZOOM_PRESETS[0]}>
         <Minus className="h-3.5 w-3.5" />
       </Button>
