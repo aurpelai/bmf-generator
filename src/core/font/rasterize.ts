@@ -24,7 +24,7 @@ export interface RasterizeResult {
 }
 
 export function rasterizeFont(req: RasterizeRequest): RasterizeResult {
-  const font = opentype.parse(req.fontBuffer)
+  const font = opentype.parse(req.fontBuffer, { lowMemory: true })
   const scale = req.fontSize / font.unitsPerEm
 
   const os2 = font.tables.os2 as { sTypoLineGap?: number; sCapHeight?: number } | undefined
@@ -60,7 +60,6 @@ export function rasterizeFont(req: RasterizeRequest): RasterizeResult {
 
     const canvas = new OffscreenCanvas(width, height)
     const ctx = canvas.getContext('2d')!
-    ctx.fillStyle = 'white'
 
     // x: shift left edge of glyph bounding box to canvas origin
     // y: baseline in canvas space = distance from top of bounding box to baseline
@@ -68,15 +67,10 @@ export function rasterizeFont(req: RasterizeRequest): RasterizeResult {
     const penX = -bb.x1 * scale
     const penY = bb.y2 * scale
     const path = glyph.getPath(penX, penY, req.fontSize)
-    // toSVG() returns a full <path d="..."/> element; Path2D needs just the d value
-    const svgElement = path.toSVG(2)
-    const dMatch = svgElement.match(/d="([^"]*)"/)
-    if (!dMatch) continue
-    const p2d = new Path2D(dMatch[1])
-    ctx.fill(p2d)
+    path.draw(ctx)
 
     const imageData = ctx.getImageData(0, 0, width, height)
-    // Use alpha channel — white fill on transparent gives AA coverage in alpha
+    // Alpha channel carries AA coverage regardless of fill colour
     const pixels = new Uint8Array(width * height)
     for (let i = 0; i < pixels.length; i++) {
       pixels[i] = imageData.data[i * 4 + 3]
