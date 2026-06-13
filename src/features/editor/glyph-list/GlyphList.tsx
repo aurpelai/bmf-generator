@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Plus } from 'lucide-react'
 import { useStore } from '@/store'
+import type { Glyph } from '@/core/project'
 import { cn } from '@/lib/utils'
 import { makeBlankGlyph } from '@/core/project'
 import { saveGlyphs } from '@/db'
@@ -13,6 +14,22 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
+
+function glyphSortKey(cp: number): [number, number] {
+  const ch = String.fromCodePoint(cp)
+  if (/^\p{Lu}$/u.test(ch)) return [0, cp] // uppercase letters
+  if (/^\p{Ll}$/u.test(ch)) return [1, cp] // lowercase letters
+  if (cp >= 0x30 && cp <= 0x39) return [2, cp] // digits 0-9
+  return [3, cp]                              // everything else
+}
+
+function sortGlyphs(glyphs: Glyph[]): Glyph[] {
+  return [...glyphs].sort((a, b) => {
+    const [ga, ia] = glyphSortKey(a.codePoint)
+    const [gb, ib] = glyphSortKey(b.codePoint)
+    return ga !== gb ? ga - gb : ia - ib
+  })
+}
 
 function GlyphThumbnail({ pixels, width, height }: { pixels: Uint8Array; width: number; height: number }) {
   const size = 28
@@ -113,6 +130,8 @@ export function GlyphList() {
   const upsertGlyph = useStore((s) => s.upsertGlyph)
   const updateCurrentProject = useStore((s) => s.updateCurrentProject)
 
+  const sortedGlyphs = useMemo(() => sortGlyphs(glyphs), [glyphs])
+
   if (!currentProject) return null
 
   async function handleAddGlyph(codePoint: number) {
@@ -150,7 +169,7 @@ export function GlyphList() {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {glyphs.map((glyph) => {
+        {sortedGlyphs.map((glyph) => {
           const char = String.fromCodePoint(glyph.codePoint)
           const isSelected = glyph.codePoint === selectedCodePoint
           return (
