@@ -51,14 +51,20 @@ export function ExportDialog({ open, onOpenChange }: Props) {
   const atlasImageData = useStore((s) => s.atlasImageData)
   const atlasWidth = useStore((s) => s.atlasWidth)
   const atlasHeight = useStore((s) => s.atlasHeight)
+  const exportSelection = useStore((s) => s.exportSelection)
 
   const baseName = currentProject ? safeName(currentProject.name) : 'font'
   const atlasFilename = `${baseName}.png`
 
-  const fntText = currentProject && atlasPlacements.length > 0
+  // Only include placements that are in the current selection
+  const selectedPlacements = exportSelection === null
+    ? atlasPlacements
+    : atlasPlacements.filter((p) => exportSelection.has(p.codePoint))
+
+  const fntText = currentProject && selectedPlacements.length > 0
     ? serializeBmfText({
         project: currentProject,
-        glyphs: atlasPlacements.map((p): BmfGlyphData => {
+        glyphs: selectedPlacements.map((p): BmfGlyphData => {
           const g = glyphs.find((g) => g.codePoint === p.codePoint)
           return {
             placement: p,
@@ -151,7 +157,7 @@ export function ExportDialog({ open, onOpenChange }: Props) {
         {/* Footer */}
         <div className="flex items-center justify-between border-t border-border pt-3">
           <span className="text-muted-foreground text-xs">
-            {atlasPlacements.length} glyphs · {atlasWidth}×{atlasHeight} atlas
+            {selectedPlacements.length} glyphs · {atlasWidth}×{atlasHeight} atlas
           </span>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" className="text-xs" onClick={handleExportJson} disabled={!currentProject}>
