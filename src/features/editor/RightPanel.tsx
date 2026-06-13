@@ -306,6 +306,10 @@ function SettingsTab() {
     commit({ settings: { ...currentProject!.settings, ...partial } })
   }
 
+  function liveSettings(partial: Partial<NonNullable<typeof currentProject>['settings']>) {
+    updateCurrentProject({ settings: { ...currentProject!.settings, ...partial } })
+  }
+
   return (
     <div className="flex flex-1 flex-col gap-4 overflow-auto p-3">
       {/* Project name */}
@@ -331,7 +335,7 @@ function SettingsTab() {
             type="number"
             className="h-7 text-xs"
             value={fontSize}
-            onChange={(e) => setFontSize(Number(e.target.value))}
+            onChange={(e) => { setFontSize(Number(e.target.value)); liveSettings({ fontSize: Number(e.target.value) }) }}
             onBlur={() => commitSettings({ fontSize })}
             onKeyDown={(e) => e.key === 'Enter' && commitSettings({ fontSize })}
           />
@@ -343,7 +347,7 @@ function SettingsTab() {
             type="number"
             className="h-7 text-xs"
             value={lineHeight}
-            onChange={(e) => setLineHeight(Number(e.target.value))}
+            onChange={(e) => { setLineHeight(Number(e.target.value)); liveSettings({ lineHeight: Number(e.target.value) }) }}
             onBlur={() => commitSettings({ lineHeight })}
             onKeyDown={(e) => e.key === 'Enter' && commitSettings({ lineHeight })}
           />
@@ -355,7 +359,7 @@ function SettingsTab() {
             type="number"
             className="h-7 text-xs"
             value={base}
-            onChange={(e) => setBase(Number(e.target.value))}
+            onChange={(e) => { setBase(Number(e.target.value)); liveSettings({ base: Number(e.target.value) }) }}
             onBlur={() => commitSettings({ base })}
             onKeyDown={(e) => e.key === 'Enter' && commitSettings({ base })}
           />
