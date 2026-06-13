@@ -21,6 +21,8 @@ export function EditorScreen() {
   const [rightPanelWidth, setRightPanelWidth] = useState(256)
   const draggingRef = useRef<{ panel: 'left' | 'right'; startX: number; startWidth: number } | null>(null)
   const rafRef = useRef<number | null>(null)
+  const panelsCollapsedRef = useRef({ left: false, right: false })
+  panelsCollapsedRef.current = { left: glyphListCollapsed, right: rightPanelCollapsed }
 
   useEffect(() => {
     function onMouseMove(e: MouseEvent) {
@@ -122,6 +124,15 @@ export function EditorScreen() {
       // Ctrl+S is a no-op (auto-saved) but prevent browser save dialog
       if (ctrl && e.key === 's') {
         e.preventDefault()
+        return
+      }
+
+      // Cmd+' — toggle both panels
+      if (ctrl && e.key === "'") {
+        e.preventDefault()
+        const bothCollapsed = panelsCollapsedRef.current.left && panelsCollapsedRef.current.right
+        setGlyphListCollapsed(!bothCollapsed)
+        setRightPanelCollapsed(!bothCollapsed)
         return
       }
 
