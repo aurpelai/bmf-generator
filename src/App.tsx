@@ -1,9 +1,11 @@
+import { useStore } from '@/store'
+import { HomeScreen } from '@/features/home/HomeScreen'
+import { EditorScreen } from '@/features/editor/EditorScreen'
+
 function App() {
-  return (
-    <div className="flex h-full items-center justify-center">
-      <p className="text-zinc-400">bmf-generator</p>
-    </div>
-  )
+  const view = useStore((s) => s.view)
+
+  return view === 'editor' ? <EditorScreen /> : <HomeScreen />
 }
 
 export default App
