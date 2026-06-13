@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## v0.0.3
+
+[compare changes](https://github.com/aurpelai/bmf-generator/compare/v0.0.2...v0.0.3)
+
+### 📖 Documentation
+
+- Clarify changelog visibility rules in commit convention ([39d3b5c](https://github.com/aurpelai/bmf-generator/commit/39d3b5c))
+
+### ❤️ Contributors
+
+- Antti Urpelainen <antti.urpelainen@gmail.com>
+
 ## v0.0.2
 
 [compare changes](https://github.com/aurpelai/bmf-generator/compare/v0.0.1...v0.0.2)
