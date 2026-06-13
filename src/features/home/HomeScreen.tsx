@@ -87,7 +87,7 @@ export function HomeScreen() {
       {/* Top bar */}
       <header className="border-border flex h-12 items-center gap-3 border-b px-4">
         <FileType className="text-muted-foreground h-4 w-4" />
-        <span className="text-sm font-medium">BMF Generator</span>
+        <span className="text-sm font-medium">BMF Font Editor</span>
       </header>
 
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8">
