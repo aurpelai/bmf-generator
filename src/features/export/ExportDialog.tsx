@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Check, Clipboard, Download, FileJson, Loader2 } from 'lucide-react'
 import { zipSync, strToU8 } from 'fflate'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -62,7 +62,7 @@ export function ExportDialog({ open, onOpenChange }: Props) {
     ? atlasPlacements
     : atlasPlacements.filter((p) => exportSelection.has(p.codePoint))
 
-  const fntText = currentProject && selectedPlacements.length > 0
+  const fntText = useMemo(() => currentProject && selectedPlacements.length > 0
     ? serializeBmfText({
         project: currentProject,
         glyphs: selectedPlacements.map((p): BmfGlyphData => {
@@ -81,7 +81,7 @@ export function ExportDialog({ open, onOpenChange }: Props) {
         atlasHeight,
         atlasFilename,
       })
-    : ''
+    : '', [currentProject, selectedPlacements, glyphs, atlasWidth, atlasHeight, atlasFilename])
 
   // Scroll textarea to top when content changes
   useEffect(() => {

@@ -338,6 +338,8 @@ export function PixelEditor() {
       ) : (
         <canvas
           ref={canvasRef}
+          role="img"
+          aria-label={`Pixel editor — ${activeTool} tool`}
           style={{ imageRendering: 'pixelated', cursor: activeTool === 'move' ? 'grab' : activeTool === 'eraser' ? 'cell' : 'crosshair' }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
