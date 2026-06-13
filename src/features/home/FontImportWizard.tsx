@@ -156,6 +156,8 @@ export function FontImportWizard({ open, onOpenChange }: Props) {
       setGlyphs(glyphs)
       setView('editor')
       onOpenChange(false)
+    } catch (err) {
+      setRasterizeError(err instanceof Error ? err.message : 'Import failed')
     } finally {
       setConfirming(false)
     }
