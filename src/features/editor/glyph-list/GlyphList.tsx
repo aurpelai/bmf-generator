@@ -120,7 +120,7 @@ function AddGlyphDialog({
   )
 }
 
-export function GlyphList({ collapsed, onCollapse }: { collapsed: boolean; onCollapse: () => void }) {
+export function GlyphList({ collapsed, onCollapse, width }: { collapsed: boolean; onCollapse: () => void; width: number }) {
   const [addOpen, setAddOpen] = useState(false)
 
   const glyphs = useStore((s) => s.glyphs)
@@ -153,7 +153,7 @@ export function GlyphList({ collapsed, onCollapse }: { collapsed: boolean; onCol
 
   if (collapsed) {
     return (
-      <div className="border-border flex h-full w-10 shrink-0 flex-col border-r">
+      <div className="border-border flex h-full shrink-0 flex-col border-r" style={{ width }}>
         <div className="border-border flex h-9 shrink-0 items-center justify-center border-b">
           <Button variant="ghost" size="icon" className="h-6 w-6" title="Expand glyph list" onClick={onCollapse}>
             <ChevronRight className="h-3.5 w-3.5" />
@@ -189,7 +189,7 @@ export function GlyphList({ collapsed, onCollapse }: { collapsed: boolean; onCol
   }
 
   return (
-    <div className="border-border flex h-full w-48 shrink-0 flex-col border-r">
+    <div className="border-border flex h-full shrink-0 flex-col border-r" style={{ width }}>
       <div className="border-border flex h-9 shrink-0 items-center justify-between border-b px-2 pl-3">
         <span className="text-muted-foreground text-xs font-medium">
           Glyphs ({glyphs.length})

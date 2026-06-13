@@ -543,7 +543,7 @@ function AtlasTab() {
   )
 }
 
-export function RightPanel({ onCollapse }: { onCollapse: () => void }) {
+export function RightPanel({ onCollapse, width }: { onCollapse: () => void; width: number }) {
   const [tab, setTab] = useState<Tab>('metrics')
 
   const tabClass = (t: Tab) =>
@@ -554,7 +554,7 @@ export function RightPanel({ onCollapse }: { onCollapse: () => void }) {
     }`
 
   return (
-    <div className="border-border flex h-full w-64 shrink-0 flex-col border-l">
+    <div className="border-border flex h-full shrink-0 flex-col border-l" style={{ width }}>
       <div className="border-border flex h-9 shrink-0 items-end border-b">
         <button className="text-muted-foreground hover:text-foreground cursor-pointer self-stretch flex items-center px-2 transition-colors" title="Collapse panel" onClick={onCollapse}>
           <ChevronRight className="h-3.5 w-3.5" />
