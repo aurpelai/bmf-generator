@@ -118,7 +118,7 @@ export function ExportDialog({ open, onOpenChange }: Props) {
   function handleExportJson() {
     if (!currentProject) return
     const json = exportPortableProject(currentProject, glyphs)
-    download(new Blob([json], { type: 'application/json' }), `${baseName}.bmfproject.json`)
+    download(new Blob([json], { type: 'application/json' }), `${baseName}.bmffont.json`)
   }
 
   const canExport = !!atlasImageData && !!fntText
@@ -162,7 +162,7 @@ export function ExportDialog({ open, onOpenChange }: Props) {
           <div className="flex gap-2">
             <Button variant="outline" size="sm" className="text-xs" onClick={handleExportJson} disabled={!currentProject}>
               <FileJson className="mr-1.5 h-3.5 w-3.5" />
-              Save project
+              Save font file
             </Button>
             <Button onClick={handleExportZip} disabled={!canExport || exporting}>
               {exporting

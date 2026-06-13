@@ -209,7 +209,7 @@ export function BmfImportDialog({ open, onOpenChange }: Props) {
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Load existing BMF project</DialogTitle>
+          <DialogTitle>Import BMF font</DialogTitle>
         </DialogHeader>
 
         <div className="grid gap-4 py-2">

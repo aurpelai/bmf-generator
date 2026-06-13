@@ -95,24 +95,24 @@ export function HomeScreen() {
         <div className="mb-8 flex gap-3">
           <Button onClick={() => setNewProjectOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            New blank project
+            New font
           </Button>
-          <Button variant="outline" onClick={() => setBmfImportOpen(true)}>
+          <Button variant="outline" onClick={() => jsonInputRef.current?.click()}>
             <FolderOpen className="mr-2 h-4 w-4" />
-            Load existing project
+            Open font
           </Button>
           <Button variant="outline" onClick={() => setImportOpen(true)}>
             <Upload className="mr-2 h-4 w-4" />
-            Import font
+            Import TTF/OTF
           </Button>
-          <Button variant="outline" onClick={() => jsonInputRef.current?.click()}>
+          <Button variant="outline" onClick={() => setBmfImportOpen(true)}>
             <FileJson className="mr-2 h-4 w-4" />
-            Open project file
+            Import BMF font
           </Button>
           <input
             ref={jsonInputRef}
             type="file"
-            accept=".json"
+            accept=".bmffont.json,.json"
             className="hidden"
             onChange={(e) => { const f = e.target.files?.[0]; if (f) handleJsonImport(f); e.target.value = '' }}
           />
@@ -127,7 +127,7 @@ export function HomeScreen() {
         {projects.length === 0 ? (
           <div className="text-muted-foreground py-16 text-center text-sm">
             <p>No projects yet.</p>
-            <p className="mt-1">Create a blank project or import a font file to get started.</p>
+            <p className="mt-1">Create a new font, open a saved font, or import an existing one to get started.</p>
           </div>
         ) : (
           <div className="grid gap-2">
