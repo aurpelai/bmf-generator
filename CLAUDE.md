@@ -8,6 +8,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A `plans/` directory may be present locally with design and implementation planning documents.
 
+## Commit convention
+
+This project uses [Conventional Commits](https://www.conventionalcommits.org). Types:
+
+- `feat:` — new user-facing feature
+- `fix:` — bug fix
+- `chore:` — tooling, dependencies, config (no production code change)
+- `refactor:` — code change with no behaviour change
+- `test:` — adding or updating tests
+- `docs:` — documentation only
+
+Not enforced by tooling — use good judgement. Consistent messages keep the auto-generated changelog useful.
+
+## Releases
+
+```bash
+pnpm release   # bumps version, generates CHANGELOG.md, creates git tag
+```
+
+Versioning follows [semver](https://semver.org). Current pre-launch range: `0.x.x`. Bump to `1.0.0` at first public launch.
+
 ## Commands
 
 ```bash
