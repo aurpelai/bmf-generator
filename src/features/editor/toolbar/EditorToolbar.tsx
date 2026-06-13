@@ -54,7 +54,7 @@ export function EditorToolbar() {
         <Button variant="ghost" size="icon" className="h-7 w-7" title="Decrease brush size" aria-label="Decrease brush size" onClick={() => setBrushSize(brushSize - 1)} disabled={brushSize <= 1}>
           <Minus className="h-3.5 w-3.5" />
         </Button>
-        <span className="text-muted-foreground w-4 text-center text-xs" aria-label={`Brush size ${brushSize}`}>{brushSize}</span>
+        <span className="text-muted-foreground w-8 text-center text-xs" aria-label={`Brush size ${brushSize}px`}>{brushSize}px</span>
         <Button variant="ghost" size="icon" className="h-7 w-7" title="Increase brush size" aria-label="Increase brush size" onClick={() => setBrushSize(brushSize + 1)} disabled={brushSize >= 8}>
           <Plus className="h-3.5 w-3.5" />
         </Button>
