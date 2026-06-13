@@ -1,9 +1,10 @@
-import { useEffect, useState, useRef } from 'react'
-import { Plus, Upload, FolderOpen, Pencil, Trash2, FileType } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { FileJson, FileType, FolderOpen, Pencil, Plus, Trash2, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { getAllProjects, saveProject, deleteProject } from '@/db'
+import { getAllProjects, saveProject, deleteProject, saveGlyphs } from '@/db'
 import { useStore } from '@/store'
+import { importPortableProject } from '@/core/project'
 import type { Project } from '@/core/project'
 import { NewProjectDialog } from './NewProjectDialog'
 import { FontImportWizard } from './FontImportWizard'
@@ -20,7 +21,11 @@ export function HomeScreen() {
   const [renameValue, setRenameValue] = useState('')
   const renameInputRef = useRef<HTMLInputElement>(null)
 
+  const [jsonImportError, setJsonImportError] = useState<string | null>(null)
+  const jsonInputRef = useRef<HTMLInputElement>(null)
+
   const setCurrentProject = useStore((s) => s.setCurrentProject)
+  const setGlyphs = useStore((s) => s.setGlyphs)
   const setView = useStore((s) => s.setView)
 
   async function loadProjects() {
@@ -58,6 +63,21 @@ export function HomeScreen() {
     loadProjects()
   }
 
+  async function handleJsonImport(file: File) {
+    setJsonImportError(null)
+    try {
+      const json = await file.text()
+      const { project, glyphs } = importPortableProject(json)
+      await saveProject(project)
+      await saveGlyphs(glyphs)
+      setCurrentProject(project)
+      setGlyphs(glyphs)
+      setView('editor')
+    } catch (err) {
+      setJsonImportError(err instanceof Error ? err.message : 'Failed to import project')
+    }
+  }
+
   function formatDate(ts: number) {
     return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(ts)
   }
@@ -85,7 +105,21 @@ export function HomeScreen() {
             <Upload className="mr-2 h-4 w-4" />
             Import font
           </Button>
+          <Button variant="outline" onClick={() => jsonInputRef.current?.click()}>
+            <FileJson className="mr-2 h-4 w-4" />
+            Open project file
+          </Button>
+          <input
+            ref={jsonInputRef}
+            type="file"
+            accept=".json"
+            className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleJsonImport(f); e.target.value = '' }}
+          />
         </div>
+        {jsonImportError && (
+          <p className="text-destructive -mt-4 text-xs">{jsonImportError}</p>
+        )}
 
         <Separator className="mb-6" />
 

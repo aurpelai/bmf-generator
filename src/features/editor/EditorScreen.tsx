@@ -1,5 +1,5 @@
-import { useEffect } from 'react'
-import { ArrowLeft, FileType } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { ArrowLeft, Download, FileType } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useStore } from '@/store'
 import { getGlyphsForProject } from '@/db/glyphs'
@@ -7,8 +7,11 @@ import { GlyphList } from './glyph-list/GlyphList'
 import { PixelEditor } from './pixel-editor/PixelEditor'
 import { EditorToolbar } from './toolbar/EditorToolbar'
 import { RightPanel } from './RightPanel'
+import { ExportDialog } from '@/features/export/ExportDialog'
 
 export function EditorScreen() {
+  const [exportOpen, setExportOpen] = useState(false)
+
   const currentProject = useStore((s) => s.currentProject)
   const setView = useStore((s) => s.setView)
   const glyphs = useStore((s) => s.glyphs)
@@ -49,8 +52,12 @@ export function EditorScreen() {
         <span className="text-muted-foreground text-xs">
           {currentProject?.settings.fontSize}px · {currentProject?.glyphs.length} glyphs
         </span>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
           <span className="text-muted-foreground text-xs">Auto-saved</span>
+          <Button size="sm" className="h-7 text-xs" onClick={() => setExportOpen(true)}>
+            <Download className="mr-1.5 h-3.5 w-3.5" />
+            Export
+          </Button>
         </div>
       </header>
 
@@ -65,6 +72,8 @@ export function EditorScreen() {
 
         <RightPanel />
       </div>
+
+      <ExportDialog open={exportOpen} onOpenChange={setExportOpen} />
     </div>
   )
 }
