@@ -14,15 +14,14 @@ export function EditorScreen() {
 
   const currentProject = useStore((s) => s.currentProject)
   const setView = useStore((s) => s.setView)
-  const glyphs = useStore((s) => s.glyphs)
   const setGlyphs = useStore((s) => s.setGlyphs)
   const setActiveTool = useStore((s) => s.setActiveTool)
   const showGrid = useStore((s) => s.showGrid)
   const setShowGridFn = useStore((s) => s.setShowGrid)
 
-  // Load glyphs from IndexedDB when editor opens (e.g. after page refresh)
+  // Load glyphs from IndexedDB whenever the active project changes
   useEffect(() => {
-    if (!currentProject || glyphs.length > 0) return
+    if (!currentProject) return
     getGlyphsForProject(currentProject.id).then(setGlyphs)
   }, [currentProject?.id])
 
