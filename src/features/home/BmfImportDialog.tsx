@@ -54,12 +54,24 @@ function DropZone({
   )
 }
 
+function detectAtlasMode(data: Uint8ClampedArray): 'alpha' | 'rgb' {
+  // Sample every pixel's alpha. If all values are 0 or 255 the atlas is either
+  // 1-bit or a fully-opaque RGB image — use the red channel as coverage.
+  // Any intermediate alpha value means it's an anti-aliased alpha atlas.
+  for (let i = 3; i < data.length; i += 4) {
+    const a = data[i]
+    if (a !== 0 && a !== 255) return 'alpha'
+  }
+  return 'rgb'
+}
+
 function sliceGlyphsFromAtlas(
   imageData: ImageData,
   chars: Array<{ id: number; x: number; y: number; width: number; height: number; xoffset: number; yoffset: number; xadvance: number }>,
   projectId: string,
 ): Glyph[] {
   const { data, width: atlasW } = imageData
+  const mode = detectAtlasMode(data)
   return chars.map((c) => {
     if (c.width === 0 || c.height === 0) {
       return {
@@ -78,11 +90,7 @@ function sliceGlyphsFromAtlas(
     for (let row = 0; row < c.height; row++) {
       for (let col = 0; col < c.width; col++) {
         const atlasIdx = ((c.y + row) * atlasW + (c.x + col)) * 4
-        // Use alpha channel — BMF atlases typically store coverage in alpha
-        // Fall back to red channel for fully opaque white-on-black atlases
-        const alpha = data[atlasIdx + 3]
-        const red = data[atlasIdx]
-        pixels[row * c.width + col] = alpha > 0 ? alpha : red
+        pixels[row * c.width + col] = mode === 'alpha' ? data[atlasIdx + 3] : data[atlasIdx]
       }
     }
     return {
