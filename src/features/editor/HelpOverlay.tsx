@@ -20,6 +20,7 @@ const SHORTCUTS = [
   { keys: ['Ctrl', 'Z'], description: 'Undo' },
   { keys: ['Ctrl', 'Shift', 'Z'], description: 'Redo' },
   { keys: ['Ctrl', 'E'], description: 'Open export dialog' },
+  { keys: ["Ctrl", "'"], description: 'Toggle side panels' },
   { keys: ['Ctrl', 'S'], description: 'Save (auto-saved — suppresses browser dialog)' },
   { keys: ['G'], description: 'Toggle pixel grid' },
   { keys: ['Shift', 'Scroll'], description: 'Adjust brush size' },
