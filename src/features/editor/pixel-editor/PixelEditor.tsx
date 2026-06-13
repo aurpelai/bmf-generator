@@ -36,75 +36,100 @@ export function PixelEditor() {
     const canvas = canvasRef.current
     const g = stateRef.current.glyph
     const project = currentProject
-    if (!canvas || !g || g.width === 0 || g.height === 0) return
+    if (!canvas || !project) return
 
     const zoom = stateRef.current.zoomLevel
     const grid = stateRef.current.showGrid
-    canvas.width = g.width * zoom
-    canvas.height = g.height * zoom
+    const { fontSize, lineHeight, base } = project.settings
+
+    // Cell occupies [0, fontSize) × [0, lineHeight) in cell-space.
+    // Glyph pixels start at (xoffset, yoffset) in cell-space.
+    // originX/Y shift cell-space so all content fits on a positive canvas.
+    const glyphRight = g ? g.xoffset + g.width : 0
+    const glyphBottom = g ? g.yoffset + g.height : 0
+    const originX = Math.min(0, g ? g.xoffset : 0)
+    const originY = Math.min(0, g ? g.yoffset : 0)
+    const canvasCols = Math.max(fontSize, glyphRight) - originX
+    const canvasRows = Math.max(lineHeight, glyphBottom) - originY
+
+    canvas.width = canvasCols * zoom
+    canvas.height = canvasRows * zoom
     const ctx = canvas.getContext('2d')!
     ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-    // Pixels
-    for (let y = 0; y < g.height; y++) {
-      for (let x = 0; x < g.width; x++) {
-        const v = g.pixels[y * g.width + x]
-        if (v > 0) {
-          const alpha = v / 255
+    // Cell background — subtle distinction from overflow area
+    const cellX = -originX * zoom
+    const cellY = -originY * zoom
+    ctx.fillStyle = 'rgba(255,255,255,0.03)'
+    ctx.fillRect(cellX, cellY, fontSize * zoom, lineHeight * zoom)
+
+    // Glyph pixels — dimmed outside the cell
+    if (g && g.width > 0 && g.height > 0) {
+      for (let py = 0; py < g.height; py++) {
+        for (let px = 0; px < g.width; px++) {
+          const v = g.pixels[py * g.width + px]
+          if (v === 0) continue
+          const cx = (g.xoffset + px - originX) * zoom
+          const cy = (g.yoffset + py - originY) * zoom
+          const inCell =
+            g.xoffset + px >= 0 && g.xoffset + px < fontSize &&
+            g.yoffset + py >= 0 && g.yoffset + py < lineHeight
+          const alpha = (v / 255) * (inCell ? 1 : 0.35)
           ctx.fillStyle = `rgba(255,255,255,${alpha})`
-          ctx.fillRect(x * zoom, y * zoom, zoom, zoom)
+          ctx.fillRect(cx, cy, zoom, zoom)
         }
       }
     }
 
     // Guide lines: baseline and cap-height
-    if (project) {
-      const { base } = project.settings
-      // baseline within glyph box = distance from cell top to baseline, minus glyph's own top offset
-      const baselineY = (base - g.yoffset) * zoom
-      // cap-height: approximate at ~70% of fontSize above baseline, clamped to canvas top
-      const capHeight = Math.round(project.settings.fontSize * 0.7)
+    {
+      const baselineY = (base - originY) * zoom
+      const capHeight = Math.round(fontSize * 0.7)
       const capY = Math.max(0, baselineY - capHeight * zoom)
 
       ctx.save()
+      ctx.lineWidth = 1
+      ctx.setLineDash([4, 3])
       // Baseline — amber
-      if (baselineY >= 0 && baselineY <= canvas.height) {
-        ctx.strokeStyle = 'rgba(251,191,36,0.5)'
-        ctx.lineWidth = 1
-        ctx.setLineDash([4, 3])
-        ctx.beginPath()
-        ctx.moveTo(0, baselineY + 0.5)
-        ctx.lineTo(canvas.width, baselineY + 0.5)
-        ctx.stroke()
-      }
-      // Cap-height — cyan (always draw when baseline is visible; capY is clamped to 0)
-      if (baselineY >= 0 && baselineY <= canvas.height) {
-        ctx.strokeStyle = 'rgba(34,211,238,0.4)'
-        ctx.lineWidth = 1
-        ctx.setLineDash([4, 3])
-        ctx.beginPath()
-        ctx.moveTo(0, capY + 0.5)
-        ctx.lineTo(canvas.width, capY + 0.5)
-        ctx.stroke()
-      }
+      ctx.strokeStyle = 'rgba(251,191,36,0.5)'
+      ctx.beginPath()
+      ctx.moveTo(0, baselineY + 0.5)
+      ctx.lineTo(canvas.width, baselineY + 0.5)
+      ctx.stroke()
+      // Cap-height — cyan
+      ctx.strokeStyle = 'rgba(34,211,238,0.4)'
+      ctx.beginPath()
+      ctx.moveTo(0, capY + 0.5)
+      ctx.lineTo(canvas.width, capY + 0.5)
+      ctx.stroke()
       ctx.restore()
     }
 
-    // Grid overlay
-    if (grid && zoom >= 4) {
+    // Cell boundary
+    {
+      ctx.save()
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)'
+      ctx.lineWidth = 1
+      ctx.setLineDash([])
+      ctx.strokeRect(cellX + 0.5, cellY + 0.5, fontSize * zoom - 1, lineHeight * zoom - 1)
+      ctx.restore()
+    }
+
+    // Grid overlay (cell area only)
+    if (grid && zoom >= 4 && g) {
       ctx.strokeStyle = 'rgba(255,255,255,0.08)'
       ctx.lineWidth = 1
       ctx.setLineDash([])
-      for (let x = 0; x <= g.width; x++) {
+      for (let x = 0; x <= fontSize; x++) {
         ctx.beginPath()
-        ctx.moveTo(x * zoom + 0.5, 0)
-        ctx.lineTo(x * zoom + 0.5, canvas.height)
+        ctx.moveTo(cellX + x * zoom + 0.5, cellY)
+        ctx.lineTo(cellX + x * zoom + 0.5, cellY + lineHeight * zoom)
         ctx.stroke()
       }
-      for (let y = 0; y <= g.height; y++) {
+      for (let y = 0; y <= lineHeight; y++) {
         ctx.beginPath()
-        ctx.moveTo(0, y * zoom + 0.5)
-        ctx.lineTo(canvas.width, y * zoom + 0.5)
+        ctx.moveTo(cellX, cellY + y * zoom + 0.5)
+        ctx.lineTo(cellX + fontSize * zoom, cellY + y * zoom + 0.5)
         ctx.stroke()
       }
     }
@@ -117,11 +142,18 @@ export function PixelEditor() {
   function pixelIndexFromEvent(e: React.PointerEvent): number {
     const canvas = canvasRef.current
     const g = stateRef.current.glyph
-    if (!canvas || !g) return -1
+    const project = currentProject
+    if (!canvas || !g || !project) return -1
     const rect = canvas.getBoundingClientRect()
     const zoom = stateRef.current.zoomLevel
-    const px = Math.floor((e.clientX - rect.left) / zoom)
-    const py = Math.floor((e.clientY - rect.top) / zoom)
+    // canvas coords → cell-space coords
+    const originX = Math.min(0, g.xoffset)
+    const originY = Math.min(0, g.yoffset)
+    const cellCol = Math.floor((e.clientX - rect.left) / zoom) + originX
+    const cellRow = Math.floor((e.clientY - rect.top) / zoom) + originY
+    // cell-space → glyph pixel coords
+    const px = cellCol - g.xoffset
+    const py = cellRow - g.yoffset
     if (px < 0 || py < 0 || px >= g.width || py >= g.height) return -1
     return py * g.width + px
   }
@@ -164,7 +196,8 @@ export function PixelEditor() {
     setZoomLevel(clamp(zoomLevel + delta, MIN_ZOOM, MAX_ZOOM))
   }
 
-  if (!glyph) {
+  // No project open at all
+  if (!currentProject) {
     return (
       <div className="flex flex-1 items-center justify-center">
         <span className="text-muted-foreground text-sm">Select a glyph to edit</span>
@@ -178,13 +211,17 @@ export function PixelEditor() {
       className="flex flex-1 items-center justify-center overflow-auto bg-[#111]"
       onWheel={onWheel}
     >
-      <canvas
-        ref={canvasRef}
-        style={{ imageRendering: 'pixelated', cursor: activeTool === 'eraser' ? 'cell' : 'crosshair' }}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-      />
+      {!glyph ? (
+        <span className="text-muted-foreground text-sm">Select a glyph to edit</span>
+      ) : (
+        <canvas
+          ref={canvasRef}
+          style={{ imageRendering: 'pixelated', cursor: activeTool === 'eraser' ? 'cell' : 'crosshair' }}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+        />
+      )}
     </div>
   )
 }
