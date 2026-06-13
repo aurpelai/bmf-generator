@@ -273,6 +273,7 @@ function SettingsTab() {
   const [fontSize, setFontSize] = useState(s?.fontSize ?? 32)
   const [lineHeight, setLineHeight] = useState(s?.lineHeight ?? 36)
   const [base, setBase] = useState(s?.base ?? 28)
+  const [capHeight, setCapHeight] = useState(s?.capHeight ?? 22)
   const [paddingTop, setPaddingTop] = useState(s?.padding.top ?? 1)
   const [paddingRight, setPaddingRight] = useState(s?.padding.right ?? 1)
   const [paddingBottom, setPaddingBottom] = useState(s?.padding.bottom ?? 1)
@@ -287,6 +288,7 @@ function SettingsTab() {
     setFontSize(s.fontSize)
     setLineHeight(s.lineHeight)
     setBase(s.base)
+    setCapHeight(s.capHeight)
     setPaddingTop(s.padding.top)
     setPaddingRight(s.padding.right)
     setPaddingBottom(s.padding.bottom)
@@ -362,6 +364,18 @@ function SettingsTab() {
             onChange={(e) => { setBase(Number(e.target.value)); liveSettings({ base: Number(e.target.value) }) }}
             onBlur={() => commitSettings({ base })}
             onKeyDown={(e) => e.key === 'Enter' && commitSettings({ base })}
+          />
+        </div>
+        <div className="grid gap-1">
+          <Label htmlFor="rp-capheight" className="text-[10px]">Cap height</Label>
+          <Input
+            id="rp-capheight"
+            type="number"
+            className="h-7 text-xs"
+            value={capHeight}
+            onChange={(e) => { setCapHeight(Number(e.target.value)); liveSettings({ capHeight: Number(e.target.value) }) }}
+            onBlur={() => commitSettings({ capHeight })}
+            onKeyDown={(e) => e.key === 'Enter' && commitSettings({ capHeight })}
           />
         </div>
       </div>

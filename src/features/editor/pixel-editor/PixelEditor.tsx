@@ -40,11 +40,13 @@ export function PixelEditor() {
 
     const zoom = stateRef.current.zoomLevel
     const grid = stateRef.current.showGrid
-    const { fontSize, lineHeight, base } = project.settings
+    const { fontSize, lineHeight, base, capHeight } = project.settings
 
     // Cell occupies [0, fontSize) × [0, lineHeight) in cell-space.
     // Glyph pixels start at (xoffset, yoffset) in cell-space.
     // originX/Y shift cell-space so all content fits on a positive canvas.
+    // LABEL_GUTTER reserves space to the right of the cell for guide line labels.
+    const LABEL_GUTTER_PX = 36
     const glyphRight = g ? g.xoffset + g.width : 0
     const glyphBottom = g ? g.yoffset + g.height : 0
     const originX = Math.min(0, g ? g.xoffset : 0)
@@ -52,7 +54,7 @@ export function PixelEditor() {
     const canvasCols = Math.max(fontSize, glyphRight) - originX
     const canvasRows = Math.max(lineHeight, glyphBottom) - originY
 
-    canvas.width = canvasCols * zoom
+    canvas.width = canvasCols * zoom + LABEL_GUTTER_PX
     canvas.height = canvasRows * zoom
     const ctx = canvas.getContext('2d')!
     ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -84,24 +86,36 @@ export function PixelEditor() {
     // Guide lines: baseline and cap-height
     {
       const baselineY = (base - originY) * zoom
-      const capHeight = Math.round(fontSize * 0.7)
       const capY = Math.max(0, baselineY - capHeight * zoom)
+      const labelSize = Math.max(8, Math.min(11, zoom * 1.5))
+
+      const cellRight = cellX + fontSize * zoom
+      const gutterX = cellRight + 10
 
       ctx.save()
       ctx.lineWidth = 1
       ctx.setLineDash([4, 3])
-      // Baseline — amber
+      // Baseline — amber, clipped to cell width
       ctx.strokeStyle = 'rgba(251,191,36,0.5)'
       ctx.beginPath()
       ctx.moveTo(0, baselineY + 0.5)
-      ctx.lineTo(canvas.width, baselineY + 0.5)
+      ctx.lineTo(cellRight, baselineY + 0.5)
       ctx.stroke()
-      // Cap-height — cyan
+      // Cap-height — cyan, clipped to cell width
       ctx.strokeStyle = 'rgba(34,211,238,0.4)'
       ctx.beginPath()
       ctx.moveTo(0, capY + 0.5)
-      ctx.lineTo(canvas.width, capY + 0.5)
+      ctx.lineTo(cellRight, capY + 0.5)
       ctx.stroke()
+      // Labels in the gutter, vertically centred on the line
+      ctx.setLineDash([])
+      ctx.font = `${labelSize}px monospace`
+      ctx.textAlign = 'left'
+      ctx.textBaseline = 'middle'
+      ctx.fillStyle = 'rgba(251,191,36,0.7)'
+      ctx.fillText('base', gutterX, baselineY + 0.5)
+      ctx.fillStyle = 'rgba(34,211,238,0.6)'
+      ctx.fillText('cap', gutterX, capY + 0.5)
       ctx.restore()
     }
 
