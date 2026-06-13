@@ -17,18 +17,28 @@ export function PixelEditor() {
   const glyphs = useStore((s) => s.glyphs)
   const selectedCodePoint = useStore((s) => s.selectedCodePoint)
   const activeTool = useStore((s) => s.activeTool)
+  const brushSize = useStore((s) => s.brushSize)
   const zoomLevel = useStore((s) => s.zoomLevel)
   const showGrid = useStore((s) => s.showGrid)
   const setZoomLevel = useStore((s) => s.setZoomLevel)
+  const setBrushSize = useStore((s) => s.setBrushSize)
   const upsertGlyph = useStore((s) => s.upsertGlyph)
   const pushUndo = useStore((s) => s.pushUndo)
   const currentProject = useStore((s) => s.currentProject)
 
   const glyph = glyphs.find((g) => g.codePoint === selectedCodePoint) ?? null
 
-  const stateRef = useRef({ glyph, activeTool, zoomLevel, showGrid, isDrawing: false, lastPixel: -1, moveOrigin: null as { x: number; y: number; xoffset: number; yoffset: number } | null, moveDelta: { dx: 0, dy: 0 } })
+  const stateRef = useRef({
+    glyph, activeTool, brushSize, zoomLevel, showGrid,
+    isDrawing: false, lastPixel: -1,
+    cursorCell: null as { col: number; row: number } | null,
+    moveOrigin: null as { x: number; y: number; xoffset: number; yoffset: number } | null,
+    moveDelta: { dx: 0, dy: 0 },
+    shiftWheelAccum: 0,
+  })
   stateRef.current.glyph = glyph
   stateRef.current.activeTool = activeTool
+  stateRef.current.brushSize = brushSize
   stateRef.current.zoomLevel = zoomLevel
   stateRef.current.showGrid = showGrid
 
@@ -153,38 +163,64 @@ export function PixelEditor() {
         ctx.stroke()
       }
     }
+
+    // Brush highlight — border outline of the brush footprint at the cursor
+    const cursor = stateRef.current.cursorCell
+    const tool = stateRef.current.activeTool
+    const size = stateRef.current.brushSize
+    if (cursor && g && (tool === 'pencil' || tool === 'eraser')) {
+      const half = Math.floor(size / 2)
+      const bx = (cursor.col - half - originX) * zoom + 0.5
+      const by = (cursor.row - half - originY) * zoom + 0.5
+      const bw = size * zoom - 1
+      ctx.save()
+      ctx.lineWidth = 1
+      ctx.setLineDash([])
+      ctx.strokeStyle = tool === 'pencil'
+        ? 'oklch(0.45 0.09 196)'
+        : 'oklch(0.45 0.12 20)'
+      ctx.strokeRect(bx, by, bw, bw)
+      ctx.restore()
+    }
   }, [currentProject])
 
   useEffect(() => {
     drawCanvas()
   }, [glyph, zoomLevel, showGrid, drawCanvas])
 
-  function pixelIndexFromEvent(e: React.PointerEvent): number {
+  function cellFromEvent(e: React.PointerEvent): { col: number; row: number } | null {
     const canvas = canvasRef.current
     const g = stateRef.current.glyph
-    const project = currentProject
-    if (!canvas || !g || !project) return -1
+    if (!canvas || !g) return null
     const rect = canvas.getBoundingClientRect()
     const zoom = stateRef.current.zoomLevel
-    // canvas coords → cell-space coords
     const originX = Math.min(0, g.xoffset)
     const originY = Math.min(0, g.yoffset)
-    const cellCol = Math.floor((e.clientX - rect.left) / zoom) + originX
-    const cellRow = Math.floor((e.clientY - rect.top) / zoom) + originY
-    // cell-space → glyph pixel coords
-    const px = cellCol - g.xoffset
-    const py = cellRow - g.yoffset
-    if (px < 0 || py < 0 || px >= g.width || py >= g.height) return -1
-    return py * g.width + px
+    return {
+      col: Math.floor((e.clientX - rect.left) / zoom) + originX,
+      row: Math.floor((e.clientY - rect.top) / zoom) + originY,
+    }
   }
 
-  function applyPaint(idx: number) {
+  function applyPaint(cell: { col: number; row: number } | null) {
     const g = stateRef.current.glyph
-    if (!g || idx < 0 || idx === stateRef.current.lastPixel) return
-    stateRef.current.lastPixel = idx
+    if (!g || !cell) return
     const tool = stateRef.current.activeTool
+    const size = stateRef.current.brushSize
+    const half = Math.floor(size / 2)
     const newPixels = new Uint8Array(g.pixels)
-    newPixels[idx] = tool === 'pencil' ? 255 : 0
+    let changed = false
+    for (let dy = 0; dy < size; dy++) {
+      for (let dx = 0; dx < size; dx++) {
+        const px = cell.col - half + dx - g.xoffset
+        const py = cell.row - half + dy - g.yoffset
+        if (px < 0 || py < 0 || px >= g.width || py >= g.height) continue
+        const idx = py * g.width + px
+        const val = tool === 'pencil' ? 255 : 0
+        if (newPixels[idx] !== val) { newPixels[idx] = val; changed = true }
+      }
+    }
+    if (!changed) return
     const updated: Glyph = { ...g, pixels: newPixels, isDirty: true }
     upsertGlyph(updated)
     saveGlyphs([updated])
@@ -203,13 +239,13 @@ export function PixelEditor() {
       (e.currentTarget as HTMLCanvasElement).style.cursor = 'grabbing'
     } else {
       stateRef.current.moveOrigin = null
-      applyPaint(pixelIndexFromEvent(e))
+      applyPaint(cellFromEvent(e))
     }
   }
 
   function onPointerMove(e: React.PointerEvent) {
-    if (!stateRef.current.isDrawing) return
     if (stateRef.current.activeTool === 'move') {
+      if (!stateRef.current.isDrawing) return
       const origin = stateRef.current.moveOrigin
       if (!origin) return
       const zoom = stateRef.current.zoomLevel
@@ -219,8 +255,17 @@ export function PixelEditor() {
       }
       drawCanvas()
     } else {
-      applyPaint(pixelIndexFromEvent(e))
+      // Always update cursor cell for highlight, paint only while drawing
+      const cell = cellFromEvent(e)
+      stateRef.current.cursorCell = cell
+      if (stateRef.current.isDrawing) applyPaint(cell)
+      drawCanvas()
     }
+  }
+
+  function onPointerLeave() {
+    stateRef.current.cursorCell = null
+    drawCanvas()
   }
 
   function onPointerUp(e: React.PointerEvent) {
@@ -241,8 +286,18 @@ export function PixelEditor() {
 
   function onWheel(e: React.WheelEvent) {
     e.preventDefault()
-    const delta = e.deltaY < 0 ? 1 : -1
-    setZoomLevel(clamp(zoomLevel + delta, MIN_ZOOM, MAX_ZOOM))
+    if (e.shiftKey) {
+      stateRef.current.shiftWheelAccum += e.deltaY
+      const threshold = 50
+      if (Math.abs(stateRef.current.shiftWheelAccum) >= threshold) {
+        const step = stateRef.current.shiftWheelAccum < 0 ? 1 : -1
+        setBrushSize(stateRef.current.brushSize + step)
+        stateRef.current.shiftWheelAccum = 0
+      }
+    } else {
+      const delta = e.deltaY < 0 ? 1 : -1
+      setZoomLevel(clamp(zoomLevel + delta, MIN_ZOOM, MAX_ZOOM))
+    }
   }
 
   // No project open at all
@@ -268,6 +323,7 @@ export function PixelEditor() {
           style={{ imageRendering: 'pixelated', cursor: activeTool === 'move' ? 'grab' : activeTool === 'eraser' ? 'cell' : 'crosshair' }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
+          onPointerLeave={onPointerLeave}
           onPointerUp={onPointerUp}
         />
       )}

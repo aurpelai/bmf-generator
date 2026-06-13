@@ -11,6 +11,7 @@ export interface GlyphSnapshot {
 export interface EditorSlice {
   selectedCodePoint: number | null
   activeTool: EditorTool
+  brushSize: number
   zoomLevel: number
   showGrid: boolean
   // Per-glyph undo stacks: codePoint → stack of glyph snapshots
@@ -18,6 +19,7 @@ export interface EditorSlice {
   redoStacks: Record<number, GlyphSnapshot[]>
   setSelectedCodePoint: (codePoint: number | null) => void
   setActiveTool: (tool: EditorTool) => void
+  setBrushSize: (size: number) => void
   setZoomLevel: (zoom: number) => void
   setShowGrid: (show: boolean) => void
   pushUndo: (codePoint: number, snapshot: GlyphSnapshot) => void
@@ -30,12 +32,14 @@ const MAX_UNDO_STEPS = 50
 export const createEditorSlice: StateCreator<EditorSlice> = (set, get) => ({
   selectedCodePoint: null,
   activeTool: 'pencil',
+  brushSize: 1,
   zoomLevel: 8,
   showGrid: true,
   undoStacks: {},
   redoStacks: {},
   setSelectedCodePoint: (codePoint) => set({ selectedCodePoint: codePoint }),
   setActiveTool: (tool) => set({ activeTool: tool }),
+  setBrushSize: (size) => set({ brushSize: Math.max(1, Math.min(8, size)) }),
   setZoomLevel: (zoom) => set({ zoomLevel: Math.max(1, Math.min(32, zoom)) }),
   setShowGrid: (show) => set({ showGrid: show }),
   pushUndo: (codePoint, snapshot) =>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Loader2, RefreshCw, RotateCcw } from 'lucide-react'
+import { ChevronRight, Loader2, RefreshCw, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -543,7 +543,7 @@ function AtlasTab() {
   )
 }
 
-export function RightPanel() {
+export function RightPanel({ onCollapse }: { onCollapse: () => void }) {
   const [tab, setTab] = useState<Tab>('metrics')
 
   const tabClass = (t: Tab) =>
@@ -556,6 +556,9 @@ export function RightPanel() {
   return (
     <div className="border-border flex h-full w-64 shrink-0 flex-col border-l">
       <div className="border-border flex h-9 shrink-0 items-end border-b">
+        <button className="text-muted-foreground hover:text-foreground cursor-pointer self-stretch flex items-center px-2 transition-colors" title="Collapse panel" onClick={onCollapse}>
+          <ChevronRight className="h-3.5 w-3.5" />
+        </button>
         <button className={tabClass('metrics')} onClick={() => setTab('metrics')}>Metrics</button>
         <button className={tabClass('atlas')} onClick={() => setTab('atlas')}>Atlas</button>
         <button className={tabClass('settings')} onClick={() => setTab('settings')}>Settings</button>

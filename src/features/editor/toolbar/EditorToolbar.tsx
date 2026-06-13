@@ -8,6 +8,8 @@ const ZOOM_PRESETS = [2, 4, 8, 12, 16, 24, 32]
 export function EditorToolbar() {
   const activeTool = useStore((s) => s.activeTool)
   const setActiveTool = useStore((s) => s.setActiveTool)
+  const brushSize = useStore((s) => s.brushSize)
+  const setBrushSize = useStore((s) => s.setBrushSize)
   const zoomLevel = useStore((s) => s.zoomLevel)
   const setZoomLevel = useStore((s) => s.setZoomLevel)
   const showGrid = useStore((s) => s.showGrid)
@@ -35,11 +37,26 @@ export function EditorToolbar() {
     </Button>
   )
 
+  const isPaintTool = activeTool === 'pencil' || activeTool === 'eraser'
+
   return (
     <div className="border-border flex h-9 shrink-0 items-center gap-1 border-b px-2">
+      {toolBtn('move', <Move className="h-3.5 w-3.5" />, 'Move (M)')}
+
+      <div className="bg-border mx-1 h-5 w-px" />
+
       {toolBtn('pencil', <Pencil className="h-3.5 w-3.5" />, 'Pencil (B)')}
       {toolBtn('eraser', <Grid2x2X className="h-3.5 w-3.5" />, 'Eraser (E)')}
-      {toolBtn('move', <Move className="h-3.5 w-3.5" />, 'Move (M)')}
+
+      <div className={cn('flex items-center gap-0.5 transition-opacity', !isPaintTool && 'pointer-events-none opacity-30')}>
+        <Button variant="ghost" size="icon" className="h-7 w-7" title="Decrease brush size" onClick={() => setBrushSize(brushSize - 1)} disabled={brushSize <= 1}>
+          <Minus className="h-3.5 w-3.5" />
+        </Button>
+        <span className="text-muted-foreground w-4 text-center text-xs">{brushSize}</span>
+        <Button variant="ghost" size="icon" className="h-7 w-7" title="Increase brush size" onClick={() => setBrushSize(brushSize + 1)} disabled={brushSize >= 8}>
+          <Plus className="h-3.5 w-3.5" />
+        </Button>
+      </div>
 
       <div className="bg-border mx-1 h-5 w-px" />
 

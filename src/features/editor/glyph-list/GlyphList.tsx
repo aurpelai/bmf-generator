@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { useStore } from '@/store'
 import type { Glyph } from '@/core/project'
 import { cn } from '@/lib/utils'
@@ -120,7 +120,7 @@ function AddGlyphDialog({
   )
 }
 
-export function GlyphList() {
+export function GlyphList({ collapsed, onCollapse }: { collapsed: boolean; onCollapse: () => void }) {
   const [addOpen, setAddOpen] = useState(false)
 
   const glyphs = useStore((s) => s.glyphs)
@@ -151,21 +151,57 @@ export function GlyphList() {
     setSelectedCodePoint(codePoint)
   }
 
+  if (collapsed) {
+    return (
+      <div className="border-border flex h-full w-10 shrink-0 flex-col border-r">
+        <div className="border-border flex h-9 shrink-0 items-center justify-center border-b">
+          <Button variant="ghost" size="icon" className="h-6 w-6" title="Expand glyph list" onClick={onCollapse}>
+            <ChevronRight className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {sortedGlyphs.map((glyph) => {
+            const isSelected = glyph.codePoint === selectedCodePoint
+            return (
+              <button
+                key={glyph.codePoint}
+                onClick={() => setSelectedCodePoint(glyph.codePoint)}
+                title={`U+${glyph.codePoint.toString(16).toUpperCase().padStart(4, '0')}`}
+                className={cn(
+                  'flex w-full cursor-pointer items-center justify-center py-1.5 transition-colors',
+                  isSelected ? 'bg-accent text-accent-foreground' : 'hover:bg-muted',
+                )}
+              >
+                <div className="bg-background/30 flex h-8 w-8 shrink-0 items-center justify-center rounded border border-border/40">
+                  {glyph.width > 0 && glyph.height > 0 ? (
+                    <GlyphThumbnail pixels={glyph.pixels} width={glyph.width} height={glyph.height} />
+                  ) : (
+                    <span className="text-muted-foreground text-xs">?</span>
+                  )}
+                </div>
+              </button>
+            )
+          })}
+        </div>
+        <AddGlyphDialog open={addOpen} onOpenChange={setAddOpen} onAdd={handleAddGlyph} />
+      </div>
+    )
+  }
+
   return (
     <div className="border-border flex h-full w-48 shrink-0 flex-col border-r">
       <div className="border-border flex h-9 shrink-0 items-center justify-between border-b px-2 pl-3">
         <span className="text-muted-foreground text-xs font-medium">
           Glyphs ({glyphs.length})
         </span>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6"
-          title="Add glyph"
-          onClick={() => setAddOpen(true)}
-        >
-          <Plus className="h-3.5 w-3.5" />
-        </Button>
+        <div className="flex items-center gap-0.5">
+          <Button variant="ghost" size="icon" className="h-6 w-6" title="Add glyph" onClick={() => setAddOpen(true)}>
+            <Plus className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-6 w-6" title="Collapse glyph list" onClick={onCollapse}>
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -178,18 +214,12 @@ export function GlyphList() {
               onClick={() => setSelectedCodePoint(glyph.codePoint)}
               className={cn(
                 'flex w-full cursor-pointer items-center gap-2 px-2 py-1.5 text-left transition-colors',
-                isSelected
-                  ? 'bg-accent text-accent-foreground'
-                  : 'hover:bg-muted',
+                isSelected ? 'bg-accent text-accent-foreground' : 'hover:bg-muted',
               )}
             >
               <div className="bg-background/30 flex h-8 w-8 shrink-0 items-center justify-center rounded border border-border/40">
                 {glyph.width > 0 && glyph.height > 0 ? (
-                  <GlyphThumbnail
-                    pixels={glyph.pixels}
-                    width={glyph.width}
-                    height={glyph.height}
-                  />
+                  <GlyphThumbnail pixels={glyph.pixels} width={glyph.width} height={glyph.height} />
                 ) : (
                   <span className="text-muted-foreground text-xs">?</span>
                 )}
