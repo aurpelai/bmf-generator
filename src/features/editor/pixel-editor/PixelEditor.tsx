@@ -22,10 +22,10 @@ export function PixelEditor() {
   const setZoomLevel = useStore((s) => s.setZoomLevel)
   const upsertGlyph = useStore((s) => s.upsertGlyph)
   const pushUndo = useStore((s) => s.pushUndo)
+  const currentProject = useStore((s) => s.currentProject)
 
   const glyph = glyphs.find((g) => g.codePoint === selectedCodePoint) ?? null
 
-  // Keep a mutable ref to avoid stale closures in pointer handlers
   const stateRef = useRef({ glyph, activeTool, zoomLevel, showGrid, isDrawing: false, lastPixel: -1 })
   stateRef.current.glyph = glyph
   stateRef.current.activeTool = activeTool
@@ -35,6 +35,7 @@ export function PixelEditor() {
   const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current
     const g = stateRef.current.glyph
+    const project = currentProject
     if (!canvas || !g || g.width === 0 || g.height === 0) return
 
     const zoom = stateRef.current.zoomLevel
@@ -56,10 +57,44 @@ export function PixelEditor() {
       }
     }
 
+    // Guide lines: baseline and cap-height
+    if (project) {
+      const { base } = project.settings
+      // baseline: pixels below top of cell = base + yoffset
+      const baselineY = (g.yoffset + base) * zoom
+      // cap-height: approximate at ~70% of fontSize above baseline
+      const capHeight = Math.round(project.settings.fontSize * 0.7)
+      const capY = baselineY - capHeight * zoom
+
+      ctx.save()
+      // Baseline — amber
+      if (baselineY >= 0 && baselineY <= canvas.height) {
+        ctx.strokeStyle = 'rgba(251,191,36,0.5)'
+        ctx.lineWidth = 1
+        ctx.setLineDash([4, 3])
+        ctx.beginPath()
+        ctx.moveTo(0, baselineY + 0.5)
+        ctx.lineTo(canvas.width, baselineY + 0.5)
+        ctx.stroke()
+      }
+      // Cap-height — cyan
+      if (capY >= 0 && capY <= canvas.height) {
+        ctx.strokeStyle = 'rgba(34,211,238,0.4)'
+        ctx.lineWidth = 1
+        ctx.setLineDash([4, 3])
+        ctx.beginPath()
+        ctx.moveTo(0, capY + 0.5)
+        ctx.lineTo(canvas.width, capY + 0.5)
+        ctx.stroke()
+      }
+      ctx.restore()
+    }
+
     // Grid overlay
     if (grid && zoom >= 4) {
       ctx.strokeStyle = 'rgba(255,255,255,0.08)'
       ctx.lineWidth = 1
+      ctx.setLineDash([])
       for (let x = 0; x <= g.width; x++) {
         ctx.beginPath()
         ctx.moveTo(x * zoom + 0.5, 0)
@@ -73,7 +108,7 @@ export function PixelEditor() {
         ctx.stroke()
       }
     }
-  }, [])
+  }, [currentProject])
 
   useEffect(() => {
     drawCanvas()
@@ -98,9 +133,8 @@ export function PixelEditor() {
     const tool = stateRef.current.activeTool
     const newPixels = new Uint8Array(g.pixels)
     newPixels[idx] = tool === 'pencil' ? 255 : 0
-    const updated: Glyph = { ...g, pixels: newPixels }
+    const updated: Glyph = { ...g, pixels: newPixels, isDirty: true }
     upsertGlyph(updated)
-    // Persist
     saveGlyphs([updated])
     drawCanvas()
   }
@@ -108,7 +142,6 @@ export function PixelEditor() {
   function onPointerDown(e: React.PointerEvent) {
     if (!stateRef.current.glyph) return
     e.currentTarget.setPointerCapture(e.pointerId)
-    // Push undo snapshot before first stroke
     pushUndo(stateRef.current.glyph.codePoint, new Uint8Array(stateRef.current.glyph.pixels))
     stateRef.current.isDrawing = true
     stateRef.current.lastPixel = -1
