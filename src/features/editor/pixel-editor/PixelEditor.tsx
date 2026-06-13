@@ -26,7 +26,7 @@ export function PixelEditor() {
 
   const glyph = glyphs.find((g) => g.codePoint === selectedCodePoint) ?? null
 
-  const stateRef = useRef({ glyph, activeTool, zoomLevel, showGrid, isDrawing: false, lastPixel: -1 })
+  const stateRef = useRef({ glyph, activeTool, zoomLevel, showGrid, isDrawing: false, lastPixel: -1, moveOrigin: null as { x: number; y: number; xoffset: number; yoffset: number } | null, moveDelta: { dx: 0, dy: 0 } })
   stateRef.current.glyph = glyph
   stateRef.current.activeTool = activeTool
   stateRef.current.zoomLevel = zoomLevel
@@ -42,15 +42,21 @@ export function PixelEditor() {
     const grid = stateRef.current.showGrid
     const { fontSize, lineHeight, base, capHeight } = project.settings
 
-    // Cell occupies [0, fontSize) × [0, lineHeight) in cell-space.
-    // Glyph pixels start at (xoffset, yoffset) in cell-space.
-    // originX/Y shift cell-space so all content fits on a positive canvas.
-    // LABEL_GUTTER reserves space to the right of the cell for guide line labels.
+    // During a move drag the store is not updated — offsets live only in stateRef.
+    // layoutXoffset/Y use the original offsets so the grid stays fixed.
+    // renderXoffset/Y apply the current drag delta for pixel rendering only.
+    const origin = stateRef.current.moveOrigin
+    const { dx, dy } = stateRef.current.moveDelta
+    const layoutXoffset = g?.xoffset ?? 0
+    const layoutYoffset = g?.yoffset ?? 0
+    const renderXoffset = origin ? origin.xoffset + dx : layoutXoffset
+    const renderYoffset = origin ? origin.yoffset + dy : layoutYoffset
+
     const LABEL_GUTTER_PX = 36
-    const glyphRight = g ? g.xoffset + g.width : 0
-    const glyphBottom = g ? g.yoffset + g.height : 0
-    const originX = Math.min(0, g ? g.xoffset : 0)
-    const originY = Math.min(0, g ? g.yoffset : 0)
+    const glyphRight = g ? Math.max(layoutXoffset + g.width, renderXoffset + g.width) : 0
+    const glyphBottom = g ? Math.max(layoutYoffset + g.height, renderYoffset + g.height) : 0
+    const originX = Math.min(0, layoutXoffset, renderXoffset)
+    const originY = Math.min(0, layoutYoffset, renderYoffset)
     const canvasCols = Math.max(fontSize, glyphRight) - originX
     const canvasRows = Math.max(lineHeight, glyphBottom) - originY
 
@@ -71,11 +77,11 @@ export function PixelEditor() {
         for (let px = 0; px < g.width; px++) {
           const v = g.pixels[py * g.width + px]
           if (v === 0) continue
-          const cx = (g.xoffset + px - originX) * zoom
-          const cy = (g.yoffset + py - originY) * zoom
+          const cx = (renderXoffset + px - originX) * zoom
+          const cy = (renderYoffset + py - originY) * zoom
           const inCell =
-            g.xoffset + px >= 0 && g.xoffset + px < fontSize &&
-            g.yoffset + py >= 0 && g.yoffset + py < lineHeight
+            renderXoffset + px >= 0 && renderXoffset + px < fontSize &&
+            renderYoffset + py >= 0 && renderYoffset + py < lineHeight
           const alpha = (v / 255) * (inCell ? 1 : 0.35)
           ctx.fillStyle = `rgba(255,255,255,${alpha})`
           ctx.fillRect(cx, cy, zoom, zoom)
@@ -98,13 +104,13 @@ export function PixelEditor() {
       // Baseline — amber, clipped to cell width
       ctx.strokeStyle = 'rgba(251,191,36,0.5)'
       ctx.beginPath()
-      ctx.moveTo(0, baselineY + 0.5)
+      ctx.moveTo(cellX, baselineY + 0.5)
       ctx.lineTo(cellRight, baselineY + 0.5)
       ctx.stroke()
       // Cap-height — cyan, clipped to cell width
       ctx.strokeStyle = 'rgba(34,211,238,0.4)'
       ctx.beginPath()
-      ctx.moveTo(0, capY + 0.5)
+      ctx.moveTo(cellX, capY + 0.5)
       ctx.lineTo(cellRight, capY + 0.5)
       ctx.stroke()
       // Labels in the gutter, vertically centred on the line
@@ -186,22 +192,51 @@ export function PixelEditor() {
   }
 
   function onPointerDown(e: React.PointerEvent) {
-    if (!stateRef.current.glyph) return
+    const g = stateRef.current.glyph
+    if (!g) return
     e.currentTarget.setPointerCapture(e.pointerId)
-    pushUndo(stateRef.current.glyph.codePoint, new Uint8Array(stateRef.current.glyph.pixels))
+    pushUndo(g.codePoint, { pixels: new Uint8Array(g.pixels), xoffset: g.xoffset, yoffset: g.yoffset })
     stateRef.current.isDrawing = true
     stateRef.current.lastPixel = -1
-    applyPaint(pixelIndexFromEvent(e))
+    if (stateRef.current.activeTool === 'move') {
+      stateRef.current.moveOrigin = { x: e.clientX, y: e.clientY, xoffset: g.xoffset, yoffset: g.yoffset };
+      (e.currentTarget as HTMLCanvasElement).style.cursor = 'grabbing'
+    } else {
+      stateRef.current.moveOrigin = null
+      applyPaint(pixelIndexFromEvent(e))
+    }
   }
 
   function onPointerMove(e: React.PointerEvent) {
     if (!stateRef.current.isDrawing) return
-    applyPaint(pixelIndexFromEvent(e))
+    if (stateRef.current.activeTool === 'move') {
+      const origin = stateRef.current.moveOrigin
+      if (!origin) return
+      const zoom = stateRef.current.zoomLevel
+      stateRef.current.moveDelta = {
+        dx: Math.round((e.clientX - origin.x) / zoom),
+        dy: Math.round((e.clientY - origin.y) / zoom),
+      }
+      drawCanvas()
+    } else {
+      applyPaint(pixelIndexFromEvent(e))
+    }
   }
 
-  function onPointerUp() {
+  function onPointerUp(e: React.PointerEvent) {
+    const g = stateRef.current.glyph
+    if (stateRef.current.activeTool === 'move' && g && stateRef.current.moveOrigin) {
+      const { xoffset, yoffset } = stateRef.current.moveOrigin
+      const { dx, dy } = stateRef.current.moveDelta
+      const updated: Glyph = { ...g, xoffset: xoffset + dx, yoffset: yoffset + dy, isDirty: true }
+      upsertGlyph(updated)
+      saveGlyphs([updated]);
+      (e.currentTarget as HTMLCanvasElement).style.cursor = 'grab'
+    }
     stateRef.current.isDrawing = false
     stateRef.current.lastPixel = -1
+    stateRef.current.moveOrigin = null
+    stateRef.current.moveDelta = { dx: 0, dy: 0 }
   }
 
   function onWheel(e: React.WheelEvent) {
@@ -230,7 +265,7 @@ export function PixelEditor() {
       ) : (
         <canvas
           ref={canvasRef}
-          style={{ imageRendering: 'pixelated', cursor: activeTool === 'eraser' ? 'cell' : 'crosshair' }}
+          style={{ imageRendering: 'pixelated', cursor: activeTool === 'move' ? 'grab' : activeTool === 'eraser' ? 'cell' : 'crosshair' }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}

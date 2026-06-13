@@ -1,4 +1,4 @@
-import { Grid2x2, Grid2x2X, Minus, Pencil, Plus } from 'lucide-react'
+import { Grid2x2, Grid2x2X, Minus, Move, Pencil, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useStore } from '@/store'
 import { cn } from '@/lib/utils'
@@ -39,6 +39,7 @@ export function EditorToolbar() {
     <div className="border-border flex h-9 shrink-0 items-center gap-1 border-b px-2">
       {toolBtn('pencil', <Pencil className="h-3.5 w-3.5" />, 'Pencil (B)')}
       {toolBtn('eraser', <Grid2x2X className="h-3.5 w-3.5" />, 'Eraser (E)')}
+      {toolBtn('move', <Move className="h-3.5 w-3.5" />, 'Move (M)')}
 
       <div className="bg-border mx-1 h-5 w-px" />
 

@@ -1,22 +1,28 @@
 import type { StateCreator } from 'zustand'
 
-export type EditorTool = 'pencil' | 'eraser'
+export type EditorTool = 'pencil' | 'eraser' | 'move'
+
+export interface GlyphSnapshot {
+  pixels: Uint8Array
+  xoffset: number
+  yoffset: number
+}
 
 export interface EditorSlice {
   selectedCodePoint: number | null
   activeTool: EditorTool
   zoomLevel: number
   showGrid: boolean
-  // Per-glyph undo stacks: codePoint → stack of pixel snapshots
-  undoStacks: Record<number, Uint8Array[]>
-  redoStacks: Record<number, Uint8Array[]>
+  // Per-glyph undo stacks: codePoint → stack of glyph snapshots
+  undoStacks: Record<number, GlyphSnapshot[]>
+  redoStacks: Record<number, GlyphSnapshot[]>
   setSelectedCodePoint: (codePoint: number | null) => void
   setActiveTool: (tool: EditorTool) => void
   setZoomLevel: (zoom: number) => void
   setShowGrid: (show: boolean) => void
-  pushUndo: (codePoint: number, snapshot: Uint8Array) => void
-  undo: (codePoint: number) => Uint8Array | null
-  redo: (codePoint: number) => Uint8Array | null
+  pushUndo: (codePoint: number, snapshot: GlyphSnapshot) => void
+  undo: (codePoint: number) => GlyphSnapshot | null
+  redo: (codePoint: number) => GlyphSnapshot | null
 }
 
 const MAX_UNDO_STEPS = 50
