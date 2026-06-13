@@ -26,13 +26,15 @@ All work happens on feature branches merged to `main` via PRs — never commit d
 This project uses [Conventional Commits](https://www.conventionalcommits.org). Types:
 
 - `feat:` — new user-facing feature
-- `fix:` — bug fix
-- `chore:` — tooling, dependencies, config (no production code change)
+- `fix:` — bug fix visible to end users of the app
+- `chore:` — tooling, dependencies, config, CI (no production code change)
 - `refactor:` — code change with no behaviour change
 - `test:` — adding or updating tests
 - `docs:` — documentation only
 
 Not enforced by tooling — use good judgement. Consistent messages keep the auto-generated changelog useful.
+
+**Changelog visibility:** changelogen includes `feat:` and `fix:` in the changelog and hides everything else. Use `chore:` for any fix that is not visible to end users (CI, GitHub Actions, build config, tooling) — never `fix:`.
 
 ## Releases
 
