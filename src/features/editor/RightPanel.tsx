@@ -361,9 +361,9 @@ function SettingsTab() {
             type="number"
             className="h-7 text-xs"
             value={base}
-            onChange={(e) => { setBase(Number(e.target.value)); liveSettings({ base: Number(e.target.value) }) }}
-            onBlur={() => commitSettings({ base })}
-            onKeyDown={(e) => e.key === 'Enter' && commitSettings({ base })}
+            onChange={(e) => { const v = Math.min(Number(e.target.value), lineHeight); setBase(v); liveSettings({ base: v }) }}
+            onBlur={() => commitSettings({ base: Math.min(base, lineHeight) })}
+            onKeyDown={(e) => e.key === 'Enter' && commitSettings({ base: Math.min(base, lineHeight) })}
           />
         </div>
         <div className="grid gap-1">
@@ -373,9 +373,9 @@ function SettingsTab() {
             type="number"
             className="h-7 text-xs"
             value={capHeight}
-            onChange={(e) => { setCapHeight(Number(e.target.value)); liveSettings({ capHeight: Number(e.target.value) }) }}
-            onBlur={() => commitSettings({ capHeight })}
-            onKeyDown={(e) => e.key === 'Enter' && commitSettings({ capHeight })}
+            onChange={(e) => { const v = Math.min(Number(e.target.value), lineHeight); setCapHeight(v); liveSettings({ capHeight: v }) }}
+            onBlur={() => commitSettings({ capHeight: Math.min(capHeight, lineHeight) })}
+            onKeyDown={(e) => e.key === 'Enter' && commitSettings({ capHeight: Math.min(capHeight, lineHeight) })}
           />
         </div>
       </div>
