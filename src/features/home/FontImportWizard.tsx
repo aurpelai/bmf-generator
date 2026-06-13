@@ -171,9 +171,9 @@ export function FontImportWizard({ open, onOpenChange }: Props) {
   }
 
   const stepTitles: Record<Step, string> = {
-    1: 'Import font — Upload',
-    2: 'Import font — Size & glyphs',
-    3: 'Import font — Preview',
+    1: 'Import TTF/OTF — Upload',
+    2: 'Import TTF/OTF — Size & glyphs',
+    3: 'Import TTF/OTF — Preview',
   }
 
   return (
@@ -316,7 +316,7 @@ export function FontImportWizard({ open, onOpenChange }: Props) {
               onClick={handleConfirm}
               disabled={rasterizing || rasterizedGlyphs.length === 0 || !!rasterizeError || confirming}
             >
-              {confirming ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Importing…</> : 'Import font'}
+              {confirming ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Importing…</> : 'Import'}
             </Button>
           )}
         </DialogFooter>

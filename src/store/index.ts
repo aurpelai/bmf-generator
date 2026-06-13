@@ -5,8 +5,9 @@ import { createGlyphSlice, type GlyphSlice } from './glyphSlice'
 import { createEditorSlice, type EditorSlice } from './editorSlice'
 import { createUiSlice, type UiSlice } from './uiSlice'
 import { createAtlasSlice, type AtlasSlice } from './atlasSlice'
+import { createExportSlice, type ExportSlice } from './exportSlice'
 
-export type AppStore = ProjectSlice & GlyphSlice & EditorSlice & UiSlice & AtlasSlice
+export type AppStore = ProjectSlice & GlyphSlice & EditorSlice & UiSlice & AtlasSlice & ExportSlice
 
 export const useStore = create<AppStore>()(
   persist(
@@ -16,6 +17,7 @@ export const useStore = create<AppStore>()(
       ...createEditorSlice(...args),
       ...createUiSlice(...args),
       ...createAtlasSlice(...args),
+      ...createExportSlice(...args),
     }),
     {
       name: 'bmf-generator',
@@ -36,3 +38,4 @@ export * from './glyphSlice'
 export * from './editorSlice'
 export * from './uiSlice'
 export * from './atlasSlice'
+export * from './exportSlice'

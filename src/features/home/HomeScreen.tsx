@@ -1,9 +1,10 @@
-import { useEffect, useState, useRef } from 'react'
-import { Plus, Upload, FolderOpen, Pencil, Trash2, FileType } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { FileJson, FileType, FolderOpen, Pencil, Plus, Trash2, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { getAllProjects, saveProject, deleteProject } from '@/db'
+import { getAllProjects, saveProject, deleteProject, saveGlyphs } from '@/db'
 import { useStore } from '@/store'
+import { importPortableProject } from '@/core/project'
 import type { Project } from '@/core/project'
 import { NewProjectDialog } from './NewProjectDialog'
 import { FontImportWizard } from './FontImportWizard'
@@ -20,7 +21,11 @@ export function HomeScreen() {
   const [renameValue, setRenameValue] = useState('')
   const renameInputRef = useRef<HTMLInputElement>(null)
 
+  const [jsonImportError, setJsonImportError] = useState<string | null>(null)
+  const jsonInputRef = useRef<HTMLInputElement>(null)
+
   const setCurrentProject = useStore((s) => s.setCurrentProject)
+  const setGlyphs = useStore((s) => s.setGlyphs)
   const setView = useStore((s) => s.setView)
 
   async function loadProjects() {
@@ -58,6 +63,21 @@ export function HomeScreen() {
     loadProjects()
   }
 
+  async function handleJsonImport(file: File) {
+    setJsonImportError(null)
+    try {
+      const json = await file.text()
+      const { project, glyphs } = importPortableProject(json)
+      await saveProject(project)
+      await saveGlyphs(glyphs)
+      setCurrentProject(project)
+      setGlyphs(glyphs)
+      setView('editor')
+    } catch (err) {
+      setJsonImportError(err instanceof Error ? err.message : 'Failed to import project')
+    }
+  }
+
   function formatDate(ts: number) {
     return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(ts)
   }
@@ -67,7 +87,7 @@ export function HomeScreen() {
       {/* Top bar */}
       <header className="border-border flex h-12 items-center gap-3 border-b px-4">
         <FileType className="text-muted-foreground h-4 w-4" />
-        <span className="text-sm font-medium">BMF Generator</span>
+        <span className="text-sm font-medium">BMF Font Editor</span>
       </header>
 
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8">
@@ -75,17 +95,31 @@ export function HomeScreen() {
         <div className="mb-8 flex gap-3">
           <Button onClick={() => setNewProjectOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            New blank project
+            New font
           </Button>
-          <Button variant="outline" onClick={() => setBmfImportOpen(true)}>
+          <Button variant="outline" onClick={() => jsonInputRef.current?.click()}>
             <FolderOpen className="mr-2 h-4 w-4" />
-            Load existing project
+            Open font
           </Button>
           <Button variant="outline" onClick={() => setImportOpen(true)}>
             <Upload className="mr-2 h-4 w-4" />
-            Import font
+            Import TTF/OTF
           </Button>
+          <Button variant="outline" onClick={() => setBmfImportOpen(true)}>
+            <FileJson className="mr-2 h-4 w-4" />
+            Import BMF font
+          </Button>
+          <input
+            ref={jsonInputRef}
+            type="file"
+            accept=".bmffont.json,.json"
+            className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleJsonImport(f); e.target.value = '' }}
+          />
         </div>
+        {jsonImportError && (
+          <p className="text-destructive -mt-4 text-xs">{jsonImportError}</p>
+        )}
 
         <Separator className="mb-6" />
 
@@ -93,7 +127,7 @@ export function HomeScreen() {
         {projects.length === 0 ? (
           <div className="text-muted-foreground py-16 text-center text-sm">
             <p>No projects yet.</p>
-            <p className="mt-1">Create a blank project or import a font file to get started.</p>
+            <p className="mt-1">Create a new font, open a saved font, or import an existing one to get started.</p>
           </div>
         ) : (
           <div className="grid gap-2">

@@ -48,7 +48,7 @@ export function NewProjectDialog({ open, onOpenChange }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>New blank project</DialogTitle>
+          <DialogTitle>New font</DialogTitle>
         </DialogHeader>
 
         <div className="grid gap-4 py-2">

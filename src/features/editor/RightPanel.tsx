@@ -203,6 +203,14 @@ function MetricsTab() {
   )
 }
 
+const PRESETS: Array<{ id: import('@/store').GlyphPreset; label: string }> = [
+  { id: 'all', label: 'All' },
+  { id: 'letters', label: 'Letters' },
+  { id: 'letters-digits', label: 'Letters & digits' },
+  { id: 'digits', label: 'Digits' },
+  { id: 'custom', label: 'Custom' },
+]
+
 function AtlasTab() {
   const [packing, setPacking] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -214,19 +222,28 @@ function AtlasTab() {
   const atlasHeight = useStore((s) => s.atlasHeight)
   const atlasEfficiency = useStore((s) => s.atlasEfficiency)
   const setAtlasResult = useStore((s) => s.setAtlasResult)
+  const exportSelection = useStore((s) => s.exportSelection)
+  const exportPreset = useStore((s) => s.exportPreset)
+  const setExportPreset = useStore((s) => s.setExportPreset)
+  const toggleExportGlyph = useStore((s) => s.toggleExportGlyph)
 
   const { packAtlas } = useAtlas()
 
-  // Debounce glyphs changes to avoid hammering the worker on every stroke
-  const debouncedGlyphs = useDebounce(glyphs, 800)
+  const allCodePoints = glyphs.map((g) => g.codePoint)
+  // Glyphs to pack: selection or all
+  const selectedGlyphs = exportSelection === null
+    ? glyphs
+    : glyphs.filter((g) => exportSelection.has(g.codePoint))
 
-  async function runPack(glyphsTopack = glyphs) {
-    if (!currentProject || glyphsTopack.length === 0) return
+  const debouncedSelected = useDebounce(selectedGlyphs, 800)
+
+  async function runPack(glyphsToPack = selectedGlyphs) {
+    if (!currentProject || glyphsToPack.length === 0) return
     setPacking(true)
     try {
       const size = currentProject.settings.fontSize <= 16 ? 256 : 512
       const { placements, atlasImageData: imageData, efficiency, unpacked } = await packAtlas(
-        glyphsTopack,
+        glyphsToPack,
         size,
         size,
         currentProject.settings.padding.top,
@@ -243,10 +260,10 @@ function AtlasTab() {
     if (glyphs.length > 0 && !atlasImageData) runPack(glyphs)
   }, [glyphs.length])
 
-  // Debounced auto-repack on glyph pixel changes
+  // Debounced auto-repack when pixel data or selection changes
   useEffect(() => {
-    if (debouncedGlyphs.length > 0 && atlasImageData) runPack(debouncedGlyphs)
-  }, [debouncedGlyphs])
+    if (debouncedSelected.length > 0 && atlasImageData) runPack(debouncedSelected)
+  }, [debouncedSelected])
 
   // Render atlas ImageData onto canvas when it changes
   useEffect(() => {
@@ -254,14 +271,60 @@ function AtlasTab() {
     if (!canvas || !atlasImageData) return
     canvas.width = atlasWidth
     canvas.height = atlasHeight
-    const ctx = canvas.getContext('2d')!
-    ctx.putImageData(atlasImageData, 0, 0)
+    canvas.getContext('2d')!.putImageData(atlasImageData, 0, 0)
   }, [atlasImageData, atlasWidth, atlasHeight])
 
   return (
     <div className="flex flex-1 flex-col gap-3 overflow-auto p-3">
+      {/* Preset selector */}
+      <div className="grid gap-1.5">
+        <span className="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">Glyph selection</span>
+        <div className="flex flex-wrap gap-1">
+          {PRESETS.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => setExportPreset(p.id, allCodePoints)}
+              className={`rounded px-2 py-0.5 text-[11px] transition-colors ${
+                exportPreset === p.id
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Per-glyph toggles */}
+      <div className="flex flex-wrap gap-0.5">
+        {glyphs.map((g) => {
+          const selected = exportSelection === null || exportSelection.has(g.codePoint)
+          const char = String.fromCodePoint(g.codePoint)
+          return (
+            <button
+              key={g.codePoint}
+              title={`U+${g.codePoint.toString(16).toUpperCase().padStart(4, '0')} ${char}`}
+              onClick={() => toggleExportGlyph(g.codePoint, allCodePoints)}
+              className={`flex h-6 w-6 items-center justify-center rounded text-[11px] transition-colors ${
+                selected
+                  ? 'bg-accent text-accent-foreground'
+                  : 'bg-muted text-muted-foreground/30'
+              }`}
+            >
+              {char}
+            </button>
+          )
+        })}
+      </div>
+
+      <div className="text-muted-foreground text-[10px]">
+        {exportSelection === null ? glyphs.length : exportSelection.size} / {glyphs.length} glyphs selected
+      </div>
+
+      {/* Atlas preview */}
       {packing ? (
-        <div className="text-muted-foreground flex flex-1 items-center justify-center gap-2 text-xs">
+        <div className="text-muted-foreground flex items-center justify-center gap-2 py-4 text-xs">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
           Packing…
         </div>

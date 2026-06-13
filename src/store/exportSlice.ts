@@ -1,0 +1,55 @@
+import type { StateCreator } from 'zustand'
+
+export type GlyphPreset = 'all' | 'letters' | 'letters-digits' | 'digits' | 'custom'
+
+export interface ExportSlice {
+  // null means "all glyphs" (default). A Set means an explicit selection.
+  exportSelection: Set<number> | null
+  exportPreset: GlyphPreset
+  setExportPreset: (preset: GlyphPreset, allCodePoints: number[]) => void
+  toggleExportGlyph: (codePoint: number, allCodePoints: number[]) => void
+  resetExportSelection: () => void
+}
+
+function isLetter(cp: number): boolean {
+  return /^\p{L}$/u.test(String.fromCodePoint(cp))
+}
+
+function isDigit(cp: number): boolean {
+  return cp >= 0x30 && cp <= 0x39
+}
+
+function codePointsForPreset(preset: Exclude<GlyphPreset, 'custom'>, all: number[]): Set<number> | null {
+  if (preset === 'all') return null
+  return new Set(
+    all.filter((cp) => {
+      if (preset === 'letters') return isLetter(cp)
+      if (preset === 'digits') return isDigit(cp)
+      if (preset === 'letters-digits') return isLetter(cp) || isDigit(cp)
+      return true
+    }),
+  )
+}
+
+export const createExportSlice: StateCreator<ExportSlice> = (set) => ({
+  exportSelection: null,
+  exportPreset: 'all',
+
+  setExportPreset: (preset, allCodePoints) =>
+    set({
+      exportPreset: preset,
+      exportSelection: preset === 'custom' ? new Set(allCodePoints) : codePointsForPreset(preset, allCodePoints),
+    }),
+
+  toggleExportGlyph: (codePoint, allCodePoints) =>
+    set((state) => {
+      // Materialise "all" into an explicit set before toggling
+      const current = state.exportSelection ?? new Set(allCodePoints)
+      const next = new Set(current)
+      if (next.has(codePoint)) next.delete(codePoint)
+      else next.add(codePoint)
+      return { exportSelection: next, exportPreset: 'custom' }
+    }),
+
+  resetExportSelection: () => set({ exportSelection: null, exportPreset: 'all' }),
+})
