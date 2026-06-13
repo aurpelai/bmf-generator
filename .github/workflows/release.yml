@@ -48,3 +48,12 @@ jobs:
       - name: Push commit and tag
         if: steps.check.outputs.releasable == 'true'
         run: git push --follow-tags
+
+      - name: Create GitHub Release
+        if: steps.check.outputs.releasable == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          TAG=$(git describe --tags --abbrev=0)
+          NOTES=$(awk "/^## ${TAG}$/{found=1; next} found && /^## v/{exit} found{print}" CHANGELOG.md)
+          gh release create "$TAG" --title "$TAG" --notes "$NOTES"
