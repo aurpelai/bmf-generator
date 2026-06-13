@@ -60,8 +60,8 @@ export function PixelEditor() {
     // Guide lines: baseline and cap-height
     if (project) {
       const { base } = project.settings
-      // baseline: pixels below top of cell = base + yoffset
-      const baselineY = (g.yoffset + base) * zoom
+      // baseline within glyph box = distance from cell top to baseline, minus glyph's own top offset
+      const baselineY = (base - g.yoffset) * zoom
       // cap-height: approximate at ~70% of fontSize above baseline
       const capHeight = Math.round(project.settings.fontSize * 0.7)
       const capY = baselineY - capHeight * zoom
