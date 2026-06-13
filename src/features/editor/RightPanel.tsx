@@ -106,8 +106,8 @@ function MetricsTab() {
 
   if (!glyph) {
     return (
-      <div className="text-muted-foreground flex flex-1 items-center justify-center p-4 text-xs">
-        Select a glyph to edit its metrics.
+      <div className="text-muted-foreground flex flex-1 items-center justify-center p-4 text-sm">
+        Select a glyph to edit its metrics
       </div>
     )
   }
@@ -547,15 +547,15 @@ export function RightPanel() {
   const [tab, setTab] = useState<Tab>('metrics')
 
   const tabClass = (t: Tab) =>
-    `px-3 py-1.5 text-xs font-medium transition-colors ${
+    `cursor-pointer self-stretch flex items-center px-3 text-xs font-medium transition-colors ${
       tab === t
-        ? 'text-foreground border-b-2 border-primary'
+        ? 'text-foreground border-b-2 border-primary -mb-px'
         : 'text-muted-foreground hover:text-foreground'
     }`
 
   return (
     <div className="border-border flex h-full w-64 shrink-0 flex-col border-l">
-      <div className="border-border flex h-9 shrink-0 items-center border-b">
+      <div className="border-border flex h-9 shrink-0 items-end border-b">
         <button className={tabClass('metrics')} onClick={() => setTab('metrics')}>Metrics</button>
         <button className={tabClass('atlas')} onClick={() => setTab('atlas')}>Atlas</button>
         <button className={tabClass('settings')} onClick={() => setTab('settings')}>Settings</button>
