@@ -26,7 +26,7 @@ export function PixelEditor() {
 
   const glyph = glyphs.find((g) => g.codePoint === selectedCodePoint) ?? null
 
-  const stateRef = useRef({ glyph, activeTool, zoomLevel, showGrid, isDrawing: false, lastPixel: -1 })
+  const stateRef = useRef({ glyph, activeTool, zoomLevel, showGrid, isDrawing: false, lastPixel: -1, moveOrigin: null as { x: number; y: number; xoffset: number; yoffset: number } | null })
   stateRef.current.glyph = glyph
   stateRef.current.activeTool = activeTool
   stateRef.current.zoomLevel = zoomLevel
@@ -186,22 +186,47 @@ export function PixelEditor() {
   }
 
   function onPointerDown(e: React.PointerEvent) {
-    if (!stateRef.current.glyph) return
+    const g = stateRef.current.glyph
+    if (!g) return
     e.currentTarget.setPointerCapture(e.pointerId)
-    pushUndo(stateRef.current.glyph.codePoint, new Uint8Array(stateRef.current.glyph.pixels))
+    pushUndo(g.codePoint, { pixels: new Uint8Array(g.pixels), xoffset: g.xoffset, yoffset: g.yoffset })
     stateRef.current.isDrawing = true
     stateRef.current.lastPixel = -1
-    applyPaint(pixelIndexFromEvent(e))
+    if (stateRef.current.activeTool === 'move') {
+      stateRef.current.moveOrigin = { x: e.clientX, y: e.clientY, xoffset: g.xoffset, yoffset: g.yoffset };
+      (e.currentTarget as HTMLCanvasElement).style.cursor = 'grabbing'
+    } else {
+      stateRef.current.moveOrigin = null
+      applyPaint(pixelIndexFromEvent(e))
+    }
   }
 
   function onPointerMove(e: React.PointerEvent) {
     if (!stateRef.current.isDrawing) return
-    applyPaint(pixelIndexFromEvent(e))
+    if (stateRef.current.activeTool === 'move') {
+      const origin = stateRef.current.moveOrigin
+      const g = stateRef.current.glyph
+      if (!origin || !g) return
+      const zoom = stateRef.current.zoomLevel
+      const dx = Math.round((e.clientX - origin.x) / zoom)
+      const dy = Math.round((e.clientY - origin.y) / zoom)
+      const updated: Glyph = { ...g, xoffset: origin.xoffset + dx, yoffset: origin.yoffset + dy, isDirty: true }
+      upsertGlyph(updated)
+      drawCanvas()
+    } else {
+      applyPaint(pixelIndexFromEvent(e))
+    }
   }
 
-  function onPointerUp() {
+  function onPointerUp(e: React.PointerEvent) {
+    const g = stateRef.current.glyph
+    if (stateRef.current.activeTool === 'move' && g) {
+      saveGlyphs([g]);
+      (e.currentTarget as HTMLCanvasElement).style.cursor = 'grab'
+    }
     stateRef.current.isDrawing = false
     stateRef.current.lastPixel = -1
+    stateRef.current.moveOrigin = null
   }
 
   function onWheel(e: React.WheelEvent) {
@@ -230,7 +255,7 @@ export function PixelEditor() {
       ) : (
         <canvas
           ref={canvasRef}
-          style={{ imageRendering: 'pixelated', cursor: activeTool === 'eraser' ? 'cell' : 'crosshair' }}
+          style={{ imageRendering: 'pixelated', cursor: activeTool === 'move' ? 'grab' : activeTool === 'eraser' ? 'cell' : 'crosshair' }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}

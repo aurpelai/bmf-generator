@@ -67,7 +67,7 @@ export function rasterizeFont(req: RasterizeRequest): RasterizeResult {
     const penX = -bb.x1 * scale
     const penY = bb.y2 * scale
     const path = glyph.getPath(penX, penY, req.fontSize)
-    path.draw(ctx)
+    path.draw(ctx as unknown as CanvasRenderingContext2D)
 
     const imageData = ctx.getImageData(0, 0, width, height)
     // Alpha channel carries AA coverage regardless of fill colour
