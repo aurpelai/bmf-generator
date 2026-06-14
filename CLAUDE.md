@@ -92,3 +92,5 @@ src/
 ```
 
 `core/` has no React imports — keep it that way. Tests for `core/` are co-located as `*.test.ts` files.
+
+**Prefer shared components and logic.** Before writing new UI or utility code, check whether a suitable shared component or helper already exists. Extract reusable pieces into shared modules (e.g. `import-shared.tsx` for wizard UI, `core/` for domain logic, `hooks/` for React hooks) rather than duplicating across feature files. Three similar implementations is a signal to consolidate, not a reason to add a fourth.

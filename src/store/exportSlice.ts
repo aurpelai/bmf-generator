@@ -2,6 +2,15 @@ import type { StateCreator } from 'zustand'
 
 export type GlyphPreset = 'all' | 'letters' | 'letters-digits' | 'digits' | 'custom'
 
+export type ImportPreset = 'all' | 'letters' | 'letters-digits' | 'digits'
+
+export const IMPORT_PRESETS: Array<{ id: ImportPreset; label: string }> = [
+  { id: 'all', label: 'All' },
+  { id: 'letters', label: 'Letters' },
+  { id: 'letters-digits', label: 'Letters & digits' },
+  { id: 'digits', label: 'Digits' },
+]
+
 export interface ExportSlice {
   // null means "all glyphs" (default). A Set means an explicit selection.
   exportSelection: Set<number> | null
@@ -17,6 +26,15 @@ function isLetter(cp: number): boolean {
 
 function isDigit(cp: number): boolean {
   return cp >= 0x30 && cp <= 0x39
+}
+
+export function filterCodePointsByPreset(preset: ImportPreset, all: number[]): number[] {
+  if (preset === 'all') return all
+  return all.filter((cp) => {
+    if (preset === 'letters') return isLetter(cp)
+    if (preset === 'digits') return isDigit(cp)
+    return isLetter(cp) || isDigit(cp)
+  })
 }
 
 function codePointsForPreset(preset: Exclude<GlyphPreset, 'custom'>, all: number[]): Set<number> | null {

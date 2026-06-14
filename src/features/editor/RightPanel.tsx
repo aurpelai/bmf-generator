@@ -314,9 +314,8 @@ function SettingsTab() {
 
   return (
     <div className="flex flex-1 flex-col gap-4 overflow-auto p-3">
-      {/* Project name */}
       <div className="grid gap-1">
-        <Label htmlFor="rp-name" className="text-[10px]">Project name</Label>
+        <Label htmlFor="rp-name" className="text-[10px]">Font name</Label>
         <Input
           id="rp-name"
           className="h-7 text-xs"
