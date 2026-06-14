@@ -2,6 +2,8 @@ import React from 'react';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
+import { Keys } from './Keys';
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -32,27 +34,6 @@ const SHORTCUTS = [
   { keys: ['Shift', 'Scroll'], description: 'Adjust brush size' },
   { keys: ['?'], description: 'Show this help overlay' },
 ];
-
-const Kbd = ({ children }: { children: React.ReactNode }): React.JSX.Element => {
-  return (
-    <kbd className="bg-muted border-border inline-flex items-center rounded border px-1.5 py-0.5 font-mono text-[10px] leading-none">
-      {children}
-    </kbd>
-  );
-};
-
-const Keys = ({ keys }: { keys: string[] }): React.JSX.Element => {
-  return (
-    <div className="flex items-center gap-0.5">
-      {keys.map((key, index) => (
-        <span key={index} className="flex items-center gap-0.5">
-          {index > 0 && <span className="text-muted-foreground text-[10px]">+</span>}
-          <Kbd>{key}</Kbd>
-        </span>
-      ))}
-    </div>
-  );
-};
 
 export const HelpOverlay = ({ open, onOpenChange }: Props): React.JSX.Element => {
   return (

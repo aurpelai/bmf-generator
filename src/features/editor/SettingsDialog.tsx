@@ -4,7 +4,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { saveProject } from '@/db';
-import { FontMetricsFields, PaddingFields, SpacingFields } from '@/features/home/import-shared';
+import { FontMetricsFields } from '@/features/home/FontMetricsFields';
+import { PaddingFields } from '@/features/home/PaddingFields';
+import { SpacingFields } from '@/features/home/SpacingFields';
 import { useStore } from '@/store';
 
 interface Props {

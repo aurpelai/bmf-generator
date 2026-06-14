@@ -8,13 +8,11 @@ import { GLYPH_SETS } from '@/core/project/glyphSets';
 import { saveGlyphs, saveProject } from '@/db';
 import { useStore } from '@/store';
 
-import {
-  FontMetricsFields,
-  GlyphSetSelect,
-  PaddingFields,
-  SpacingFields,
-  WizardFooter,
-} from './import-shared';
+import { FontMetricsFields } from './FontMetricsFields';
+import { GlyphSetSelect } from './GlyphSetSelect';
+import { PaddingFields } from './PaddingFields';
+import { SpacingFields } from './SpacingFields';
+import { WizardFooter } from './WizardFooter';
 
 interface Props {
   open: boolean;

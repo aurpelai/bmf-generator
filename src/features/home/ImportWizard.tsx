@@ -16,15 +16,13 @@ import { useStore } from '@/store';
 import type { ImportPreset } from '@/store/exportSlice';
 import { filterCodePointsByPreset, IMPORT_PRESETS } from '@/store/exportSlice';
 
-import {
-  DropZone,
-  FontMetricsFields,
-  GlyphPreviewStep,
-  GlyphSetSelect,
-  PaddingFields,
-  SpacingFields,
-  WizardFooter,
-} from './import-shared';
+import { DropZone } from './DropZone';
+import { FontMetricsFields } from './FontMetricsFields';
+import { GlyphPreviewStep } from './GlyphPreviewStep';
+import { GlyphSetSelect } from './GlyphSetSelect';
+import { PaddingFields } from './PaddingFields';
+import { SpacingFields } from './SpacingFields';
+import { WizardFooter } from './WizardFooter';
 
 interface Props {
   open: boolean;

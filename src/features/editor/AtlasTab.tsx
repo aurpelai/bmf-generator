@@ -1,0 +1,146 @@
+import { Loader2, RefreshCw } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { useAtlas } from '@/hooks/useAtlas';
+import { useStore } from '@/store';
+
+function useDebounce<T>(value: T, ms: number): T {
+  const [debounced, setDebounced] = useState(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), ms);
+
+    return () => clearTimeout(timer);
+  }, [value, ms]);
+
+  return debounced;
+}
+
+export const AtlasTab = (): React.JSX.Element => {
+  const [packing, setPacking] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  const currentProject = useStore((state) => state.currentProject);
+  const glyphs = useStore((state) => state.glyphs);
+  const atlasImageData = useStore((state) => state.atlasImageData);
+  const atlasWidth = useStore((state) => state.atlasWidth);
+  const atlasHeight = useStore((state) => state.atlasHeight);
+  const atlasEfficiency = useStore((state) => state.atlasEfficiency);
+  const setAtlasResult = useStore((state) => state.setAtlasResult);
+  const exportSelection = useStore((state) => state.exportSelection);
+
+  const { packAtlas } = useAtlas();
+
+  const selectedGlyphs =
+    exportSelection === null
+      ? glyphs
+      : glyphs.filter((glyph) => exportSelection.has(glyph.codePoint));
+
+  const debouncedSelected = useDebounce(selectedGlyphs, 800);
+
+  async function runPack(glyphsToPack = selectedGlyphs): Promise<void> {
+    if (!currentProject || glyphsToPack.length === 0) {
+      return;
+    }
+
+    setPacking(true);
+
+    try {
+      const {
+        placements,
+        atlasImageData: imageData,
+        atlasWidth: packedWidth,
+        atlasHeight: packedHeight,
+        efficiency,
+        unpacked,
+      } = await packAtlas(glyphsToPack, currentProject.settings.padding.top);
+
+      if (unpacked.length > 0) {
+        console.warn(`${unpacked.length} glyphs did not fit in atlas`);
+      }
+
+      setAtlasResult(placements, imageData, packedWidth, packedHeight, efficiency);
+    } finally {
+      setPacking(false);
+    }
+  }
+
+  // Auto-pack on first load
+  useEffect(() => {
+    if (glyphs.length > 0 && !atlasImageData) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      void runPack(glyphs);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [glyphs.length]);
+
+  // Debounced auto-repack when pixel data or selection changes
+  useEffect(() => {
+    if (debouncedSelected.length > 0 && atlasImageData) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      void runPack(debouncedSelected);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSelected]);
+
+  // Render atlas ImageData onto canvas when it changes
+  useEffect(() => {
+    const canvas = canvasRef.current;
+
+    if (!canvas || !atlasImageData) {
+      return;
+    }
+
+    canvas.width = atlasWidth;
+    canvas.height = atlasHeight;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    canvas.getContext('2d')!.putImageData(atlasImageData, 0, 0); // canvas is non-null (checked above)
+  }, [atlasImageData, atlasWidth, atlasHeight]);
+
+  return (
+    <div className="flex flex-1 flex-col gap-3 overflow-auto p-3">
+      {/* Atlas preview */}
+      {packing ? (
+        <div className="text-muted-foreground flex items-center justify-center gap-2 py-4 text-xs">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          Packing…
+        </div>
+      ) : atlasImageData ? (
+        <>
+          <div className="bg-muted border-border/50 overflow-hidden rounded border">
+            <canvas
+              ref={canvasRef}
+              style={{
+                imageRendering: 'pixelated',
+                width: '100%',
+                height: 'auto',
+                display: 'block',
+              }}
+            />
+          </div>
+          <div className="text-muted-foreground flex items-center justify-between text-xs">
+            <span>
+              {atlasWidth}×{atlasHeight} · {Math.round(atlasEfficiency * 100)}% used
+            </span>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-6 w-6"
+              onClick={() => {
+                void runPack();
+              }}
+              disabled={packing}
+            >
+              <RefreshCw className="h-3 w-3" />
+            </Button>
+          </div>
+        </>
+      ) : (
+        <div className="text-muted-foreground flex flex-1 items-center justify-center text-xs">
+          No glyphs to pack yet.
+        </div>
+      )}
+    </div>
+  );
+};
