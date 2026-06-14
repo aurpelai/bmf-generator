@@ -1,13 +1,14 @@
-import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
-import { createProjectSlice, type ProjectSlice } from './projectSlice'
-import { createGlyphSlice, type GlyphSlice } from './glyphSlice'
-import { createEditorSlice, type EditorSlice } from './editorSlice'
-import { createUiSlice, type UiSlice } from './uiSlice'
-import { createAtlasSlice, type AtlasSlice } from './atlasSlice'
-import { createExportSlice, type ExportSlice } from './exportSlice'
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
-export type AppStore = ProjectSlice & GlyphSlice & EditorSlice & UiSlice & AtlasSlice & ExportSlice
+import { type AtlasSlice, createAtlasSlice } from './atlasSlice';
+import { createEditorSlice, type EditorSlice } from './editorSlice';
+import { createExportSlice, type ExportSlice } from './exportSlice';
+import { createGlyphSlice, type GlyphSlice } from './glyphSlice';
+import { createProjectSlice, type ProjectSlice } from './projectSlice';
+import { createUiSlice, type UiSlice } from './uiSlice';
+
+export type AppStore = ProjectSlice & GlyphSlice & EditorSlice & UiSlice & AtlasSlice & ExportSlice;
 
 export const useStore = create<AppStore>()(
   persist(
@@ -31,11 +32,11 @@ export const useStore = create<AppStore>()(
       }),
     },
   ),
-)
+);
 
-export * from './projectSlice'
-export * from './glyphSlice'
-export * from './editorSlice'
-export * from './uiSlice'
-export * from './atlasSlice'
-export * from './exportSlice'
+export * from './atlasSlice';
+export * from './editorSlice';
+export * from './exportSlice';
+export * from './glyphSlice';
+export * from './projectSlice';
+export * from './uiSlice';

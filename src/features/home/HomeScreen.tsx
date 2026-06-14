@@ -1,83 +1,96 @@
-import { useEffect, useRef, useState } from 'react'
-import { FileType, FolderOpen, Pencil, Plus, Trash2, Upload } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
-import { getAllProjects, saveProject, deleteProject, saveGlyphs } from '@/db'
-import { useStore } from '@/store'
-import { importPortableProject } from '@/core/project'
-import type { Project } from '@/core/project'
-import { NewFontWizard } from './NewFontWizard'
-import { ImportWizard } from './ImportWizard'
-import { DeleteProjectDialog } from './DeleteProjectDialog'
+import { FileType, FolderOpen, Pencil, Plus, Trash2, Upload } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
 
-export function HomeScreen() {
-  const [projects, setProjects] = useState<Project[]>([])
-  const [newProjectOpen, setNewProjectOpen] = useState(false)
-  const [importOpen, setImportOpen] = useState(false)
-  const [deleteTarget, setDeleteTarget] = useState<Project | null>(null)
-  const [renamingId, setRenamingId] = useState<string | null>(null)
-  const [renameValue, setRenameValue] = useState('')
-  const renameInputRef = useRef<HTMLInputElement>(null)
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import type { Project } from '@/core/project';
+import { importPortableProject } from '@/core/project';
+import { deleteProject, getAllProjects, saveGlyphs, saveProject } from '@/db';
+import { useStore } from '@/store';
 
-  const [jsonImportError, setJsonImportError] = useState<string | null>(null)
-  const jsonInputRef = useRef<HTMLInputElement>(null)
+import { DeleteProjectDialog } from './DeleteProjectDialog';
+import { ImportWizard } from './ImportWizard';
+import { NewFontWizard } from './NewFontWizard';
 
-  const setCurrentProject = useStore((s) => s.setCurrentProject)
-  const setGlyphs = useStore((s) => s.setGlyphs)
-  const setView = useStore((s) => s.setView)
+export const HomeScreen = (): React.JSX.Element => {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [newProjectOpen, setNewProjectOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const renameInputRef = useRef<HTMLInputElement>(null);
 
-  async function loadProjects() {
-    setProjects(await getAllProjects())
+  const [jsonImportError, setJsonImportError] = useState<string | null>(null);
+  const jsonInputRef = useRef<HTMLInputElement>(null);
+
+  const setCurrentProject = useStore((state) => state.setCurrentProject);
+  const setGlyphs = useStore((state) => state.setGlyphs);
+  const setView = useStore((state) => state.setView);
+
+  async function loadProjects(): Promise<void> {
+    setProjects(await getAllProjects());
   }
-
-  useEffect(() => { loadProjects() }, [])
 
   useEffect(() => {
-    if (renamingId) renameInputRef.current?.focus()
-  }, [renamingId])
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadProjects();
+  }, []);
 
-  function openProject(project: Project) {
-    setCurrentProject(project)
-    setView('editor')
+  useEffect(() => {
+    if (renamingId) {
+      renameInputRef.current?.focus();
+    }
+  }, [renamingId]);
+
+  function openProject(project: Project): void {
+    setCurrentProject(project);
+    setView('editor');
   }
 
-  function startRename(project: Project, e: React.MouseEvent) {
-    e.stopPropagation()
-    setRenamingId(project.id)
-    setRenameValue(project.name)
+  function startRename(project: Project, e: React.MouseEvent): void {
+    e.stopPropagation();
+    setRenamingId(project.id);
+    setRenameValue(project.name);
   }
 
-  async function commitRename(project: Project) {
-    const name = renameValue.trim() || project.name
-    const updated = { ...project, name, updatedAt: Date.now() }
-    await saveProject(updated)
-    setRenamingId(null)
-    loadProjects()
+  async function commitRename(project: Project): Promise<void> {
+    const name = renameValue.trim() || project.name;
+    // eslint-disable-next-line react-hooks/purity
+    const updated = { ...project, name, updatedAt: Date.now() }; // Date.now() is intentional for timestamp
+
+    await saveProject(updated);
+    setRenamingId(null);
+    void loadProjects();
   }
 
-  async function handleDelete(project: Project) {
-    await deleteProject(project.id)
-    setDeleteTarget(null)
-    loadProjects()
+  async function handleDelete(project: Project): Promise<void> {
+    await deleteProject(project.id);
+    setDeleteTarget(null);
+    void loadProjects();
   }
 
-  async function handleJsonImport(file: File) {
-    setJsonImportError(null)
+  async function handleJsonImport(file: File): Promise<void> {
+    setJsonImportError(null);
+
     try {
-      const json = await file.text()
-      const { project, glyphs } = importPortableProject(json)
-      await saveProject(project)
-      await saveGlyphs(glyphs)
-      setCurrentProject(project)
-      setGlyphs(glyphs)
-      setView('editor')
+      const json = await file.text();
+      const { project, glyphs } = importPortableProject(json);
+
+      await saveProject(project);
+      await saveGlyphs(glyphs);
+      setCurrentProject(project);
+      setGlyphs(glyphs);
+      setView('editor');
     } catch (err) {
-      setJsonImportError(err instanceof Error ? err.message : 'Failed to import project')
+      setJsonImportError(err instanceof Error ? err.message : 'Failed to import project');
     }
   }
 
-  function formatDate(ts: number) {
-    return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(ts)
+  function formatDate(ts: number): string {
+    return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(
+      ts,
+    );
   }
 
   return (
@@ -109,12 +122,18 @@ export function HomeScreen() {
             type="file"
             accept=".bmffont.json,.json"
             className="hidden"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleJsonImport(f); e.target.value = '' }}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+
+              if (file) {
+                void handleJsonImport(file);
+              }
+
+              event.target.value = '';
+            }}
           />
         </div>
-        {jsonImportError && (
-          <p className="text-destructive -mt-4 text-xs">{jsonImportError}</p>
-        )}
+        {jsonImportError && <p className="text-destructive -mt-4 text-xs">{jsonImportError}</p>}
 
         <Separator className="mb-6" />
 
@@ -122,11 +141,13 @@ export function HomeScreen() {
         {projects.length === 0 ? (
           <div className="text-muted-foreground py-16 text-center text-sm">
             <p>No fonts yet.</p>
-            <p className="mt-1">Create a new font, open a saved font, or import an existing one to get started.</p>
+            <p className="mt-1">
+              Create a new font, open a saved font, or import an existing one to get started.
+            </p>
           </div>
         ) : (
           <div className="grid gap-2">
-            <h2 className="text-muted-foreground mb-2 text-xs font-medium uppercase tracking-wider">
+            <h2 className="text-muted-foreground mb-2 text-xs font-medium tracking-wider uppercase">
               Recent fonts
             </h2>
             {projects.map((project) => (
@@ -141,20 +162,29 @@ export function HomeScreen() {
                       ref={renameInputRef}
                       className="bg-input text-foreground w-full rounded px-1 py-0.5 text-sm outline-none"
                       value={renameValue}
-                      onChange={(e) => setRenameValue(e.target.value)}
-                      onBlur={() => commitRename(project)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') commitRename(project)
-                        if (e.key === 'Escape') setRenamingId(null)
-                        e.stopPropagation()
+                      onChange={(event) => setRenameValue(event.target.value)}
+                      onBlur={() => {
+                        void commitRename(project);
                       }}
-                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          void commitRename(project);
+                        }
+
+                        if (event.key === 'Escape') {
+                          setRenamingId(null);
+                        }
+
+                        event.stopPropagation();
+                      }}
+                      onClick={(event) => event.stopPropagation()}
                     />
                   ) : (
                     <p className="truncate text-sm font-medium">{project.name}</p>
                   )}
                   <p className="text-muted-foreground mt-0.5 text-xs">
-                    {project.settings.fontSize}px · {project.glyphs.length} glyphs · {formatDate(project.updatedAt)}
+                    {project.settings.fontSize}px · {project.glyphs.length} glyphs ·{' '}
+                    {formatDate(project.updatedAt)}
                   </p>
                 </div>
                 <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
@@ -162,7 +192,7 @@ export function HomeScreen() {
                     size="icon"
                     variant="ghost"
                     className="h-7 w-7"
-                    onClick={(e) => startRename(project, e)}
+                    onClick={(event) => startRename(project, event)}
                   >
                     <Pencil className="h-3.5 w-3.5" />
                   </Button>
@@ -170,7 +200,10 @@ export function HomeScreen() {
                     size="icon"
                     variant="ghost"
                     className="text-destructive hover:text-destructive h-7 w-7"
-                    onClick={(e) => { e.stopPropagation(); setDeleteTarget(project) }}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setDeleteTarget(project);
+                    }}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
@@ -181,16 +214,36 @@ export function HomeScreen() {
         )}
       </main>
 
-      <NewFontWizard open={newProjectOpen} onOpenChange={(o) => { setNewProjectOpen(o); if (!o) loadProjects() }} />
-      <ImportWizard open={importOpen} onOpenChange={(o) => { setImportOpen(o); if (!o) loadProjects() }} />
+      <NewFontWizard
+        open={newProjectOpen}
+        onOpenChange={(open) => {
+          setNewProjectOpen(open);
+
+          if (!open) {
+            void loadProjects();
+          }
+        }}
+      />
+      <ImportWizard
+        open={importOpen}
+        onOpenChange={(open) => {
+          setImportOpen(open);
+
+          if (!open) {
+            void loadProjects();
+          }
+        }}
+      />
       {deleteTarget && (
         <DeleteProjectDialog
           projectName={deleteTarget.name}
           open={!!deleteTarget}
           onOpenChange={(open) => !open && setDeleteTarget(null)}
-          onConfirm={() => handleDelete(deleteTarget)}
+          onConfirm={() => {
+            void handleDelete(deleteTarget);
+          }}
         />
       )}
     </div>
-  )
-}
+  );
+};

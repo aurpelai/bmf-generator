@@ -1,20 +1,21 @@
-import type { StateCreator } from 'zustand'
-import type { GlyphPlacement } from '@/core/project/types'
+import type { StateCreator } from 'zustand';
+
+import type { GlyphPlacement } from '@/core/project/types';
 
 export interface AtlasSlice {
-  atlasPlacements: GlyphPlacement[]
-  atlasImageData: ImageData | null
-  atlasWidth: number
-  atlasHeight: number
-  atlasEfficiency: number
+  atlasPlacements: GlyphPlacement[];
+  atlasImageData: ImageData | null;
+  atlasWidth: number;
+  atlasHeight: number;
+  atlasEfficiency: number;
   setAtlasResult: (
     placements: GlyphPlacement[],
     imageData: ImageData,
     width: number,
     height: number,
     efficiency: number,
-  ) => void
-  clearAtlas: () => void
+  ) => void;
+  clearAtlas: () => void;
 }
 
 export const createAtlasSlice: StateCreator<AtlasSlice> = (set) => ({
@@ -24,7 +25,12 @@ export const createAtlasSlice: StateCreator<AtlasSlice> = (set) => ({
   atlasHeight: 512,
   atlasEfficiency: 0,
   setAtlasResult: (placements, imageData, width, height, efficiency) =>
-    set({ atlasPlacements: placements, atlasImageData: imageData, atlasWidth: width, atlasHeight: height, atlasEfficiency: efficiency }),
-  clearAtlas: () =>
-    set({ atlasPlacements: [], atlasImageData: null, atlasEfficiency: 0 }),
-})
+    set({
+      atlasPlacements: placements,
+      atlasImageData: imageData,
+      atlasWidth: width,
+      atlasHeight: height,
+      atlasEfficiency: efficiency,
+    }),
+  clearAtlas: () => set({ atlasPlacements: [], atlasImageData: null, atlasEfficiency: 0 }),
+});

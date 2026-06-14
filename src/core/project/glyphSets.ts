@@ -1,18 +1,18 @@
 export interface GlyphSet {
-  id: string
-  label: string
-  codePoints: number[]
-  custom?: boolean
+  id: string;
+  label: string;
+  codePoints: number[];
+  custom?: boolean;
 }
 
 function range(from: number, to: number): number[] {
-  return Array.from({ length: to - from + 1 }, (_, i) => from + i)
+  return Array.from({ length: to - from + 1 }, (_item, index) => from + index);
 }
 
 // A–Z + a–z
-const ASCII_LETTERS = [...range(0x41, 0x5a), ...range(0x61, 0x7a)]
+const ASCII_LETTERS = [...range(0x41, 0x5a), ...range(0x61, 0x7a)];
 // 0–9
-const ASCII_DIGITS = range(0x30, 0x39)
+const ASCII_DIGITS = range(0x30, 0x39);
 
 export const GLYPH_SETS: GlyphSet[] = [
   {
@@ -43,17 +43,20 @@ export const GLYPH_SETS: GlyphSet[] = [
     codePoints: ASCII_DIGITS,
     custom: true,
   },
-]
+];
 
 export function parseCustomCodePoints(input: string): number[] {
-  const seen = new Set<number>()
-  const result: number[] = []
+  const seen = new Set<number>();
+  const result: number[] = [];
+
   for (const char of input) {
-    const cp = char.codePointAt(0)
+    const cp = char.codePointAt(0);
+
     if (cp !== undefined && !seen.has(cp)) {
-      seen.add(cp)
-      result.push(cp)
+      seen.add(cp);
+      result.push(cp);
     }
   }
-  return result.sort((a, b) => a - b)
+
+  return result.sort((a, b) => a - b);
 }

@@ -1,21 +1,28 @@
-import { useEffect } from 'react'
-import { useStore } from '@/store'
-import { cn } from '@/lib/utils'
+import { useEffect } from 'react';
 
-const AUTO_DISMISS_MS = 3000
+import { cn } from '@/lib/utils';
+import { useStore } from '@/store';
 
-export function Toaster() {
-  const toasts = useStore((s) => s.toasts)
-  const removeToast = useStore((s) => s.removeToast)
+const AUTO_DISMISS_MS = 3000;
+
+export const Toaster = (): React.JSX.Element | null => {
+  const toasts = useStore((state) => state.toasts);
+  const removeToast = useStore((state) => state.removeToast);
 
   useEffect(() => {
-    if (toasts.length === 0) return
-    const latest = toasts[toasts.length - 1]
-    const timer = setTimeout(() => removeToast(latest.id), AUTO_DISMISS_MS)
-    return () => clearTimeout(timer)
-  }, [toasts])
+    if (toasts.length === 0) {
+      return;
+    }
 
-  if (toasts.length === 0) return null
+    const latest = toasts[toasts.length - 1];
+    const timer = setTimeout(() => removeToast(latest.id), AUTO_DISMISS_MS);
+
+    return () => clearTimeout(timer);
+  }, [removeToast, toasts]);
+
+  if (toasts.length === 0) {
+    return null;
+  }
 
   return (
     <div className="pointer-events-none fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 flex-col items-center gap-2">
@@ -27,8 +34,8 @@ export function Toaster() {
             toast.type === 'error'
               ? 'bg-destructive/10 border-destructive/30 text-destructive'
               : toast.type === 'success'
-              ? 'bg-card border-border text-foreground'
-              : 'bg-card border-border text-foreground',
+                ? 'bg-card border-border text-foreground'
+                : 'bg-card border-border text-foreground',
           )}
           onClick={() => removeToast(toast.id)}
         >
@@ -36,5 +43,5 @@ export function Toaster() {
         </div>
       ))}
     </div>
-  )
-}
+  );
+};

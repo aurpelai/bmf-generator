@@ -1,4 +1,4 @@
-import type { ChangelogConfig } from 'changelogen'
+import type { ChangelogConfig } from 'changelogen';
 
 export default {
   types: {
@@ -15,4 +15,4 @@ export default {
     style: { title: '🎨 Styles' },
     ci: { title: '🤖 CI' },
   },
-} satisfies Partial<ChangelogConfig>
+} satisfies Partial<ChangelogConfig>;
