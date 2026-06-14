@@ -14,7 +14,7 @@ import type { Glyph } from '@/core/project/types'
 import type { RasterizedGlyph } from '@/core/font/rasterize'
 import { parseBmfText } from '@/core/bmf/parse'
 import type { BmfParseResult } from '@/core/bmf/parse'
-import { DropZone, GlyphPreviewStep, WizardFooter } from './import-shared'
+import { DropZone, GlyphPreviewStep, GlyphSetSelect, PaddingFields, SpacingFields, WizardFooter } from './import-shared'
 
 interface Props {
   open: boolean
@@ -424,52 +424,14 @@ export function ImportWizard({ open, onOpenChange }: Props) {
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="imp-glyphset">Glyph set</Label>
-              <select id="imp-glyphset"
-                className="bg-input border-border text-foreground h-8 rounded-md border px-3 text-sm"
-                value={glyphSetId}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setGlyphSetId(e.target.value)}>
-                <optgroup label="Standard sets">
-                  {GLYPH_SETS.filter((s) => !s.custom).map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
-                </optgroup>
-                <optgroup label="Custom sets">
-                  {GLYPH_SETS.filter((s) => s.custom).map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
-                </optgroup>
-              </select>
+              <GlyphSetSelect id="imp-glyphset" value={glyphSetId} onChange={setGlyphSetId} />
             </div>
-            <div className="grid gap-1.5">
-              <Label>Padding</Label>
-              <div className="grid grid-cols-4 gap-2">
-                {([
-                  ['Top', paddingTop, setPaddingTop],
-                  ['Right', paddingRight, setPaddingRight],
-                  ['Bottom', paddingBottom, setPaddingBottom],
-                  ['Left', paddingLeft, setPaddingLeft],
-                ] as const).map(([label, val, set]) => (
-                  <div key={label} className="grid gap-1">
-                    <span className="text-muted-foreground text-[10px]">{label}</span>
-                    <Input type="number" min={0} max={16} value={val}
-                      onChange={(e) => set(Number(e.target.value))} />
-                  </div>
-                ))}
-              </div>
-              <p className="text-muted-foreground text-xs">Extra transparent pixels around each glyph in the atlas — useful for effects like drop shadows or outlines.</p>
-            </div>
-            <div className="grid gap-1.5">
-              <Label>Spacing</Label>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="grid gap-1">
-                  <span className="text-muted-foreground text-[10px]">Horizontal</span>
-                  <Input id="imp-spacingx" type="number" min={0} max={16} value={spacingX}
-                    onChange={(e) => setSpacingX(Number(e.target.value))} />
-                </div>
-                <div className="grid gap-1">
-                  <span className="text-muted-foreground text-[10px]">Vertical</span>
-                  <Input id="imp-spacingy" type="number" min={0} max={16} value={spacingY}
-                    onChange={(e) => setSpacingY(Number(e.target.value))} />
-                </div>
-              </div>
-              <p className="text-muted-foreground text-xs">Gap between glyphs when packed into the atlas.</p>
-            </div>
+            <PaddingFields
+              top={paddingTop} right={paddingRight} bottom={paddingBottom} left={paddingLeft}
+              onTopChange={setPaddingTop} onRightChange={setPaddingRight}
+              onBottomChange={setPaddingBottom} onLeftChange={setPaddingLeft}
+            />
+            <SpacingFields x={spacingX} y={spacingY} onXChange={setSpacingX} onYChange={setSpacingY} />
           </div>
         )}
 

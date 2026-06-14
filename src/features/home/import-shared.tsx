@@ -2,6 +2,9 @@ import { useRef, useEffect, useState } from 'react'
 import { Upload, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DialogFooter } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { GLYPH_SETS } from '@/core/project/glyphSets'
 
 // Minimal shape needed by GlyphThumbnail — satisfied by both Glyph and RasterizedGlyph
 export interface GlyphPreviewData {
@@ -129,6 +132,97 @@ export function GlyphPreviewStep({
   )
 }
 
+export function GlyphSetSelect({
+  id,
+  value,
+  onChange,
+}: {
+  id: string
+  value: string
+  onChange: (value: string) => void
+}) {
+  return (
+    <select
+      id={id}
+      className="bg-input border-border text-foreground h-8 rounded-md border px-3 text-sm"
+      value={value}
+      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onChange(e.target.value)}
+    >
+      <optgroup label="Standard sets">
+        {GLYPH_SETS.filter((s) => !s.custom).map((s) => (
+          <option key={s.id} value={s.id}>{s.label}</option>
+        ))}
+      </optgroup>
+      <optgroup label="Custom sets">
+        {GLYPH_SETS.filter((s) => s.custom).map((s) => (
+          <option key={s.id} value={s.id}>{s.label}</option>
+        ))}
+      </optgroup>
+    </select>
+  )
+}
+
+export function PaddingFields({
+  top, right, bottom, left,
+  onTopChange, onRightChange, onBottomChange, onLeftChange,
+}: {
+  top: number; right: number; bottom: number; left: number
+  onTopChange: (v: number) => void
+  onRightChange: (v: number) => void
+  onBottomChange: (v: number) => void
+  onLeftChange: (v: number) => void
+}) {
+  const fields = [
+    ['Top', top, onTopChange],
+    ['Right', right, onRightChange],
+    ['Bottom', bottom, onBottomChange],
+    ['Left', left, onLeftChange],
+  ] as const
+
+  return (
+    <div className="grid gap-1.5">
+      <Label>Padding</Label>
+      <div className="grid grid-cols-4 gap-2">
+        {fields.map(([label, val, set]) => (
+          <div key={label} className="grid gap-1">
+            <span className="text-muted-foreground text-[10px]">{label}</span>
+            <Input type="number" min={0} max={16} value={val}
+              onChange={(e) => set(Number(e.target.value))} />
+          </div>
+        ))}
+      </div>
+      <p className="text-muted-foreground text-xs">Extra transparent pixels around each glyph in the atlas — useful for effects like drop shadows or outlines.</p>
+    </div>
+  )
+}
+
+export function SpacingFields({
+  x, y, onXChange, onYChange,
+}: {
+  x: number; y: number
+  onXChange: (v: number) => void
+  onYChange: (v: number) => void
+}) {
+  return (
+    <div className="grid gap-1.5">
+      <Label>Spacing</Label>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-1">
+          <span className="text-muted-foreground text-[10px]">Horizontal</span>
+          <Input type="number" min={0} max={16} value={x}
+            onChange={(e) => onXChange(Number(e.target.value))} />
+        </div>
+        <div className="grid gap-1">
+          <span className="text-muted-foreground text-[10px]">Vertical</span>
+          <Input type="number" min={0} max={16} value={y}
+            onChange={(e) => onYChange(Number(e.target.value))} />
+        </div>
+      </div>
+      <p className="text-muted-foreground text-xs">Gap between glyphs when packed into the atlas.</p>
+    </div>
+  )
+}
+
 export function WizardFooter({
   step,
   totalSteps,
@@ -140,6 +234,8 @@ export function WizardFooter({
   backDisabled,
   confirmDisabled,
   confirming,
+  confirmLabel = 'Import',
+  confirmingLabel = 'Importing…',
 }: {
   step: number
   totalSteps: number
@@ -151,6 +247,8 @@ export function WizardFooter({
   backDisabled?: boolean
   confirmDisabled?: boolean
   confirming?: boolean
+  confirmLabel?: string
+  confirmingLabel?: string
 }) {
   return (
     <DialogFooter className="gap-2">
@@ -167,8 +265,8 @@ export function WizardFooter({
       ) : (
         <Button onClick={onConfirm} disabled={confirmDisabled}>
           {confirming
-            ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Importing…</>
-            : 'Import'}
+            ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{confirmingLabel}</>
+            : confirmLabel}
         </Button>
       )}
     </DialogFooter>

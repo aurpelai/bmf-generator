@@ -6,7 +6,7 @@ import { getAllProjects, saveProject, deleteProject, saveGlyphs } from '@/db'
 import { useStore } from '@/store'
 import { importPortableProject } from '@/core/project'
 import type { Project } from '@/core/project'
-import { NewProjectDialog } from './NewProjectDialog'
+import { NewFontWizard } from './NewFontWizard'
 import { ImportWizard } from './ImportWizard'
 import { DeleteProjectDialog } from './DeleteProjectDialog'
 
@@ -181,7 +181,7 @@ export function HomeScreen() {
         )}
       </main>
 
-      <NewProjectDialog open={newProjectOpen} onOpenChange={setNewProjectOpen} />
+      <NewFontWizard open={newProjectOpen} onOpenChange={(o) => { setNewProjectOpen(o); if (!o) loadProjects() }} />
       <ImportWizard open={importOpen} onOpenChange={(o) => { setImportOpen(o); if (!o) loadProjects() }} />
       {deleteTarget && (
         <DeleteProjectDialog
