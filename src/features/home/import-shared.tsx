@@ -172,26 +172,33 @@ export function PaddingFields({
   onBottomChange: (v: number) => void
   onLeftChange: (v: number) => void
 }) {
-  const fields = [
-    ['Top', top, onTopChange],
-    ['Right', right, onRightChange],
-    ['Bottom', bottom, onBottomChange],
-    ['Left', left, onLeftChange],
-  ] as const
-
   return (
     <div className="grid gap-1.5">
       <Label>Padding</Label>
-      <div className="grid grid-cols-4 gap-2">
-        {fields.map(([label, val, set]) => (
-          <div key={label} className="grid gap-1">
-            <span className="text-muted-foreground text-[10px]">{label}</span>
-            <Input type="number" min={0} max={16} value={val}
-              onChange={(e) => set(Number(e.target.value))} />
-          </div>
-        ))}
+      <p className="text-muted-foreground text-xs">Extra space around each glyph.</p>
+      <div className="mt-2 grid w-fit grid-cols-3 gap-2">
+        <div />
+        <div className="grid gap-1">
+          <span className="text-muted-foreground text-[10px]">Top</span>
+          <Input className="w-20" type="number" min={0} max={16} value={top} onChange={(e) => onTopChange(Number(e.target.value))} />
+        </div>
+        <div />
+        <div className="grid gap-1">
+          <span className="text-muted-foreground text-[10px]">Left</span>
+          <Input className="w-20" type="number" min={0} max={16} value={left} onChange={(e) => onLeftChange(Number(e.target.value))} />
+        </div>
+        <div />
+        <div className="grid gap-1">
+          <span className="text-muted-foreground text-[10px]">Right</span>
+          <Input className="w-20" type="number" min={0} max={16} value={right} onChange={(e) => onRightChange(Number(e.target.value))} />
+        </div>
+        <div />
+        <div className="grid gap-1">
+          <span className="text-muted-foreground text-[10px]">Bottom</span>
+          <Input className="w-20" type="number" min={0} max={16} value={bottom} onChange={(e) => onBottomChange(Number(e.target.value))} />
+        </div>
+        <div />
       </div>
-      <p className="text-muted-foreground text-xs">Extra transparent pixels around each glyph in the atlas — useful for effects like drop shadows or outlines.</p>
     </div>
   )
 }
@@ -206,19 +213,19 @@ export function SpacingFields({
   return (
     <div className="grid gap-1.5">
       <Label>Spacing</Label>
-      <div className="grid grid-cols-4 gap-2">
+      <p className="text-muted-foreground text-xs">Extra gap between glyphs in the atlas.</p>
+      <div className="mt-2 flex gap-2">
         <div className="grid gap-1">
           <span className="text-muted-foreground text-[10px]">Horizontal</span>
-          <Input type="number" min={0} max={16} value={x}
+          <Input className="w-20" type="number" min={0} max={16} value={x}
             onChange={(e) => onXChange(Number(e.target.value))} />
         </div>
         <div className="grid gap-1">
           <span className="text-muted-foreground text-[10px]">Vertical</span>
-          <Input type="number" min={0} max={16} value={y}
+          <Input className="w-20" type="number" min={0} max={16} value={y}
             onChange={(e) => onYChange(Number(e.target.value))} />
         </div>
       </div>
-      <p className="text-muted-foreground text-xs">Gap between glyphs when packed into the atlas.</p>
     </div>
   )
 }
@@ -234,36 +241,37 @@ export function FontMetricsFields({
   onCapHeightChange: (v: number) => void
 }) {
   return (
-    <div className="grid gap-1.5">
-      <Label>Font metrics</Label>
-      <div className="grid grid-cols-[1fr_2fr] gap-3">
+    <>
+      <div className="grid gap-1.5">
+        <Label>Font metrics</Label>
         <div className="grid gap-1">
           <span className="text-muted-foreground text-[10px]">Font size</span>
-          <Input type="number" min={4} max={256} value={fontSize}
+          <Input className="w-24" type="number" min={4} max={256} value={fontSize}
             onChange={(e) => onFontSizeChange(Number(e.target.value))} />
         </div>
-        <div className="grid grid-cols-3 gap-2">
+      </div>
+      <div className="grid gap-1.5">
+        <span className="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">Advanced</span>
+        <p className="text-muted-foreground text-xs">Controls how text sits within a line. Usually fine as-is.</p>
+        <div className="mt-2 flex gap-2">
           <div className="grid gap-1">
             <span className="text-muted-foreground text-[10px]">Line height</span>
-            <Input type="number" min={1} value={lineHeight}
+            <Input className="w-20" type="number" min={1} value={lineHeight}
               onChange={(e) => onLineHeightChange(Number(e.target.value))} />
           </div>
           <div className="grid gap-1">
             <span className="text-muted-foreground text-[10px]">Baseline</span>
-            <Input type="number" min={0} value={base}
+            <Input className="w-20" type="number" min={0} value={base}
               onChange={(e) => onBaseChange(Math.min(Number(e.target.value), lineHeight))} />
           </div>
           <div className="grid gap-1">
             <span className="text-muted-foreground text-[10px]">Cap height</span>
-            <Input type="number" min={0} value={capHeight}
+            <Input className="w-20" type="number" min={0} value={capHeight}
               onChange={(e) => onCapHeightChange(Math.min(Number(e.target.value), lineHeight))} />
           </div>
         </div>
       </div>
-      <p className="text-muted-foreground text-xs">
-        Font size sets the target pixel height. Line height is the total height of one text row. Baseline is where characters sit within the line. Cap height is the height of a capital letter, shown as a guide in the editor.
-      </p>
-    </div>
+    </>
   )
 }
 
