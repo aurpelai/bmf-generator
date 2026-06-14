@@ -1,10 +1,11 @@
-import type { StateCreator } from 'zustand'
-import type { Project } from '@/core/project'
+import type { StateCreator } from 'zustand';
+
+import type { Project } from '@/core/project';
 
 export interface ProjectSlice {
-  currentProject: Project | null
-  setCurrentProject: (project: Project | null) => void
-  updateCurrentProject: (changes: Partial<Omit<Project, 'id' | 'createdAt'>>) => void
+  currentProject: Project | null;
+  setCurrentProject: (project: Project | null) => void;
+  updateCurrentProject: (changes: Partial<Omit<Project, 'id' | 'createdAt'>>) => void;
 }
 
 export const createProjectSlice: StateCreator<ProjectSlice> = (set) => ({
@@ -16,4 +17,4 @@ export const createProjectSlice: StateCreator<ProjectSlice> = (set) => ({
         ? { ...state.currentProject, ...changes, updatedAt: Date.now() }
         : null,
     })),
-})
+});

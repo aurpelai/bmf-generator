@@ -1,3 +1,3 @@
-export * from './db'
-export * from './projects'
-export * from './glyphs'
+export * from './db';
+export * from './glyphs';
+export * from './projects';

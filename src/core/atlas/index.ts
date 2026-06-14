@@ -1,2 +1,2 @@
-export * from './maxrects'
-export * from './pack'
+export * from './maxrects';
+export * from './pack';

@@ -1,3 +1,5 @@
+import React from 'react';
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -7,16 +9,21 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+} from '@/components/ui/alert-dialog';
 
 interface Props {
-  projectName: string
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onConfirm: () => void
+  projectName: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
 }
 
-export function DeleteProjectDialog({ projectName, open, onOpenChange, onConfirm }: Props) {
+export const DeleteProjectDialog = ({
+  projectName,
+  open,
+  onOpenChange,
+  onConfirm,
+}: Props): React.JSX.Element => {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
@@ -38,5 +45,5 @@ export function DeleteProjectDialog({ projectName, open, onOpenChange, onConfirm
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  )
-}
+  );
+};

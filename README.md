@@ -31,15 +31,15 @@ Open `http://localhost:5173`, create a new blank project or import an existing f
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `pnpm dev` | Start dev server |
-| `pnpm build` | Type-check and build for production |
-| `pnpm preview` | Preview production build locally |
-| `pnpm test` | Run tests once |
-| `pnpm test:watch` | Run tests in watch mode |
-| `pnpm lint` | Run ESLint |
-| `pnpm format` | Format with Prettier |
+| Command           | Description                         |
+| ----------------- | ----------------------------------- |
+| `pnpm dev`        | Start dev server                    |
+| `pnpm build`      | Type-check and build for production |
+| `pnpm preview`    | Preview production build locally    |
+| `pnpm test`       | Run tests once                      |
+| `pnpm test:watch` | Run tests in watch mode             |
+| `pnpm lint`       | Run ESLint                          |
+| `pnpm format`     | Format with Prettier                |
 
 ## Tech stack
 

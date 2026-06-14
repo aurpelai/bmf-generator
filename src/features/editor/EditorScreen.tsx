@@ -1,206 +1,307 @@
-import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, Download, FileType, HelpCircle, Settings } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { useStore } from '@/store'
-import { getGlyphsForProject } from '@/db/glyphs'
-import { saveGlyphs } from '@/db/glyphs'
-import { GlyphList } from './glyph-list/GlyphList'
-import { PixelEditor } from './pixel-editor/PixelEditor'
-import { EditorToolbar } from './toolbar/EditorToolbar'
-import { SettingsDialog } from './SettingsDialog'
-import { AtlasFloat } from './AtlasFloat'
-import { PreviewFloat } from './PreviewFloat'
-import { ExportDialog } from '@/features/export/ExportDialog'
-import { HelpOverlay } from './HelpOverlay'
-import type { EditorTool } from '@/store/editorSlice'
+import { ArrowLeft, Download, FileType, HelpCircle, Settings } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
 
-export function EditorScreen() {
-  const [exportOpen, setExportOpen] = useState(false)
-  const [helpOpen, setHelpOpen] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
-  const [atlasOpen, setAtlasOpen] = useState(false)
-  const [previewOpen, setPreviewOpen] = useState(false)
-  const [glyphListCollapsed, setGlyphListCollapsed] = useState(false)
-  const [glyphListWidth, setGlyphListWidth] = useState(192)
-  const draggingRef = useRef<{ startX: number; startWidth: number } | null>(null)
-  const rafRef = useRef<number | null>(null)
+import { Button } from '@/components/ui/button';
+import { getGlyphsForProject } from '@/db/glyphs';
+import { saveGlyphs } from '@/db/glyphs';
+import { ExportDialog } from '@/features/export/ExportDialog';
+import { useStore } from '@/store';
+import type { EditorTool } from '@/store/editorSlice';
+
+import { AtlasFloat } from './AtlasFloat';
+import { GlyphList } from './glyph-list/GlyphList';
+import { HelpOverlay } from './HelpOverlay';
+import { PixelEditor } from './pixel-editor/PixelEditor';
+import { PreviewFloat } from './PreviewFloat';
+import { SettingsDialog } from './SettingsDialog';
+import { EditorToolbar } from './toolbar/EditorToolbar';
+
+export const EditorScreen = (): React.JSX.Element => {
+  const [exportOpen, setExportOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [atlasOpen, setAtlasOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [glyphListCollapsed, setGlyphListCollapsed] = useState(false);
+  const [glyphListWidth, setGlyphListWidth] = useState(192);
+  const draggingRef = useRef<{ startX: number; startWidth: number } | null>(null);
+  const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
-    function onMouseMove(e: MouseEvent) {
-      const d = draggingRef.current
-      if (!d) return
-      const clientX = e.clientX
-      if (rafRef.current !== null) return
-      rafRef.current = requestAnimationFrame(() => {
-        rafRef.current = null
-        const delta = clientX - d.startX
-        const w = d.startWidth + delta
-        if (w < 80) { setGlyphListCollapsed(true); draggingRef.current = null }
-        else setGlyphListWidth(Math.min(400, Math.max(120, w)))
-      })
-    }
-    function onMouseUp() {
-      draggingRef.current = null
-      if (rafRef.current !== null) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
-    }
-    window.addEventListener('mousemove', onMouseMove)
-    window.addEventListener('mouseup', onMouseUp)
-    return () => {
-      window.removeEventListener('mousemove', onMouseMove)
-      window.removeEventListener('mouseup', onMouseUp)
-      if (rafRef.current !== null) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
-    }
-  }, [])
+    function onMouseMove(event: MouseEvent): void {
+      const drag = draggingRef.current;
 
-  const currentProject = useStore((s) => s.currentProject)
-  const setView = useStore((s) => s.setView)
-  const setGlyphs = useStore((s) => s.setGlyphs)
-  const activeTool = useStore((s) => s.activeTool)
-  const setActiveTool = useStore((s) => s.setActiveTool)
-  const showGrid = useStore((s) => s.showGrid)
-  const setShowGrid = useStore((s) => s.setShowGrid)
-  const selectedCodePoint = useStore((s) => s.selectedCodePoint)
-  const glyphs = useStore((s) => s.glyphs)
-  const upsertGlyph = useStore((s) => s.upsertGlyph)
-  const undo = useStore((s) => s.undo)
-  const redo = useStore((s) => s.redo)
+      if (!drag) {
+        return;
+      }
+
+      const clientX = event.clientX;
+
+      if (rafRef.current !== null) {
+        return;
+      }
+
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null;
+        const delta = clientX - drag.startX;
+        const width = drag.startWidth + delta;
+
+        if (width < 80) {
+          setGlyphListCollapsed(true);
+          draggingRef.current = null;
+        } else {
+          setGlyphListWidth(Math.min(400, Math.max(120, width)));
+        }
+      });
+    }
+
+    function onMouseUp(): void {
+      draggingRef.current = null;
+
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    }
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+  }, []);
+
+  const currentProject = useStore((state) => state.currentProject);
+  const setView = useStore((state) => state.setView);
+  const setGlyphs = useStore((state) => state.setGlyphs);
+  const activeTool = useStore((state) => state.activeTool);
+  const setActiveTool = useStore((state) => state.setActiveTool);
+  const showGrid = useStore((state) => state.showGrid);
+  const setShowGrid = useStore((state) => state.setShowGrid);
+  const selectedCodePoint = useStore((state) => state.selectedCodePoint);
+  const glyphs = useStore((state) => state.glyphs);
+  const upsertGlyph = useStore((state) => state.upsertGlyph);
+  const undo = useStore((state) => state.undo);
+  const redo = useStore((state) => state.redo);
 
   // Track the tool to restore after Space/Alt temporary overrides
-  const toolBeforeOverride = useRef<EditorTool | null>(null)
+  const toolBeforeOverride = useRef<EditorTool | null>(null);
 
   // Load glyphs from IndexedDB whenever the active project changes
   useEffect(() => {
-    if (!currentProject) return
-    getGlyphsForProject(currentProject.id).then(setGlyphs)
-  }, [currentProject?.id])
+    if (!currentProject) {
+      return;
+    }
+
+    void getGlyphsForProject(currentProject.id).then(setGlyphs);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentProject?.id]);
 
   // Keyboard shortcuts
   useEffect(() => {
-    function isTyping(e: KeyboardEvent) {
-      return e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement
+    function isTyping(e: KeyboardEvent): boolean {
+      return e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
     }
 
-    function onKeyDown(e: KeyboardEvent) {
-      const ctrl = e.ctrlKey || e.metaKey
+    function onKeyDown(e: KeyboardEvent): void {
+      const ctrl = e.ctrlKey || e.metaKey;
 
       // Undo / redo
       if (ctrl && e.key === 'z' && !e.shiftKey) {
-        e.preventDefault()
-        if (selectedCodePoint == null) return
-        const snapshot = undo(selectedCodePoint)
-        if (!snapshot) return
-        const g = glyphs.find((g) => g.codePoint === selectedCodePoint)
-        if (!g) return
-        const updated = { ...g, pixels: snapshot.pixels, xoffset: snapshot.xoffset, yoffset: snapshot.yoffset, isDirty: true }
-        upsertGlyph(updated)
-        saveGlyphs([updated])
-        return
+        e.preventDefault();
+
+        if (selectedCodePoint === null) {
+          return;
+        }
+
+        const snapshot = undo(selectedCodePoint);
+
+        if (!snapshot) {
+          return;
+        }
+
+        const glyph = glyphs.find((g) => g.codePoint === selectedCodePoint);
+
+        if (!glyph) {
+          return;
+        }
+
+        const updated = {
+          ...glyph,
+          pixels: snapshot.pixels,
+          xoffset: snapshot.xoffset,
+          yoffset: snapshot.yoffset,
+          isDirty: true,
+        };
+
+        upsertGlyph(updated);
+        void saveGlyphs([updated]);
+
+        return;
       }
+
       if (ctrl && e.key === 'z' && e.shiftKey) {
-        e.preventDefault()
-        if (selectedCodePoint == null) return
-        const snapshot = redo(selectedCodePoint)
-        if (!snapshot) return
-        const g = glyphs.find((g) => g.codePoint === selectedCodePoint)
-        if (!g) return
-        const updated = { ...g, pixels: snapshot.pixels, xoffset: snapshot.xoffset, yoffset: snapshot.yoffset, isDirty: true }
-        upsertGlyph(updated)
-        saveGlyphs([updated])
-        return
+        e.preventDefault();
+
+        if (selectedCodePoint === null) {
+          return;
+        }
+
+        const snapshot = redo(selectedCodePoint);
+
+        if (!snapshot) {
+          return;
+        }
+
+        const glyph = glyphs.find((g) => g.codePoint === selectedCodePoint);
+
+        if (!glyph) {
+          return;
+        }
+
+        const updated = {
+          ...glyph,
+          pixels: snapshot.pixels,
+          xoffset: snapshot.xoffset,
+          yoffset: snapshot.yoffset,
+          isDirty: true,
+        };
+
+        upsertGlyph(updated);
+        void saveGlyphs([updated]);
+
+        return;
       }
 
       // Export
       if (ctrl && e.key === 'e') {
-        e.preventDefault()
-        setExportOpen(true)
-        return
+        e.preventDefault();
+        setExportOpen(true);
+
+        return;
       }
 
       // Ctrl+Shift+S — settings
       if (ctrl && e.shiftKey && e.key.toLowerCase() === 's') {
-        e.preventDefault()
-        setSettingsOpen((v) => !v)
-        return
+        e.preventDefault();
+        setSettingsOpen((value) => !value);
+
+        return;
       }
 
       // Ctrl+S is a no-op (auto-saved) but prevent browser save dialog
       if (ctrl && e.key === 's') {
-        e.preventDefault()
-        return
+        e.preventDefault();
+
+        return;
       }
 
       // Ctrl+Shift+A — toggle atlas
       if (ctrl && e.shiftKey && e.key.toLowerCase() === 'a') {
-        e.preventDefault()
-        setAtlasOpen((v) => !v)
-        return
+        e.preventDefault();
+        setAtlasOpen((value) => !value);
+
+        return;
       }
 
       // Ctrl+Shift+P — toggle preview
       if (ctrl && e.shiftKey && e.key.toLowerCase() === 'p') {
-        e.preventDefault()
-        setPreviewOpen((v) => !v)
-        return
+        e.preventDefault();
+        setPreviewOpen((value) => !value);
+
+        return;
       }
 
       // Cmd+' — toggle all non-editor elements
       if (ctrl && e.key === "'") {
-        e.preventDefault()
-        const anyVisible = !glyphListCollapsed || atlasOpen || previewOpen
+        e.preventDefault();
+        const anyVisible = !glyphListCollapsed || atlasOpen || previewOpen;
+
         if (anyVisible) {
-          setGlyphListCollapsed(true)
-          setAtlasOpen(false)
-          setPreviewOpen(false)
+          setGlyphListCollapsed(true);
+          setAtlasOpen(false);
+          setPreviewOpen(false);
         } else {
-          setGlyphListCollapsed(false)
-          setAtlasOpen(true)
-          setPreviewOpen(true)
+          setGlyphListCollapsed(false);
+          setAtlasOpen(true);
+          setPreviewOpen(true);
         }
-        return
+
+        return;
       }
 
-      if (isTyping(e)) return
+      if (isTyping(e)) {
+        return;
+      }
 
       // Tool switching
       switch (e.key.toLowerCase()) {
-        case 'b': setActiveTool('pencil'); break
-        case 'e': setActiveTool('eraser'); break
-        case 'm': setActiveTool('move'); break
-        case 'z': setActiveTool('zoom'); break
-        case 'g': setShowGrid(!showGrid); break
+        case 'b':
+          setActiveTool('pencil');
+          break;
+        case 'e':
+          setActiveTool('eraser');
+          break;
+        case 'm':
+          setActiveTool('move');
+          break;
+        case 'z':
+          setActiveTool('zoom');
+          break;
+        case 'g':
+          setShowGrid(!showGrid);
+          break;
       }
 
-      if (e.key === '?') { setHelpOpen(true); return }
+      if (e.key === '?') {
+        setHelpOpen(true);
+
+        return;
+      }
 
       // Space — temporarily activate move tool
       if (e.key === ' ' && !e.repeat && activeTool !== 'move') {
-        e.preventDefault()
-        toolBeforeOverride.current = activeTool
-        setActiveTool('move')
+        e.preventDefault();
+        toolBeforeOverride.current = activeTool;
+        setActiveTool('move');
       }
 
       // Alt — invert active tool (pencil↔eraser)
       if (e.key === 'Alt' && !e.repeat) {
-        if (activeTool === 'pencil') { toolBeforeOverride.current = 'pencil'; setActiveTool('eraser') }
-        else if (activeTool === 'eraser') { toolBeforeOverride.current = 'eraser'; setActiveTool('pencil') }
+        if (activeTool === 'pencil') {
+          toolBeforeOverride.current = 'pencil';
+          setActiveTool('eraser');
+        } else if (activeTool === 'eraser') {
+          toolBeforeOverride.current = 'eraser';
+          setActiveTool('pencil');
+        }
       }
     }
 
-    function onKeyUp(e: KeyboardEvent) {
+    function onKeyUp(e: KeyboardEvent): void {
       // Restore tool after Space/Alt released
       if ((e.key === ' ' || e.key === 'Alt') && toolBeforeOverride.current !== null) {
-        setActiveTool(toolBeforeOverride.current)
-        toolBeforeOverride.current = null
+        setActiveTool(toolBeforeOverride.current);
+        toolBeforeOverride.current = null;
       }
     }
 
-    window.addEventListener('keydown', onKeyDown)
-    window.addEventListener('keyup', onKeyUp)
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+
     return () => {
-      window.removeEventListener('keydown', onKeyDown)
-      window.removeEventListener('keyup', onKeyUp)
-    }
-  }, [showGrid, activeTool, selectedCodePoint, glyphs, glyphListCollapsed, atlasOpen, previewOpen])
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showGrid, activeTool, selectedCodePoint, glyphs, glyphListCollapsed, atlasOpen, previewOpen]);
 
   return (
     <div className="flex h-full flex-col">
@@ -216,10 +317,22 @@ export function EditorScreen() {
         </span>
         <div className="ml-auto flex items-center gap-2">
           <span className="text-muted-foreground text-xs">Auto-saved</span>
-          <Button variant="ghost" size="icon" className="h-7 w-7" title="Keyboard shortcuts (?)" onClick={() => setHelpOpen(true)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            title="Keyboard shortcuts (?)"
+            onClick={() => setHelpOpen(true)}
+          >
             <HelpCircle className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7" title="Settings (Cmd+Shift+S)" onClick={() => setSettingsOpen(true)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            title="Settings (Cmd+Shift+S)"
+            onClick={() => setSettingsOpen(true)}
+          >
             <Settings className="h-4 w-4" />
           </Button>
           <div className="bg-border h-5 w-px" />
@@ -246,9 +359,9 @@ export function EditorScreen() {
             aria-orientation="vertical"
             aria-label="Resize glyph list"
             className="hover:bg-primary/40 w-1 shrink-0 cursor-col-resize transition-colors"
-            onMouseDown={(e) => {
-              e.preventDefault()
-              draggingRef.current = { startX: e.clientX, startWidth: glyphListWidth }
+            onMouseDown={(event) => {
+              event.preventDefault();
+              draggingRef.current = { startX: event.clientX, startWidth: glyphListWidth };
             }}
             onDoubleClick={() => setGlyphListCollapsed(true)}
           />
@@ -258,8 +371,8 @@ export function EditorScreen() {
           <EditorToolbar
             atlasOpen={atlasOpen}
             previewOpen={previewOpen}
-            onAtlasToggle={() => setAtlasOpen((v) => !v)}
-            onPreviewToggle={() => setPreviewOpen((v) => !v)}
+            onAtlasToggle={() => setAtlasOpen((value) => !value)}
+            onPreviewToggle={() => setPreviewOpen((value) => !value)}
           />
           <PixelEditor />
           <AtlasFloat open={atlasOpen} onClose={() => setAtlasOpen(false)} />
@@ -270,5 +383,5 @@ export function EditorScreen() {
       <ExportDialog open={exportOpen} onOpenChange={setExportOpen} />
       <HelpOverlay open={helpOpen} onOpenChange={setHelpOpen} />
     </div>
-  )
-}
+  );
+};

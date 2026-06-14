@@ -1,1 +1,1 @@
-export * from './rasterize'
+export * from './rasterize';

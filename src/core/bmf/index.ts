@@ -1,2 +1,2 @@
-export * from './serialize'
-export * from './parse'
+export * from './parse';
+export * from './serialize';
