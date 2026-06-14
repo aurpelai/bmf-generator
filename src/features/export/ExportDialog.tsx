@@ -8,6 +8,67 @@ import { serializeBmfText } from '@/core/bmf'
 import { exportPortableProject } from '@/core/project'
 import type { BmfGlyphData } from '@/core/bmf'
 
+const PRESETS: Array<{ id: import('@/store').GlyphPreset; label: string }> = [
+  { id: 'all', label: 'All' },
+  { id: 'letters', label: 'Letters' },
+  { id: 'letters-digits', label: 'Letters & digits' },
+  { id: 'digits', label: 'Digits' },
+  { id: 'custom', label: 'Custom' },
+]
+
+function GlyphSelection() {
+  const glyphs = useStore((s) => s.glyphs)
+  const exportSelection = useStore((s) => s.exportSelection)
+  const exportPreset = useStore((s) => s.exportPreset)
+  const setExportPreset = useStore((s) => s.setExportPreset)
+  const toggleExportGlyph = useStore((s) => s.toggleExportGlyph)
+  const allCodePoints = glyphs.map((g) => g.codePoint)
+
+  return (
+    <div className="grid gap-1.5">
+      <span className="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">Glyph selection</span>
+      <div className="flex flex-wrap gap-1">
+        {PRESETS.map((p) => (
+          <button
+            key={p.id}
+            onClick={() => setExportPreset(p.id, allCodePoints)}
+            className={`rounded px-2 py-0.5 text-[11px] transition-colors ${
+              exportPreset === p.id
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-0.5 pt-0.5">
+        {glyphs.map((g) => {
+          const selected = exportSelection === null || exportSelection.has(g.codePoint)
+          const char = String.fromCodePoint(g.codePoint)
+          return (
+            <button
+              key={g.codePoint}
+              title={`U+${g.codePoint.toString(16).toUpperCase().padStart(4, '0')} ${char}`}
+              onClick={() => toggleExportGlyph(g.codePoint, allCodePoints)}
+              className={`flex h-6 w-6 items-center justify-center rounded text-[11px] transition-colors ${
+                selected
+                  ? 'bg-accent text-accent-foreground'
+                  : 'bg-muted text-muted-foreground/30'
+              }`}
+            >
+              {char}
+            </button>
+          )
+        })}
+      </div>
+      <div className="text-muted-foreground text-[10px]">
+        {exportSelection === null ? glyphs.length : exportSelection.size} / {glyphs.length} glyphs selected
+      </div>
+    </div>
+  )
+}
+
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -136,6 +197,8 @@ export function ExportDialog({ open, onOpenChange }: Props) {
         </DialogHeader>
 
         <div className="flex min-h-0 flex-1 flex-col gap-3">
+          <GlyphSelection />
+
           {/* .fnt preview */}
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground text-xs font-medium">{baseName}.fnt</span>
@@ -154,7 +217,7 @@ export function ExportDialog({ open, onOpenChange }: Props) {
           <textarea
             ref={textareaRef}
             readOnly
-            value={fntText || '(no glyphs packed yet — open the Atlas tab and pack first)'}
+            value={fntText || '(no glyphs packed yet — open the Atlas panel with Cmd+Shift+A)'}
             className="bg-muted text-muted-foreground min-h-0 flex-1 resize-none rounded-md border border-border/50 p-3 font-mono text-xs leading-relaxed outline-none"
           />
         </div>

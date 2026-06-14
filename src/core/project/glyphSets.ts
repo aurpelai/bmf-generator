@@ -27,14 +27,14 @@ export const GLYPH_SETS: GlyphSet[] = [
   },
   {
     id: 'letters-digits',
-    label: 'Letters & digits (62 chars)',
-    codePoints: [...ASCII_LETTERS, ...ASCII_DIGITS].sort((a, b) => a - b),
+    label: 'Letters & digits (63 chars)',
+    codePoints: [0x0020, ...ASCII_LETTERS, ...ASCII_DIGITS].sort((a, b) => a - b),
     custom: true,
   },
   {
     id: 'letters',
-    label: 'Letters only (52 chars)',
-    codePoints: ASCII_LETTERS,
+    label: 'Letters only (53 chars)',
+    codePoints: [0x0020, ...ASCII_LETTERS],
     custom: true,
   },
   {

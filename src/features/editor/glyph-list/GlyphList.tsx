@@ -216,7 +216,7 @@ export function GlyphList({ collapsed, onCollapse, width }: { collapsed: boolean
   if (collapsed) {
     return (
       <div className="border-border flex h-full shrink-0 flex-col border-r" style={{ width }}>
-        <div className="border-border flex h-9 shrink-0 items-center justify-center border-b">
+        <div className="border-border flex h-9 shrink-0 items-center border-b px-2">
           <Button variant="ghost" size="icon" className="h-6 w-6" title="Expand glyph list" aria-label="Expand glyph list" aria-expanded={false} onClick={onCollapse}>
             <ChevronRight className="h-3.5 w-3.5" />
           </Button>
@@ -234,7 +234,7 @@ export function GlyphList({ collapsed, onCollapse, width }: { collapsed: boolean
                 title={label}
                 aria-label={label}
                 className={cn(
-                  'flex w-full cursor-pointer items-center justify-center py-1.5 transition-colors',
+                  'flex w-full cursor-pointer items-center px-2 py-1.5 transition-colors',
                   isSelected ? 'bg-accent text-accent-foreground' : 'hover:bg-muted',
                 )}
               >
@@ -256,18 +256,16 @@ export function GlyphList({ collapsed, onCollapse, width }: { collapsed: boolean
 
   return (
     <div className="border-border flex h-full shrink-0 flex-col border-r" style={{ width }}>
-      <div className="border-border flex h-9 shrink-0 items-center justify-between border-b px-2 pl-3">
-        <span className="text-muted-foreground text-xs font-medium">
+      <div className="border-border flex h-9 shrink-0 items-center border-b px-2">
+        <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" title="Collapse glyph list" aria-label="Collapse glyph list" aria-expanded={true} onClick={onCollapse}>
+          <ChevronLeft className="h-3.5 w-3.5" />
+        </Button>
+        <span className="text-muted-foreground ml-2 flex-1 text-xs font-medium">
           Glyphs ({glyphs.length})
         </span>
-        <div className="flex items-center gap-0.5">
-          <Button variant="ghost" size="icon" className="h-6 w-6" title="Add glyph" aria-label="Add glyph" onClick={() => setAddOpen(true)}>
-            <Plus className="h-3.5 w-3.5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-6 w-6" title="Collapse glyph list" aria-label="Collapse glyph list" aria-expanded={true} onClick={onCollapse}>
-            <ChevronLeft className="h-3.5 w-3.5" />
-          </Button>
-        </div>
+        <Button variant="ghost" size="icon" className="h-6 w-6" title="Add glyph" aria-label="Add glyph" onClick={() => setAddOpen(true)}>
+          <Plus className="h-3.5 w-3.5" />
+        </Button>
       </div>
 
       <div role="listbox" aria-label="Glyphs" className="flex-1 overflow-y-auto">
