@@ -23,8 +23,10 @@ export interface EditorSlice {
   setZoomLevel: (zoom: number) => void;
   setShowGrid: (show: boolean) => void;
   pushUndo: (codePoint: number, snapshot: GlyphSnapshot) => void;
-  undo: (codePoint: number) => GlyphSnapshot | null;
-  redo: (codePoint: number) => GlyphSnapshot | null;
+  /** Undo the last edit; pass the current glyph state so it can be pushed onto the redo stack. */
+  undo: (codePoint: number, current: GlyphSnapshot) => GlyphSnapshot | null;
+  /** Redo the most recently undone edit; pass the current glyph state so it can be pushed onto the undo stack. */
+  redo: (codePoint: number, current: GlyphSnapshot) => GlyphSnapshot | null;
 }
 
 const MAX_UNDO_STEPS = 50;
@@ -57,7 +59,7 @@ export const createEditorSlice: StateCreator<EditorSlice> = (set, get) => ({
         redoStacks: { ...state.redoStacks, [codePoint]: [] },
       };
     }),
-  undo: (codePoint) => {
+  undo: (codePoint, current) => {
     const stack = [...(get().undoStacks[codePoint] ?? [])];
 
     if (stack.length === 0) {
@@ -65,18 +67,17 @@ export const createEditorSlice: StateCreator<EditorSlice> = (set, get) => ({
     }
 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const snapshot = stack.pop()!; // non-empty stack guaranteed by length check above;
-    const redoStack = [...(get().redoStacks[codePoint] ?? [])];
+    const snapshot = stack.pop()!; // non-empty stack guaranteed by length check above
+    const redoStack = [...(get().redoStacks[codePoint] ?? []), current];
 
-    redoStack.push(snapshot);
     set((state) => ({
       undoStacks: { ...state.undoStacks, [codePoint]: stack },
       redoStacks: { ...state.redoStacks, [codePoint]: redoStack },
     }));
 
-    return stack[stack.length - 1] ?? null;
+    return snapshot;
   },
-  redo: (codePoint) => {
+  redo: (codePoint, current) => {
     const redoStack = [...(get().redoStacks[codePoint] ?? [])];
 
     if (redoStack.length === 0) {
@@ -84,10 +85,9 @@ export const createEditorSlice: StateCreator<EditorSlice> = (set, get) => ({
     }
 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const snapshot = redoStack.pop()!; // non-empty stack guaranteed by length check above;
-    const undoStack = [...(get().undoStacks[codePoint] ?? [])];
+    const snapshot = redoStack.pop()!; // non-empty stack guaranteed by length check above
+    const undoStack = [...(get().undoStacks[codePoint] ?? []), current];
 
-    undoStack.push(snapshot);
     set((state) => ({
       undoStacks: { ...state.undoStacks, [codePoint]: undoStack },
       redoStacks: { ...state.redoStacks, [codePoint]: redoStack },

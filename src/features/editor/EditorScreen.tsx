@@ -115,22 +115,26 @@ export const EditorScreen = (): React.JSX.Element => {
       const ctrl = e.ctrlKey || e.metaKey;
 
       // Undo / redo
-      if (ctrl && e.key === 'z' && !e.shiftKey) {
+      if (ctrl && e.key.toLowerCase() === 'z' && !e.shiftKey) {
         e.preventDefault();
 
         if (selectedCodePoint === null) {
           return;
         }
 
-        const snapshot = undo(selectedCodePoint);
-
-        if (!snapshot) {
-          return;
-        }
-
         const glyph = glyphs.find((g) => g.codePoint === selectedCodePoint);
 
         if (!glyph) {
+          return;
+        }
+
+        const snapshot = undo(selectedCodePoint, {
+          pixels: new Uint8Array(glyph.pixels),
+          xoffset: glyph.xoffset,
+          yoffset: glyph.yoffset,
+        });
+
+        if (!snapshot) {
           return;
         }
 
@@ -148,22 +152,26 @@ export const EditorScreen = (): React.JSX.Element => {
         return;
       }
 
-      if (ctrl && e.key === 'z' && e.shiftKey) {
+      if (ctrl && e.key.toLowerCase() === 'z' && e.shiftKey) {
         e.preventDefault();
 
         if (selectedCodePoint === null) {
           return;
         }
 
-        const snapshot = redo(selectedCodePoint);
-
-        if (!snapshot) {
-          return;
-        }
-
         const glyph = glyphs.find((g) => g.codePoint === selectedCodePoint);
 
         if (!glyph) {
+          return;
+        }
+
+        const snapshot = redo(selectedCodePoint, {
+          pixels: new Uint8Array(glyph.pixels),
+          xoffset: glyph.xoffset,
+          yoffset: glyph.yoffset,
+        });
+
+        if (!snapshot) {
           return;
         }
 
