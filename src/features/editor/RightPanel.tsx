@@ -1,15 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import { ChevronRight, Loader2, RefreshCw, RotateCcw } from 'lucide-react'
+import { ChevronRight, Loader2, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useStore } from '@/store'
 import { useAtlas } from '@/hooks/useAtlas'
-import { useRasterize } from '@/hooks/useRasterize'
-import { getFontFile, saveGlyphs, saveProject } from '@/db'
-import type { Glyph } from '@/core/project/types'
+import { saveProject } from '@/db'
 
-type Tab = 'metrics' | 'atlas' | 'settings'
+type Tab = 'atlas' | 'settings'
 
 // Debounce helper
 function useDebounce<T>(value: T, ms: number): T {
@@ -19,188 +17,6 @@ function useDebounce<T>(value: T, ms: number): T {
     return () => clearTimeout(t)
   }, [value, ms])
   return debounced
-}
-
-function MetricsTab() {
-  const glyphs = useStore((s) => s.glyphs)
-  const selectedCodePoint = useStore((s) => s.selectedCodePoint)
-  const upsertGlyph = useStore((s) => s.upsertGlyph)
-  const currentProject = useStore((s) => s.currentProject)
-  const { rasterize } = useRasterize()
-  const [resetting, setResetting] = useState(false)
-
-  const glyph = glyphs.find((g) => g.codePoint === selectedCodePoint) ?? null
-
-  // Local numeric state so inputs feel responsive
-  const [xoffset, setXoffset] = useState(glyph?.xoffset ?? 0)
-  const [yoffset, setYoffset] = useState(glyph?.yoffset ?? 0)
-  const [xadvance, setXadvance] = useState(glyph?.xadvance ?? 0)
-
-  // Sync local state when selected glyph changes
-  useEffect(() => {
-    setXoffset(glyph?.xoffset ?? 0)
-    setYoffset(glyph?.yoffset ?? 0)
-    setXadvance(glyph?.xadvance ?? 0)
-  }, [glyph?.codePoint])
-
-  function commitMetric(field: 'xoffset' | 'yoffset' | 'xadvance', value: number) {
-    if (!glyph) return
-    const updated: Glyph = { ...glyph, [field]: value }
-    upsertGlyph(updated)
-    saveGlyphs([updated])
-  }
-
-  async function handleResetToFont() {
-    if (!glyph || !currentProject?.settings.sourceFontId) return
-    setResetting(true)
-    try {
-      const buf = await getFontFile(currentProject.settings.sourceFontId)
-      if (!buf) return
-      const result = await rasterize(buf, [glyph.codePoint], currentProject.settings.fontSize)
-      const rg = result.glyphs[0]
-      if (!rg) return
-      const updated: Glyph = {
-        ...glyph,
-        pixels: rg.pixels,
-        width: rg.width,
-        height: rg.height,
-        xoffset: rg.xoffset,
-        yoffset: rg.yoffset,
-        xadvance: rg.xadvance,
-        isDirty: false,
-      }
-      upsertGlyph(updated)
-      await saveGlyphs([updated])
-      setXoffset(rg.xoffset)
-      setYoffset(rg.yoffset)
-      setXadvance(rg.xadvance)
-    } finally {
-      setResetting(false)
-    }
-  }
-
-  // In-context preview: render "Ag<char>Ag" at a small size onto a canvas
-  const previewCanvasRef = useRef<HTMLCanvasElement>(null)
-  useEffect(() => {
-    const canvas = previewCanvasRef.current
-    if (!canvas || !glyph) return
-    const SCALE = 2
-    const cellW = glyph.width || (currentProject?.settings.fontSize ?? 16)
-    const cellH = glyph.height || (currentProject?.settings.lineHeight ?? 20)
-    canvas.width = cellW * SCALE
-    canvas.height = cellH * SCALE
-    const ctx = canvas.getContext('2d')!
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-    if (glyph.width === 0 || glyph.height === 0) return
-    // Draw pixels scaled up by SCALE
-    for (let y = 0; y < glyph.height; y++) {
-      for (let x = 0; x < glyph.width; x++) {
-        const v = glyph.pixels[y * glyph.width + x]
-        if (v > 0) {
-          ctx.fillStyle = `rgba(255,255,255,${v / 255})`
-          ctx.fillRect(x * SCALE, y * SCALE, SCALE, SCALE)
-        }
-      }
-    }
-  }, [glyph])
-
-  if (!glyph) {
-    return (
-      <div className="text-muted-foreground flex flex-1 items-center justify-center p-4 text-sm">
-        Select a glyph to edit its metrics
-      </div>
-    )
-  }
-
-  const hasSourceFont = !!currentProject?.settings.sourceFontId
-
-  return (
-    <div className="flex flex-1 flex-col gap-4 overflow-auto p-3">
-      {/* Glyph identity */}
-      <div className="flex items-center gap-2">
-        <div className="bg-muted flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded border border-border/40">
-          <canvas
-            ref={previewCanvasRef}
-            style={{ imageRendering: 'pixelated', maxWidth: '100%', maxHeight: '100%' }}
-          />
-        </div>
-        <div>
-          <div className="text-sm font-medium">{String.fromCodePoint(glyph.codePoint)}</div>
-          <div className="text-muted-foreground font-mono text-[10px]">
-            U+{glyph.codePoint.toString(16).toUpperCase().padStart(4, '0')}
-            {glyph.isDirty && <span className="text-amber-400 ml-1">edited</span>}
-          </div>
-        </div>
-      </div>
-
-      {/* Size (read-only) */}
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <Label className="text-[10px]">Width</Label>
-          <div className="text-muted-foreground mt-0.5 font-mono text-xs">{glyph.width}px</div>
-        </div>
-        <div>
-          <Label className="text-[10px]">Height</Label>
-          <div className="text-muted-foreground mt-0.5 font-mono text-xs">{glyph.height}px</div>
-        </div>
-      </div>
-
-      {/* Editable metrics */}
-      <div className="grid gap-2">
-        <div className="grid gap-1">
-          <Label htmlFor="rp-xoffset" className="text-[10px]">X Offset</Label>
-          <Input
-            id="rp-xoffset"
-            type="number"
-            className="h-7 text-xs"
-            value={xoffset}
-            onChange={(e) => setXoffset(Number(e.target.value))}
-            onBlur={() => commitMetric('xoffset', xoffset)}
-            onKeyDown={(e) => e.key === 'Enter' && commitMetric('xoffset', xoffset)}
-          />
-        </div>
-        <div className="grid gap-1">
-          <Label htmlFor="rp-yoffset" className="text-[10px]">Y Offset</Label>
-          <Input
-            id="rp-yoffset"
-            type="number"
-            className="h-7 text-xs"
-            value={yoffset}
-            onChange={(e) => setYoffset(Number(e.target.value))}
-            onBlur={() => commitMetric('yoffset', yoffset)}
-            onKeyDown={(e) => e.key === 'Enter' && commitMetric('yoffset', yoffset)}
-          />
-        </div>
-        <div className="grid gap-1">
-          <Label htmlFor="rp-xadvance" className="text-[10px]">X Advance</Label>
-          <Input
-            id="rp-xadvance"
-            type="number"
-            className="h-7 text-xs"
-            value={xadvance}
-            onChange={(e) => setXadvance(Number(e.target.value))}
-            onBlur={() => commitMetric('xadvance', xadvance)}
-            onKeyDown={(e) => e.key === 'Enter' && commitMetric('xadvance', xadvance)}
-          />
-        </div>
-      </div>
-
-      {/* Reset to font */}
-      {hasSourceFont && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full text-xs"
-          onClick={handleResetToFont}
-          disabled={resetting}
-        >
-          {resetting
-            ? <><Loader2 className="mr-1.5 h-3 w-3 animate-spin" />Resetting…</>
-            : <><RotateCcw className="mr-1.5 h-3 w-3" />Reset to font</>}
-        </Button>
-      )}
-    </div>
-  )
 }
 
 const PRESETS: Array<{ id: import('@/store').GlyphPreset; label: string }> = [
@@ -540,7 +356,7 @@ function AtlasTab() {
 }
 
 export function RightPanel({ onCollapse, width }: { onCollapse: () => void; width: number }) {
-  const [tab, setTab] = useState<Tab>('metrics')
+  const [tab, setTab] = useState<Tab>('atlas')
 
   const tabClass = (t: Tab) =>
     `cursor-pointer self-stretch flex items-center px-3 text-xs font-medium transition-colors ${
@@ -564,12 +380,10 @@ export function RightPanel({ onCollapse, width }: { onCollapse: () => void; widt
           <ChevronRight className="h-3.5 w-3.5" />
         </Button>
         <div role="tablist" aria-label="Panel tabs" className="flex self-stretch">
-          <button role="tab" aria-selected={tab === 'metrics'} aria-controls="rightpanel-metrics" id="tab-metrics" className={tabClass('metrics')} onClick={() => setTab('metrics')}>Metrics</button>
           <button role="tab" aria-selected={tab === 'atlas'} aria-controls="rightpanel-atlas" id="tab-atlas" className={tabClass('atlas')} onClick={() => setTab('atlas')}>Atlas</button>
           <button role="tab" aria-selected={tab === 'settings'} aria-controls="rightpanel-settings" id="tab-settings" className={tabClass('settings')} onClick={() => setTab('settings')}>Settings</button>
         </div>
       </div>
-      {tab === 'metrics' && <MetricsTab />}
       {tab === 'atlas' && <AtlasTab />}
       {tab === 'settings' && <SettingsTab />}
     </div>
