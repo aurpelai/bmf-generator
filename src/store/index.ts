@@ -25,7 +25,6 @@ export const useStore = create<AppStore>()(
       // Only persist lightweight metadata; pixel buffers live in IndexedDB
       partialize: (state) => ({
         currentProject: state.currentProject,
-        view: state.view,
         activeTool: state.activeTool,
         zoomLevel: state.zoomLevel,
         showGrid: state.showGrid,

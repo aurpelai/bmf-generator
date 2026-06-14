@@ -1,4 +1,5 @@
 import React, { useCallback, useRef, useState } from 'react';
+import { useNavigate } from 'react-router';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -152,9 +153,9 @@ export const ImportWizard = ({ open, onOpenChange }: Props): React.JSX.Element =
   const bmfImageDataRef = useRef<ImageData | null>(null);
 
   const { rasterize } = useRasterize();
+  const navigate = useNavigate();
   const setCurrentProject = useStore((state) => state.setCurrentProject);
   const setStoreGlyphs = useStore((state) => state.setGlyphs);
-  const setView = useStore((state) => state.setView);
 
   // --- Step 1 file handlers ---
 
@@ -407,7 +408,7 @@ export const ImportWizard = ({ open, onOpenChange }: Props): React.JSX.Element =
         setStoreGlyphs(allGlyphs);
       }
 
-      setView('editor');
+      void navigate('/editor');
       onOpenChange(false);
     } catch (err) {
       setProcessError(err instanceof Error ? err.message : 'Import failed');

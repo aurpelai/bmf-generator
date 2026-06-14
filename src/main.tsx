@@ -2,6 +2,7 @@ import './index.css';
 
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router';
 
 import { TooltipProvider } from '@/components/ui/tooltip';
 
@@ -13,8 +14,10 @@ document.documentElement.classList.add('dark');
 createRoot(document.getElementById('root')!).render(
   // root element always exists in index.html
   <StrictMode>
-    <TooltipProvider>
-      <App />
-    </TooltipProvider>
+    <BrowserRouter>
+      <TooltipProvider>
+        <App />
+      </TooltipProvider>
+    </BrowserRouter>
   </StrictMode>,
 );
