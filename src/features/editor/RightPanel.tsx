@@ -477,15 +477,12 @@ function AtlasTab() {
     if (!currentProject || glyphsToPack.length === 0) return
     setPacking(true)
     try {
-      const size = currentProject.settings.fontSize <= 16 ? 256 : 512
-      const { placements, atlasImageData: imageData, efficiency, unpacked } = await packAtlas(
+      const { placements, atlasImageData: imageData, atlasWidth, atlasHeight, efficiency, unpacked } = await packAtlas(
         glyphsToPack,
-        size,
-        size,
         currentProject.settings.padding.top,
       )
       if (unpacked.length > 0) console.warn(`${unpacked.length} glyphs did not fit in atlas`)
-      setAtlasResult(placements, imageData, size, size, efficiency)
+      setAtlasResult(placements, imageData, atlasWidth, atlasHeight, efficiency)
     } finally {
       setPacking(false)
     }

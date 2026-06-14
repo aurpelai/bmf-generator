@@ -35,6 +35,10 @@ export interface GlyphPlacement {
   y: number
   width: number
   height: number
+  // Trim offsets: pixels cropped from the left/top of the stored glyph before packing.
+  // Added to xoffset/yoffset at export time so the renderer positions the glyph correctly.
+  trimX: number
+  trimY: number
 }
 
 export interface AtlasResult {

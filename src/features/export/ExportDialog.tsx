@@ -71,8 +71,8 @@ export function ExportDialog({ open, onOpenChange }: Props) {
             placement: p,
             glyph: {
               codePoint: p.codePoint,
-              xoffset: g?.xoffset ?? 0,
-              yoffset: g?.yoffset ?? 0,
+              xoffset: (g?.xoffset ?? 0) + p.trimX,
+              yoffset: (g?.yoffset ?? 0) + p.trimY,
               xadvance: g?.xadvance ?? p.width,
             },
           }
