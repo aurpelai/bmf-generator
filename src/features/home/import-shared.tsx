@@ -206,7 +206,7 @@ export function SpacingFields({
   return (
     <div className="grid gap-1.5">
       <Label>Spacing</Label>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-4 gap-2">
         <div className="grid gap-1">
           <span className="text-muted-foreground text-[10px]">Horizontal</span>
           <Input type="number" min={0} max={16} value={x}
