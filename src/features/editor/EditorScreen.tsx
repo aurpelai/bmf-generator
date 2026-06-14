@@ -241,7 +241,7 @@ export function EditorScreen() {
         <GlyphList
           collapsed={glyphListCollapsed}
           onCollapse={() => setGlyphListCollapsed(!glyphListCollapsed)}
-          width={glyphListCollapsed ? 40 : glyphListWidth}
+          width={glyphListCollapsed ? 48 : glyphListWidth}
         />
 
         {/* Left drag handle */}
