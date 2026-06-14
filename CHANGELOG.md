@@ -2,9 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
-## v0.2.0...main
+## v1.0.0
 
-[compare changes](https://github.com/aurpelai/bmf-generator/compare/v0.2.0...main)
+[compare changes](https://github.com/aurpelai/bmf-generator/compare/v0.2.0...v1.0.0)
 
 ### 🚀 Enhancements
 
