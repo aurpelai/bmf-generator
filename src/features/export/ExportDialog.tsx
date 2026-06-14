@@ -7,6 +7,7 @@ import { useStore } from '@/store'
 import { serializeBmfText } from '@/core/bmf'
 import { exportPortableProject } from '@/core/project'
 import type { BmfGlyphData } from '@/core/bmf'
+import { GLYPH_NAMES } from '@/utils/glyphs'
 
 const PRESETS: Array<{ id: import('@/store').GlyphPreset; label: string }> = [
   { id: 'all', label: 'All' },
@@ -45,16 +46,16 @@ function GlyphSelection() {
       <div className="flex flex-wrap gap-0.5 pt-0.5">
         {glyphs.map((g) => {
           const selected = exportSelection === null || exportSelection.has(g.codePoint)
-          const char = String.fromCodePoint(g.codePoint)
+          const char = GLYPH_NAMES[g.codePoint] ?? String.fromCodePoint(g.codePoint)
           return (
             <button
               key={g.codePoint}
               title={`U+${g.codePoint.toString(16).toUpperCase().padStart(4, '0')} ${char}`}
               onClick={() => toggleExportGlyph(g.codePoint, allCodePoints)}
-              className={`flex h-6 w-6 items-center justify-center rounded text-[11px] transition-colors ${
+              className={`flex h-6 min-w-6 items-center justify-center rounded px-1 text-[11px] transition-all ${
                 selected
                   ? 'bg-accent text-accent-foreground'
-                  : 'bg-muted text-muted-foreground/30'
+                  : 'bg-muted text-muted-foreground opacity-30'
               }`}
             >
               {char}
@@ -230,12 +231,12 @@ export function ExportDialog({ open, onOpenChange }: Props) {
           <div className="flex gap-2">
             <Button variant="outline" size="sm" className="text-xs" onClick={handleExportJson} disabled={!currentProject}>
               <FileJson className="mr-1.5 h-3.5 w-3.5" />
-              Save font file
+              Download .json
             </Button>
-            <Button onClick={handleExportZip} disabled={!canExport || exporting}>
+            <Button size="sm" className="text-xs" onClick={handleExportZip} disabled={!canExport || exporting}>
               {exporting
-                ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Exporting…</>
-                : <><Download className="mr-2 h-4 w-4" />Download .zip</>}
+                ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />Exporting…</>
+                : <><Download className="mr-1.5 h-3.5 w-3.5" />Download .zip</>}
             </Button>
           </div>
         </div>
