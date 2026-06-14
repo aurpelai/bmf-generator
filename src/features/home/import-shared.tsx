@@ -304,7 +304,7 @@ export function WizardFooter({
 }) {
   return (
     <DialogFooter className="gap-2">
-      <Button variant="outline" onClick={onClose}>Cancel</Button>
+      <Button variant="outline" onClick={onClose} className="mr-auto">Cancel</Button>
       {step > 1 && (
         <Button variant="outline" onClick={onBack} disabled={backDisabled}>
           Back
