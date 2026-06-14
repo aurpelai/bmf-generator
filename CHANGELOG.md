@@ -45,7 +45,6 @@ All notable changes to this project will be documented in this file.
 
 ## v0.1.0
 
-
 ### 🚀 Enhancements
 
 - Phase 1 — core domain logic, Dexie schema, Zustand store ([4ac342b](https://github.com/aurpelai/bmf-generator/commit/4ac342b))
