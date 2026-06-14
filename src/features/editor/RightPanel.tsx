@@ -8,7 +8,6 @@ import { useAtlas } from '@/hooks/useAtlas'
 import { useRasterize } from '@/hooks/useRasterize'
 import { getFontFile, saveGlyphs, saveProject } from '@/db'
 import type { Glyph } from '@/core/project/types'
-import { chooseAtlasSize } from '@/core/atlas/pack'
 
 type Tab = 'metrics' | 'atlas' | 'settings'
 
@@ -478,15 +477,12 @@ function AtlasTab() {
     if (!currentProject || glyphsToPack.length === 0) return
     setPacking(true)
     try {
-      const size = chooseAtlasSize(glyphsToPack, currentProject.settings.padding.top)
-      const { placements, atlasImageData: imageData, efficiency, unpacked } = await packAtlas(
+      const { placements, atlasImageData: imageData, atlasWidth, atlasHeight, efficiency, unpacked } = await packAtlas(
         glyphsToPack,
-        size,
-        size,
         currentProject.settings.padding.top,
       )
       if (unpacked.length > 0) console.warn(`${unpacked.length} glyphs did not fit in atlas`)
-      setAtlasResult(placements, imageData, size, size, efficiency)
+      setAtlasResult(placements, imageData, atlasWidth, atlasHeight, efficiency)
     } finally {
       setPacking(false)
     }

@@ -5,7 +5,7 @@ import type { BmfGlyphData } from './serialize'
 
 function makeGlyphData(codePoint: number, x: number, y: number, w: number, h: number): BmfGlyphData {
   return {
-    placement: { codePoint, x, y, width: w, height: h },
+    placement: { codePoint, x, y, width: w, height: h, trimX: 0, trimY: 0 },
     glyph: { codePoint, xoffset: 0, yoffset: 0, xadvance: w + 1 },
   }
 }
