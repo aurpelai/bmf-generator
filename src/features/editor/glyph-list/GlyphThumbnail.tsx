@@ -4,10 +4,12 @@ export const GlyphThumbnail = memo(function GlyphThumbnailInner({
   pixels,
   width,
   height,
+  threshold,
 }: {
   pixels: Uint8Array;
   width: number;
   height: number;
+  threshold: number;
 }): React.JSX.Element {
   const size = 28;
 
@@ -19,25 +21,15 @@ export const GlyphThumbnail = memo(function GlyphThumbnailInner({
       style={{ imageRendering: 'pixelated' }}
       className="shrink-0"
     >
-      {Array.from(pixels).map((v, i) => {
-        if (v < 32) {
+      {Array.from(pixels).map((value, index) => {
+        if (value < threshold) {
           return null;
         }
 
-        const column = i % width;
-        const row = Math.floor(i / width);
-        const alpha = Math.round((v / 255) * 100) / 100;
+        const column = index % width;
+        const row = Math.floor(index / width);
 
-        return (
-          <rect
-            key={i}
-            x={column}
-            y={row}
-            width={1}
-            height={1}
-            fill={`rgba(255,255,255,${alpha})`}
-          />
-        );
+        return <rect key={index} x={column} y={row} width={1} height={1} fill="rgb(255,255,255)" />;
       })}
     </svg>
   );

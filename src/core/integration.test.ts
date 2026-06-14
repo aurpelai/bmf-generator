@@ -24,7 +24,9 @@ function inkBlock(glyph: Glyph, x: number, y: number, width: number, height: num
 
 describe('pack → serialize → parse round-trip', () => {
   it('preserves face name, common metrics, and char entries', () => {
-    const project = createProject('Integration', { padding: { top: 1, right: 1, bottom: 1, left: 1 } });
+    const project = createProject('Integration', {
+      padding: { top: 1, right: 1, bottom: 1, left: 1 },
+    });
 
     // 3 glyphs, each 8×8, ink in a 4×4 inner block so trimming has work to do
     const glyphs: Glyph[] = [0x41, 0x42, 0x43].map((codePoint) =>
@@ -33,7 +35,12 @@ describe('pack → serialize → parse round-trip', () => {
 
     const atlasWidth = 64;
     const atlasHeight = 64;
-    const packed = packGlyphs(glyphs, { atlasWidth, atlasHeight, padding: 1 });
+    const packed = packGlyphs(glyphs, {
+      atlasWidth,
+      atlasHeight,
+      padding: 1,
+      defaultAlphaThreshold: 128,
+    });
 
     expect(packed.unpacked).toEqual([]);
 

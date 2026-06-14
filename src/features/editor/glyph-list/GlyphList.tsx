@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
 import type { Glyph } from '@/core/project';
 import { makeBlankGlyph } from '@/core/project';
 import { deleteGlyph, getFontFile, saveGlyphs } from '@/db';
@@ -91,6 +92,13 @@ export const GlyphList = ({
     }
 
     const updated: Glyph = { ...selectedGlyph, xadvance: value };
+
+    upsertGlyph(updated);
+    void saveGlyphs([updated]);
+  }
+
+  function setGlyphAlphaThreshold(glyph: Glyph, threshold: number | undefined): void {
+    const updated: Glyph = { ...glyph, alphaThreshold: threshold };
 
     upsertGlyph(updated);
     void saveGlyphs([updated]);
@@ -239,15 +247,22 @@ export const GlyphList = ({
                   isSelected ? 'bg-accent text-accent-foreground' : 'hover:bg-white/10',
                 )}
               >
-                <div className="bg-background/30 border-border/40 flex h-8 w-8 shrink-0 items-center justify-center rounded border">
+                <div className="bg-background/30 border-border/40 relative flex h-8 w-8 shrink-0 items-center justify-center rounded border">
                   {glyph.width > 0 && glyph.height > 0 ? (
                     <GlyphThumbnail
                       pixels={glyph.pixels}
                       width={glyph.width}
                       height={glyph.height}
+                      threshold={glyph.alphaThreshold ?? currentProject.settings.alphaThreshold}
                     />
                   ) : (
                     <span className="text-muted-foreground text-xs">?</span>
+                  )}
+                  {hasSourceFont && glyph.alphaThreshold !== undefined && (
+                    <span
+                      className="bg-foreground/70 absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full"
+                      title={`Per-glyph alpha threshold: ${glyph.alphaThreshold}`}
+                    />
                   )}
                 </div>
               </button>
@@ -315,15 +330,22 @@ export const GlyphList = ({
                   onClick={() => setSelectedCodePoint(glyph.codePoint)}
                   className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left"
                 >
-                  <div className="bg-background/30 border-border/40 flex h-8 w-8 shrink-0 items-center justify-center rounded border">
+                  <div className="bg-background/30 border-border/40 relative flex h-8 w-8 shrink-0 items-center justify-center rounded border">
                     {glyph.width > 0 && glyph.height > 0 ? (
                       <GlyphThumbnail
                         pixels={glyph.pixels}
                         width={glyph.width}
                         height={glyph.height}
+                        threshold={glyph.alphaThreshold ?? currentProject.settings.alphaThreshold}
                       />
                     ) : (
                       <span className="text-muted-foreground text-xs">?</span>
+                    )}
+                    {hasSourceFont && glyph.alphaThreshold !== undefined && (
+                      <span
+                        className="bg-foreground/70 absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full"
+                        title={`Per-glyph alpha threshold: ${glyph.alphaThreshold}`}
+                      />
                     )}
                   </div>
                   <div className="min-w-0">
@@ -361,35 +383,79 @@ export const GlyphList = ({
                 )}
               </div>
               {isSelected && (
-                <div className="border-border/30 bg-muted/40 flex items-center gap-2 border-b px-2 py-1.5">
-                  <Label className="text-muted-foreground shrink-0 text-[10px]">X advance</Label>
-                  <Input
-                    type="number"
-                    className="h-6 w-16 text-xs"
-                    value={xadvance}
-                    onChange={(event) => setXadvance(Number(event.target.value))}
-                    onBlur={() => commitXadvance(xadvance)}
-                    onKeyDown={(event) => event.key === 'Enter' && commitXadvance(xadvance)}
-                  />
-                  {hasSourceFont && glyph.isDirty && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="ml-auto h-6 w-6 shrink-0"
-                      title="Reset to font"
-                      aria-label="Reset to font"
-                      onClick={() => {
-                        void handleResetToFont();
-                      }}
-                      disabled={resetting}
-                    >
-                      {resetting ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <RotateCcw className="h-3 w-3" />
+                <div className="border-border/30 bg-muted/40 flex flex-col gap-1.5 border-b px-2 py-1.5">
+                  {hasSourceFont && (
+                    <div className="flex items-center gap-2">
+                      <Label className="text-muted-foreground shrink-0 text-[10px]">
+                        α cutoff
+                      </Label>
+                      <Slider
+                        value={[glyph.alphaThreshold ?? currentProject.settings.alphaThreshold]}
+                        min={0}
+                        max={255}
+                        step={1}
+                        onValueChange={(value: number | readonly number[]) => {
+                          const next = Array.isArray(value) ? value[0] : value;
+
+                          setGlyphAlphaThreshold(glyph, next);
+                        }}
+                        className="flex-1"
+                        aria-label="Per-glyph alpha threshold"
+                      />
+                      <span
+                        className={cn(
+                          'w-9 text-center text-[10px] tabular-nums',
+                          glyph.alphaThreshold !== undefined
+                            ? 'text-foreground font-medium'
+                            : 'text-muted-foreground',
+                        )}
+                      >
+                        {glyph.alphaThreshold ?? currentProject.settings.alphaThreshold}
+                      </span>
+                      {glyph.alphaThreshold !== undefined && (
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          className="h-5 w-5 shrink-0"
+                          title="Reset to project default"
+                          aria-label="Reset alpha threshold to project default"
+                          onClick={() => setGlyphAlphaThreshold(glyph, undefined)}
+                        >
+                          <RotateCcw className="h-2.5 w-2.5" />
+                        </Button>
                       )}
-                    </Button>
+                    </div>
                   )}
+                  <div className="flex items-center gap-2">
+                    <Label className="text-muted-foreground shrink-0 text-[10px]">Advance</Label>
+                    <Input
+                      type="number"
+                      className="h-6 w-16 text-xs"
+                      value={xadvance}
+                      onChange={(event) => setXadvance(Number(event.target.value))}
+                      onBlur={() => commitXadvance(xadvance)}
+                      onKeyDown={(event) => event.key === 'Enter' && commitXadvance(xadvance)}
+                    />
+                    {hasSourceFont && glyph.isDirty && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="ml-auto h-6 w-6 shrink-0"
+                        title="Reset to font"
+                        aria-label="Reset to font"
+                        onClick={() => {
+                          void handleResetToFont();
+                        }}
+                        disabled={resetting}
+                      >
+                        {resetting ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <RotateCcw className="h-3 w-3" />
+                        )}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

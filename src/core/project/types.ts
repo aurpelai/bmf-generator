@@ -6,6 +6,8 @@ export interface FontSettings {
   lineHeight: number;
   base: number;
   capHeight: number;
+  // Alpha cutoff (0–255) deciding which grayscale pixels are rendered/exported as ink.
+  alphaThreshold: number;
 }
 
 export interface Project {
@@ -27,6 +29,8 @@ export interface Glyph {
   yoffset: number;
   xadvance: number;
   isDirty: boolean; // true when edited vs font-derived original
+  // Optional per-glyph alpha cutoff override. Undefined → use FontSettings.alphaThreshold.
+  alphaThreshold?: number;
 }
 
 export interface GlyphPlacement {
@@ -57,5 +61,6 @@ export function defaultFontSettings(): FontSettings {
     lineHeight: 36,
     base: 28,
     capHeight: 22,
+    alphaThreshold: 128,
   };
 }

@@ -1,4 +1,5 @@
 import { chooseAtlasSize, packGlyphs } from '@/core/atlas/pack';
+import { effectiveThreshold } from '@/core/project/threshold';
 import type { Glyph, GlyphPlacement } from '@/core/project/types';
 
 export interface AtlasWorkerRequest {
@@ -8,6 +9,8 @@ export interface AtlasWorkerRequest {
   atlasWidth: number;
   atlasHeight: number;
   padding: number;
+  /** Project-wide alpha cutoff (0–255); glyphs may override individually. */
+  defaultAlphaThreshold: number;
 }
 
 export interface AtlasWorkerResponse {
@@ -22,18 +25,19 @@ export interface AtlasWorkerResponse {
 }
 
 self.onmessage = (event: MessageEvent<AtlasWorkerRequest>) => {
-  const { id, glyphs, padding } = event.data;
+  const { id, glyphs, padding, defaultAlphaThreshold } = event.data;
   let { atlasWidth, atlasHeight } = event.data;
 
   try {
     if (atlasWidth === 0) {
-      [atlasWidth, atlasHeight] = chooseAtlasSize(glyphs, padding);
+      [atlasWidth, atlasHeight] = chooseAtlasSize(glyphs, padding, defaultAlphaThreshold);
     }
 
     const { placements, unpacked, efficiency } = packGlyphs(glyphs, {
       atlasWidth,
       atlasHeight,
       padding,
+      defaultAlphaThreshold,
     });
 
     // Render atlas onto an OffscreenCanvas
@@ -57,16 +61,18 @@ self.onmessage = (event: MessageEvent<AtlasWorkerRequest>) => {
       const tw = placement.width;
       const th = placement.height;
       const glyphImageData = context.createImageData(tw, th);
+      const threshold = effectiveThreshold(glyph, { alphaThreshold: defaultAlphaThreshold });
 
       for (let y = 0; y < th; y++) {
         for (let x = 0; x < tw; x++) {
           const value = glyph.pixels[(trimY + y) * glyph.width + (trimX + x)];
+          const ink = value >= threshold ? 255 : 0;
           const index = (y * tw + x) * 4;
 
-          glyphImageData.data[index] = value;
-          glyphImageData.data[index + 1] = value;
-          glyphImageData.data[index + 2] = value;
-          glyphImageData.data[index + 3] = value;
+          glyphImageData.data[index] = ink;
+          glyphImageData.data[index + 1] = ink;
+          glyphImageData.data[index + 2] = ink;
+          glyphImageData.data[index + 3] = ink;
         }
       }
 

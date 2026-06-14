@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { effectiveThreshold } from '@/core/project/threshold';
 import { useStore } from '@/store';
 
 interface Props {
@@ -80,14 +81,15 @@ export const PreviewFloat = ({ open, onClose }: Props): React.JSX.Element => {
       const destY = glyph.yoffset;
 
       const imageData = new ImageData(glyph.width, glyph.height);
+      const threshold = effectiveThreshold(glyph, currentProject.settings);
 
       for (let index = 0; index < glyph.pixels.length; index++) {
-        const value = glyph.pixels[index];
+        const ink = glyph.pixels[index] >= threshold ? 255 : 0;
 
         imageData.data[index * 4 + 0] = 255;
         imageData.data[index * 4 + 1] = 255;
         imageData.data[index * 4 + 2] = 255;
-        imageData.data[index * 4 + 3] = value;
+        imageData.data[index * 4 + 3] = ink;
       }
 
       const offscreen = document.createElement('canvas');
