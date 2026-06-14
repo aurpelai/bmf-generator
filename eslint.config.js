@@ -1,5 +1,6 @@
 import js from '@eslint/js';
 import globals from 'globals';
+import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
@@ -17,7 +18,11 @@ export default defineConfig([
       reactRefresh.configs.vite,
     ],
     plugins: {
+      react,
       'simple-import-sort': simpleImportSort,
+    },
+    settings: {
+      react: { version: '19' },
     },
     languageOptions: {
       globals: globals.browser,
@@ -52,6 +57,7 @@ export default defineConfig([
             'React components must be defined as arrow functions (const Foo = (): React.JSX.Element => {}).',
         },
       ],
+      'react/no-multi-comp': ['error', { ignoreStateless: false }],
       'padding-line-between-statements': [
         'error',
         { blankLine: 'always', prev: '*', next: 'return' },
@@ -62,6 +68,12 @@ export default defineConfig([
         { blankLine: 'always', prev: ['const', 'let', 'var'], next: '*' },
         { blankLine: 'any', prev: ['const', 'let', 'var'], next: ['const', 'let', 'var'] },
       ],
+    },
+  },
+  {
+    files: ['src/components/ui/**'],
+    rules: {
+      'react/no-multi-comp': 'off',
     },
   },
 ]);
