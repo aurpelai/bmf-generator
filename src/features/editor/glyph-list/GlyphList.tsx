@@ -15,6 +15,22 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 
+const GLYPH_NAMES: Record<number, string> = {
+  0x0020: 'Space',
+  0x00A0: 'NBSP',
+  0x0009: 'Tab',
+  0x000A: 'LF',
+  0x000D: 'CR',
+  0x200B: 'ZWSP',
+  0x200C: 'ZWNJ',
+  0x200D: 'ZWJ',
+  0xFEFF: 'BOM',
+}
+
+function glyphDisplayName(cp: number): string {
+  return GLYPH_NAMES[cp] ?? String.fromCodePoint(cp)
+}
+
 function glyphSortKey(cp: number): [number, number] {
   const ch = String.fromCodePoint(cp)
   if (/^\p{Lu}$/u.test(ch)) return [0, cp] // uppercase letters
@@ -74,10 +90,10 @@ function AddGlyphDialog({
   const [value, setValue] = useState('')
 
   function resolve(): number | null {
+    // Check for a single character before trimming — preserves space (U+0020) and other whitespace
+    if ([...value].length === 1) return value.codePointAt(0)!
     const trimmed = value.trim()
     if (!trimmed) return null
-    // Single character
-    if ([...trimmed].length === 1) return trimmed.codePointAt(0)!
     // U+XXXX or 0xXXXX or plain hex/decimal
     const hexMatch = trimmed.match(/^(?:U\+|0x)?([0-9a-fA-F]+)$/)
     if (hexMatch) return parseInt(hexMatch[1], 16)
@@ -210,7 +226,7 @@ export function GlyphList({ collapsed, onCollapse, width }: { collapsed: boolean
 
       <div role="listbox" aria-label="Glyphs" className="flex-1 overflow-y-auto">
         {sortedGlyphs.map((glyph) => {
-          const char = String.fromCodePoint(glyph.codePoint)
+          const char = glyphDisplayName(glyph.codePoint)
           const isSelected = glyph.codePoint === selectedCodePoint
           const label = `${char} U+${glyph.codePoint.toString(16).toUpperCase().padStart(4, '0')}`
           return (
