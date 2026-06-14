@@ -259,14 +259,13 @@ export function EditorScreen() {
           />
         )}
 
-        <div className="flex flex-1 flex-col overflow-hidden">
+        <div className="relative flex flex-1 flex-col overflow-hidden">
           <EditorToolbar />
           <PixelEditor />
+          <AtlasFloat open={atlasOpen} onClose={() => setAtlasOpen(false)} />
+          <PreviewFloat open={previewOpen} onClose={() => setPreviewOpen(false)} />
         </div>
       </div>
-
-      <AtlasFloat open={atlasOpen} onClose={() => setAtlasOpen(false)} />
-      <PreviewFloat open={previewOpen} onClose={() => setPreviewOpen(false)} />
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
       <ExportDialog open={exportOpen} onOpenChange={setExportOpen} />
       <HelpOverlay open={helpOpen} onOpenChange={setHelpOpen} />

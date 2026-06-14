@@ -24,10 +24,10 @@ export function PreviewFloat({ open, onClose }: Props) {
 
     const { lineHeight, base, spacing } = currentProject.settings
     const glyphMap = new Map(glyphs.map((g) => [g.codePoint, g]))
+    const scale = 2
 
     const codePoints = [...text].map((ch) => ch.codePointAt(0)!)
 
-    // Compute total width
     let totalWidth = 0
     for (const cp of codePoints) {
       const g = glyphMap.get(cp)
@@ -35,17 +35,19 @@ export function PreviewFloat({ open, onClose }: Props) {
     }
     totalWidth = Math.max(totalWidth, 1)
 
-    canvas.width = totalWidth
-    canvas.height = lineHeight
+    canvas.width = totalWidth * scale
+    canvas.height = lineHeight * scale
+    canvas.style.width = `${totalWidth}px`
+    canvas.style.height = `${lineHeight}px`
 
     const ctx = canvas.getContext('2d')!
-    ctx.clearRect(0, 0, totalWidth, lineHeight)
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.scale(scale, scale)
 
     let x = 0
     for (const cp of codePoints) {
       const g = glyphMap.get(cp)
       if (!g || g.width === 0 || g.height === 0) {
-        // Placeholder box for missing/blank glyphs
         const advance = g ? g.xadvance : Math.round(currentProject.settings.fontSize * 0.5)
         ctx.strokeStyle = 'rgba(255,255,255,0.2)'
         ctx.strokeRect(x + 0.5, base - currentProject.settings.fontSize * 0.7 + 0.5, advance - 2, currentProject.settings.fontSize * 0.7 - 1)
@@ -54,10 +56,9 @@ export function PreviewFloat({ open, onClose }: Props) {
       }
 
       const destX = x + g.xoffset
-      const destY = base + g.yoffset
+      const destY = g.yoffset
 
-      // Blit glyph pixels row by row
-      const imageData = ctx.createImageData(g.width, g.height)
+      const imageData = new ImageData(g.width, g.height)
       for (let i = 0; i < g.pixels.length; i++) {
         const v = g.pixels[i]
         imageData.data[i * 4 + 0] = 255
@@ -66,7 +67,6 @@ export function PreviewFloat({ open, onClose }: Props) {
         imageData.data[i * 4 + 3] = v
       }
 
-      // Use offscreen canvas to blit with putImageData then drawImage (putImageData ignores canvas transforms)
       const offscreen = document.createElement('canvas')
       offscreen.width = g.width
       offscreen.height = g.height
@@ -79,13 +79,13 @@ export function PreviewFloat({ open, onClose }: Props) {
 
   return (
     <div
-      className={`fixed bottom-4 left-1/2 z-40 -translate-x-1/2 rounded-xl border border-border/50 bg-popover shadow-lg transition-opacity ${
+      className={`absolute bottom-4 left-1/2 z-40 -translate-x-1/2 rounded-xl border border-border/50 bg-popover shadow-lg transition-opacity ${
         open ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
       }`}
       style={{ width: 480 }}
     >
       <div className="flex h-8 items-center justify-between border-b border-border/50 px-3">
-        <span className="text-xs font-medium">Preview</span>
+        <span className="text-xs font-medium">Font preview</span>
         <Button variant="ghost" size="icon" className="h-5 w-5" onClick={onClose}>
           <X className="h-3 w-3" />
         </Button>
@@ -98,11 +98,11 @@ export function PreviewFloat({ open, onClose }: Props) {
           onChange={(e) => setText(e.target.value)}
           placeholder="Type preview text…"
         />
-        <div className="bg-muted flex items-center justify-center overflow-hidden rounded border border-border/50 p-2">
+        <div className="bg-muted flex items-center justify-center overflow-x-auto rounded border border-border/50 p-2">
           {currentProject ? (
             <canvas
               ref={canvasRef}
-              style={{ imageRendering: 'pixelated', maxWidth: '100%', height: 'auto', display: 'block' }}
+              style={{ imageRendering: 'pixelated', display: 'block' }}
             />
           ) : (
             <span className="text-muted-foreground text-xs">No project open.</span>

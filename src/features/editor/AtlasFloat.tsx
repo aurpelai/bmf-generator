@@ -72,7 +72,7 @@ export function AtlasFloat({ open, onClose }: Props) {
 
   return (
     <div
-      className={`fixed top-16 right-3 z-40 w-56 rounded-xl border border-border/50 bg-popover shadow-lg transition-opacity ${
+      className={`absolute top-12 right-3 z-40 w-56 rounded-xl border border-border/50 bg-popover shadow-lg transition-opacity ${
         open ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
       }`}
     >
