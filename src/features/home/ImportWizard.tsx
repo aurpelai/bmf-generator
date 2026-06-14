@@ -24,8 +24,6 @@ interface Props {
 type Step = 1 | 2 | 3
 type FontFormat = 'ttf' | 'bmf'
 
-const ATLAS_SIZES = [256, 512, 1024, 2048]
-
 // --- BMF atlas slicing helpers ---
 
 type AtlasMode = 'alpha' | 'rgb-white-on-black' | 'rgb-black-on-white'
@@ -99,7 +97,6 @@ export function ImportWizard({ open, onOpenChange }: Props) {
   const [lineHeight, setLineHeight] = useState(Math.round(32 * 1.2))
   const [base, setBase] = useState(Math.round(32 * 0.8))
   const [capHeight, setCapHeight] = useState(Math.round(32 * 0.7))
-  const [atlasSize, setAtlasSize] = useState(512)
   const [glyphSetId, setGlyphSetId] = useState(GLYPH_SETS[0].id)
   const [paddingTop, setPaddingTop] = useState(1)
   const [paddingRight, setPaddingRight] = useState(1)
@@ -176,7 +173,6 @@ export function ImportWizard({ open, onOpenChange }: Props) {
         setLineHeight(parsed.common.lineHeight)
         setBase(parsed.common.base)
         setCapHeight(Math.round(parsed.common.base * 0.7 / 0.8))
-        setAtlasSize(closestAtlasSize(parsed.common.scaleW))
         setPaddingTop(parsed.info.padding.top)
         setPaddingRight(parsed.info.padding.right)
         setPaddingBottom(parsed.info.padding.bottom)
@@ -332,7 +328,6 @@ export function ImportWizard({ open, onOpenChange }: Props) {
       setLineHeight(Math.round(32 * 1.2))
       setBase(Math.round(32 * 0.8))
       setCapHeight(Math.round(32 * 0.7))
-      setAtlasSize(512)
       setGlyphSetId(GLYPH_SETS[0].id)
       setPaddingTop(1); setPaddingRight(1); setPaddingBottom(1); setPaddingLeft(1)
       setSpacingX(1); setSpacingY(1)
@@ -362,7 +357,6 @@ export function ImportWizard({ open, onOpenChange }: Props) {
       {fontSize}px{' · '}
       {GLYPH_SETS.find((s) => s.id === glyphSetId)?.label}
       {importPreset !== 'all' && <>{' · '}{IMPORT_PRESETS.find((p) => p.id === importPreset)?.label}</>}
-      {format === 'ttf' && <>{' · '}{atlasSize}×{atlasSize} atlas</>}
     </>
   )
 
@@ -425,15 +419,6 @@ export function ImportWizard({ open, onOpenChange }: Props) {
         {step === 2 && (
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-1 -mx-1 pt-2 pb-4">
             <div className="grid gap-1.5">
-              <Label htmlFor="imp-atlas">Atlas size</Label>
-              <select id="imp-atlas"
-                className="bg-input border-border text-foreground h-8 rounded-md border px-3 text-sm"
-                value={atlasSize}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setAtlasSize(Number(e.target.value))}>
-                {ATLAS_SIZES.map((s) => <option key={s} value={s}>{s} × {s}</option>)}
-              </select>
-            </div>
-            <div className="grid gap-1.5">
               <Label htmlFor="imp-glyphset">Glyph set</Label>
               <GlyphSetSelect id="imp-glyphset" value={glyphSetId} onChange={setGlyphSetId} />
             </div>
@@ -475,8 +460,4 @@ export function ImportWizard({ open, onOpenChange }: Props) {
       </DialogContent>
     </Dialog>
   )
-}
-
-function closestAtlasSize(w: number): number {
-  return ATLAS_SIZES.reduce((prev, cur) => Math.abs(cur - w) < Math.abs(prev - w) ? cur : prev)
 }

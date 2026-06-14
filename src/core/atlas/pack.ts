@@ -13,6 +13,38 @@ export interface PackGlyphsResult {
   efficiency: number // 0–1, fraction of atlas area used
 }
 
+const ATLAS_CANDIDATES = [256, 512, 1024, 2048, 4096]
+
+export function chooseAtlasSize(glyphs: Glyph[], padding: number): number {
+  const totalArea = glyphs.reduce(
+    (sum, g) => sum + (g.width + padding * 2) * (g.height + padding * 2),
+    0,
+  )
+
+  const startIndex = ATLAS_CANDIDATES.findIndex((s) => s * s >= totalArea)
+  const from = startIndex === -1 ? ATLAS_CANDIDATES.length - 1 : startIndex
+
+  let chosen = ATLAS_CANDIDATES[ATLAS_CANDIDATES.length - 1]
+  for (let i = from; i < ATLAS_CANDIDATES.length; i++) {
+    const s = ATLAS_CANDIDATES[i]
+    if (packGlyphs(glyphs, { atlasWidth: s, atlasHeight: s, padding }).unpacked.length === 0) {
+      chosen = s
+      break
+    }
+  }
+
+  // Step down: try one size smaller to ensure the result is as tight as possible
+  const chosenIndex = ATLAS_CANDIDATES.indexOf(chosen)
+  if (chosenIndex > 0) {
+    const smaller = ATLAS_CANDIDATES[chosenIndex - 1]
+    if (packGlyphs(glyphs, { atlasWidth: smaller, atlasHeight: smaller, padding }).unpacked.length === 0) {
+      return smaller
+    }
+  }
+
+  return chosen
+}
+
 export function packGlyphs(glyphs: Glyph[], options: PackGlyphsOptions): PackGlyphsResult {
   const { atlasWidth, atlasHeight, padding } = options
 
