@@ -436,6 +436,7 @@ export const GlyphList = ({
                       onBlur={() => commitXadvance(xadvance)}
                       onKeyDown={(event) => event.key === 'Enter' && commitXadvance(xadvance)}
                     />
+                    <span className="text-muted-foreground text-[10px]">px</span>
                     {hasSourceFont && glyph.isDirty && (
                       <Button
                         variant="ghost"
