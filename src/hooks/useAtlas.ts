@@ -13,7 +13,11 @@ export interface AtlasResult {
 }
 
 export function useAtlas(): {
-  packAtlas: (glyphs: Glyph[], padding: number) => Promise<AtlasResult>;
+  packAtlas: (
+    glyphs: Glyph[],
+    padding: number,
+    defaultAlphaThreshold: number,
+  ) => Promise<AtlasResult>;
 } {
   const workerRef = useRef<Worker | null>(null);
   const pendingRef = useRef<
@@ -70,16 +74,26 @@ export function useAtlas(): {
     return workerRef.current;
   }
 
-  const packAtlas = useCallback((glyphs: Glyph[], padding: number): Promise<AtlasResult> => {
-    return new Promise((resolve, reject) => {
-      const id = crypto.randomUUID();
+  const packAtlas = useCallback(
+    (glyphs: Glyph[], padding: number, defaultAlphaThreshold: number): Promise<AtlasResult> => {
+      return new Promise((resolve, reject) => {
+        const id = crypto.randomUUID();
 
-      pendingRef.current.set(id, { resolve, reject });
-      const req: AtlasWorkerRequest = { id, glyphs, atlasWidth: 0, atlasHeight: 0, padding };
+        pendingRef.current.set(id, { resolve, reject });
+        const req: AtlasWorkerRequest = {
+          id,
+          glyphs,
+          atlasWidth: 0,
+          atlasHeight: 0,
+          padding,
+          defaultAlphaThreshold,
+        };
 
-      getWorker().postMessage(req);
-    });
-  }, []);
+        getWorker().postMessage(req);
+      });
+    },
+    [],
+  );
 
   return { packAtlas };
 }

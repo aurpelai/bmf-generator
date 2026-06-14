@@ -1,10 +1,12 @@
-import type { Glyph, GlyphPlacement } from '../project/types';
+import { effectiveThreshold } from '../project/threshold';
+import type { FontSettings, Glyph, GlyphPlacement } from '../project/types';
 import { pack } from './maxrects';
 
 export interface PackGlyphsOptions {
   atlasWidth: number;
   atlasHeight: number;
   padding: number;
+  defaultAlphaThreshold: FontSettings['alphaThreshold'];
 }
 
 export interface PackGlyphsResult {
@@ -40,7 +42,7 @@ interface TrimmedGlyph {
   pixels: Uint8Array; // cropped pixel buffer
 }
 
-function trimGlyph(glyph: Glyph): TrimmedGlyph {
+function trimGlyph(glyph: Glyph, threshold: number): TrimmedGlyph {
   const { width, height, pixels } = glyph;
 
   let minX = width,
@@ -50,7 +52,7 @@ function trimGlyph(glyph: Glyph): TrimmedGlyph {
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      if (pixels[y * width + x] !== 0) {
+      if (pixels[y * width + x] >= threshold) {
         if (x < minX) {
           minX = x;
         }
@@ -86,8 +88,14 @@ function trimGlyph(glyph: Glyph): TrimmedGlyph {
   return { glyph, trimX: minX, trimY: minY, width: tw, height: th, pixels: cropped };
 }
 
-export function chooseAtlasSize(glyphs: Glyph[], padding: number): [number, number] {
-  const trimmed = glyphs.map(trimGlyph);
+export function chooseAtlasSize(
+  glyphs: Glyph[],
+  padding: number,
+  defaultAlphaThreshold: number,
+): [number, number] {
+  const trimmed = glyphs.map((glyph) =>
+    trimGlyph(glyph, effectiveThreshold(glyph, { alphaThreshold: defaultAlphaThreshold })),
+  );
   const totalArea = trimmed.reduce(
     (sum, trimmedGlyph) =>
       sum +
@@ -101,7 +109,8 @@ export function chooseAtlasSize(glyphs: Glyph[], padding: number): [number, numb
   const from = startIndex === -1 ? ATLAS_CANDIDATES.length - 1 : startIndex;
 
   const canFit = ([w, h]: [number, number]): boolean =>
-    packGlyphs(glyphs, { atlasWidth: w, atlasHeight: h, padding }).unpacked.length === 0;
+    packGlyphs(glyphs, { atlasWidth: w, atlasHeight: h, padding, defaultAlphaThreshold }).unpacked
+      .length === 0;
 
   let chosen = ATLAS_CANDIDATES[ATLAS_CANDIDATES.length - 1];
 
@@ -123,9 +132,11 @@ export function chooseAtlasSize(glyphs: Glyph[], padding: number): [number, numb
 }
 
 export function packGlyphs(glyphs: Glyph[], options: PackGlyphsOptions): PackGlyphsResult {
-  const { atlasWidth, atlasHeight, padding } = options;
+  const { atlasWidth, atlasHeight, padding, defaultAlphaThreshold } = options;
 
-  const trimmed = glyphs.map(trimGlyph);
+  const trimmed = glyphs.map((glyph) =>
+    trimGlyph(glyph, effectiveThreshold(glyph, { alphaThreshold: defaultAlphaThreshold })),
+  );
 
   const rects = trimmed.map((trimmedGlyph) => ({
     width: trimmedGlyph.width === 0 ? 0 : trimmedGlyph.width + padding * 2,

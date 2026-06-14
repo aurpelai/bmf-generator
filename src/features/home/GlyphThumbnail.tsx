@@ -7,7 +7,13 @@ export interface GlyphPreviewData {
   height: number;
 }
 
-export const GlyphThumbnail = ({ glyph }: { glyph: GlyphPreviewData }): React.JSX.Element => {
+export const GlyphThumbnail = ({
+  glyph,
+  threshold = 128,
+}: {
+  glyph: GlyphPreviewData;
+  threshold?: number;
+}): React.JSX.Element => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -22,16 +28,16 @@ export const GlyphThumbnail = ({ glyph }: { glyph: GlyphPreviewData }): React.JS
     const imageData = context.createImageData(glyph.width, glyph.height);
 
     for (let index = 0; index < glyph.pixels.length; index++) {
-      const value = glyph.pixels[index];
+      const ink = glyph.pixels[index] >= threshold ? 255 : 0;
 
-      imageData.data[index * 4 + 0] = value;
-      imageData.data[index * 4 + 1] = value;
-      imageData.data[index * 4 + 2] = value;
-      imageData.data[index * 4 + 3] = value;
+      imageData.data[index * 4 + 0] = ink;
+      imageData.data[index * 4 + 1] = ink;
+      imageData.data[index * 4 + 2] = ink;
+      imageData.data[index * 4 + 3] = ink;
     }
 
     context.putImageData(imageData, 0, 0);
-  }, [glyph]);
+  }, [glyph, threshold]);
 
   if (glyph.width === 0 || glyph.height === 0) {
     return (

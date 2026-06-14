@@ -6,12 +6,15 @@ import {
   Move,
   Pencil,
   Plus,
+  SlidersHorizontal,
   Type,
   ZoomIn,
 } from 'lucide-react';
 import React from 'react';
 
 import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
+import { saveProject } from '@/db';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/store';
 
@@ -38,6 +41,9 @@ export const EditorToolbar = ({
   const setZoomLevel = useStore((state) => state.setZoomLevel);
   const showGrid = useStore((state) => state.showGrid);
   const setShowGrid = useStore((state) => state.setShowGrid);
+  const currentProject = useStore((state) => state.currentProject);
+  const updateCurrentProject = useStore((state) => state.updateCurrentProject);
+  const alphaThreshold = currentProject?.settings.alphaThreshold ?? 128;
 
   function zoomIn(): void {
     const next = ZOOM_PRESETS.find((z) => z > zoomLevel);
@@ -114,6 +120,41 @@ export const EditorToolbar = ({
         >
           <Plus className="h-3.5 w-3.5" />
         </Button>
+      </div>
+
+      <div className="bg-border mx-1 h-5 w-px" />
+
+      <div
+        className={cn(
+          'flex items-center gap-2 px-1',
+          !currentProject && 'pointer-events-none opacity-30',
+        )}
+        title="Alpha threshold — pixels below this value are treated as transparent on export"
+      >
+        <SlidersHorizontal className="text-muted-foreground h-3.5 w-3.5" />
+        <div className="w-32">
+          <Slider
+            value={[alphaThreshold]}
+            min={0}
+            max={255}
+            step={1}
+            onValueChange={(value: number | number[]) => {
+              if (!currentProject) {
+                return;
+              }
+
+              const next = Array.isArray(value) ? value[0] : value;
+              const settings = { ...currentProject.settings, alphaThreshold: next };
+
+              updateCurrentProject({ settings });
+              void saveProject({ ...currentProject, settings, updatedAt: Date.now() });
+            }}
+            aria-label="Alpha threshold"
+          />
+        </div>
+        <span className="text-muted-foreground w-10 text-center text-xs tabular-nums">
+          {alphaThreshold}
+        </span>
       </div>
 
       <div className="bg-border mx-1 h-5 w-px" />

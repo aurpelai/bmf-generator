@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 
+import { effectiveThreshold } from '@/core/project/threshold';
 import type { Glyph } from '@/core/project/types';
 import { saveGlyphs } from '@/db/glyphs';
 import { useStore } from '@/store';
@@ -108,13 +109,15 @@ export const PixelEditor = (): React.JSX.Element => {
     context.fillStyle = 'rgba(255,255,255,0.03)';
     context.fillRect(cellX, cellY, fontSize * zoom, lineHeight * zoom);
 
-    // Glyph pixels — dimmed outside the cell
+    // Glyph pixels — dimmed outside the cell; binarized at the effective threshold
     if (currentGlyph && currentGlyph.width > 0 && currentGlyph.height > 0) {
+      const threshold = effectiveThreshold(currentGlyph, project.settings);
+
       for (let py = 0; py < currentGlyph.height; py++) {
         for (let px = 0; px < currentGlyph.width; px++) {
           const value = currentGlyph.pixels[py * currentGlyph.width + px];
 
-          if (value === 0) {
+          if (value < threshold) {
             continue;
           }
 
@@ -125,7 +128,7 @@ export const PixelEditor = (): React.JSX.Element => {
             renderXoffset + px < fontSize &&
             renderYoffset + py >= 0 &&
             renderYoffset + py < lineHeight;
-          const alpha = (value / 255) * (inCell ? 1 : 0.35);
+          const alpha = inCell ? 1 : 0.35;
 
           context.fillStyle = `rgba(255,255,255,${alpha})`;
           context.fillRect(cx, cy, zoom, zoom);

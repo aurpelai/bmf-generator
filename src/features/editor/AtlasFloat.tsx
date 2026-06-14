@@ -59,9 +59,12 @@ export const AtlasFloat = ({ open, onClose }: Props): React.JSX.Element => {
         atlasHeight: packedHeight,
         efficiency,
         unpacked,
-      } = await packAtlas(glyphsToPack, currentProject.settings.padding.top);
+      } = await packAtlas(
+        glyphsToPack,
+        currentProject.settings.padding.top,
+        currentProject.settings.alphaThreshold,
+      );
 
-       
       if (unpacked.length > 0) {
         console.warn(`${unpacked.length} glyphs did not fit in atlas`);
       }
