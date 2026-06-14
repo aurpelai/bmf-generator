@@ -122,40 +122,41 @@ export const EditorToolbar = ({
         </Button>
       </div>
 
-      <div className="bg-border mx-1 h-5 w-px" />
+      {currentProject?.settings.sourceFontId && (
+        <>
+          <div className="bg-border mx-1 h-5 w-px" />
 
-      <div
-        className={cn(
-          'flex items-center gap-2 px-1',
-          !currentProject && 'pointer-events-none opacity-30',
-        )}
-        title="Alpha threshold — pixels below this value are treated as transparent on export"
-      >
-        <SlidersHorizontal className="text-muted-foreground h-3.5 w-3.5" />
-        <div className="w-32">
-          <Slider
-            value={[alphaThreshold]}
-            min={0}
-            max={255}
-            step={1}
-            onValueChange={(value: number | number[]) => {
-              if (!currentProject) {
-                return;
-              }
+          <div
+            className="flex items-center gap-2 px-1"
+            title="Alpha threshold — pixels below this value are treated as transparent on export"
+          >
+            <SlidersHorizontal className="text-muted-foreground h-3.5 w-3.5" />
+            <div className="w-32">
+              <Slider
+                value={[alphaThreshold]}
+                min={0}
+                max={255}
+                step={1}
+                onValueChange={(value: number | readonly number[]) => {
+                  if (!currentProject) {
+                    return;
+                  }
 
-              const next = Array.isArray(value) ? value[0] : value;
-              const settings = { ...currentProject.settings, alphaThreshold: next };
+                  const next = Array.isArray(value) ? value[0] : value;
+                  const settings = { ...currentProject.settings, alphaThreshold: next };
 
-              updateCurrentProject({ settings });
-              void saveProject({ ...currentProject, settings, updatedAt: Date.now() });
-            }}
-            aria-label="Alpha threshold"
-          />
-        </div>
-        <span className="text-muted-foreground w-10 text-center text-xs tabular-nums">
-          {alphaThreshold}
-        </span>
-      </div>
+                  updateCurrentProject({ settings });
+                  void saveProject({ ...currentProject, settings, updatedAt: Date.now() });
+                }}
+                aria-label="Alpha threshold"
+              />
+            </div>
+            <span className="text-muted-foreground w-10 text-center text-xs tabular-nums">
+              {alphaThreshold}
+            </span>
+          </div>
+        </>
+      )}
 
       <div className="bg-border mx-1 h-5 w-px" />
 

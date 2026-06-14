@@ -258,7 +258,7 @@ export const GlyphList = ({
                   ) : (
                     <span className="text-muted-foreground text-xs">?</span>
                   )}
-                  {glyph.alphaThreshold !== undefined && (
+                  {hasSourceFont && glyph.alphaThreshold !== undefined && (
                     <span
                       className="bg-foreground/70 absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full"
                       title={`Per-glyph alpha threshold: ${glyph.alphaThreshold}`}
@@ -341,7 +341,7 @@ export const GlyphList = ({
                     ) : (
                       <span className="text-muted-foreground text-xs">?</span>
                     )}
-                    {glyph.alphaThreshold !== undefined && (
+                    {hasSourceFont && glyph.alphaThreshold !== undefined && (
                       <span
                         className="bg-foreground/70 absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full"
                         title={`Per-glyph alpha threshold: ${glyph.alphaThreshold}`}
@@ -384,44 +384,48 @@ export const GlyphList = ({
               </div>
               {isSelected && (
                 <div className="border-border/30 bg-muted/40 flex flex-col gap-1.5 border-b px-2 py-1.5">
-                  <div className="flex items-center gap-2">
-                    <Label className="text-muted-foreground shrink-0 text-[10px]">α cutoff</Label>
-                    <Slider
-                      value={[glyph.alphaThreshold ?? currentProject.settings.alphaThreshold]}
-                      min={0}
-                      max={255}
-                      step={1}
-                      onValueChange={(value: number | number[]) => {
-                        const next = Array.isArray(value) ? value[0] : value;
+                  {hasSourceFont && (
+                    <div className="flex items-center gap-2">
+                      <Label className="text-muted-foreground shrink-0 text-[10px]">
+                        α cutoff
+                      </Label>
+                      <Slider
+                        value={[glyph.alphaThreshold ?? currentProject.settings.alphaThreshold]}
+                        min={0}
+                        max={255}
+                        step={1}
+                        onValueChange={(value: number | readonly number[]) => {
+                          const next = Array.isArray(value) ? value[0] : value;
 
-                        setGlyphAlphaThreshold(glyph, next);
-                      }}
-                      className="flex-1"
-                      aria-label="Per-glyph alpha threshold"
-                    />
-                    <span
-                      className={cn(
-                        'w-9 text-center text-[10px] tabular-nums',
-                        glyph.alphaThreshold !== undefined
-                          ? 'text-foreground font-medium'
-                          : 'text-muted-foreground',
-                      )}
-                    >
-                      {glyph.alphaThreshold ?? currentProject.settings.alphaThreshold}
-                    </span>
-                    {glyph.alphaThreshold !== undefined && (
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        className="h-5 w-5 shrink-0"
-                        title="Reset to project default"
-                        aria-label="Reset alpha threshold to project default"
-                        onClick={() => setGlyphAlphaThreshold(glyph, undefined)}
+                          setGlyphAlphaThreshold(glyph, next);
+                        }}
+                        className="flex-1"
+                        aria-label="Per-glyph alpha threshold"
+                      />
+                      <span
+                        className={cn(
+                          'w-9 text-center text-[10px] tabular-nums',
+                          glyph.alphaThreshold !== undefined
+                            ? 'text-foreground font-medium'
+                            : 'text-muted-foreground',
+                        )}
                       >
-                        <RotateCcw className="h-2.5 w-2.5" />
-                      </Button>
-                    )}
-                  </div>
+                        {glyph.alphaThreshold ?? currentProject.settings.alphaThreshold}
+                      </span>
+                      {glyph.alphaThreshold !== undefined && (
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          className="h-5 w-5 shrink-0"
+                          title="Reset to project default"
+                          aria-label="Reset alpha threshold to project default"
+                          onClick={() => setGlyphAlphaThreshold(glyph, undefined)}
+                        >
+                          <RotateCcw className="h-2.5 w-2.5" />
+                        </Button>
+                      )}
+                    </div>
+                  )}
                   <div className="flex items-center gap-2">
                     <Label className="text-muted-foreground shrink-0 text-[10px]">Advance</Label>
                     <Input
