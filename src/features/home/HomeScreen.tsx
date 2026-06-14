@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { FileJson, FileType, FolderOpen, Pencil, Plus, Trash2, Upload } from 'lucide-react'
+import { FileType, FolderOpen, Pencil, Plus, Trash2, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { getAllProjects, saveProject, deleteProject, saveGlyphs } from '@/db'
@@ -7,15 +7,13 @@ import { useStore } from '@/store'
 import { importPortableProject } from '@/core/project'
 import type { Project } from '@/core/project'
 import { NewProjectDialog } from './NewProjectDialog'
-import { FontImportWizard } from './FontImportWizard'
-import { BmfImportDialog } from './BmfImportDialog'
+import { ImportWizard } from './ImportWizard'
 import { DeleteProjectDialog } from './DeleteProjectDialog'
 
 export function HomeScreen() {
   const [projects, setProjects] = useState<Project[]>([])
   const [newProjectOpen, setNewProjectOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
-  const [bmfImportOpen, setBmfImportOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null)
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
@@ -101,13 +99,10 @@ export function HomeScreen() {
             <FolderOpen className="mr-2 h-4 w-4" />
             Open font
           </Button>
+          <div className="flex-1" />
           <Button variant="outline" onClick={() => setImportOpen(true)}>
             <Upload className="mr-2 h-4 w-4" />
-            Import TTF/OTF
-          </Button>
-          <Button variant="outline" onClick={() => setBmfImportOpen(true)}>
-            <FileJson className="mr-2 h-4 w-4" />
-            Import BMF font
+            Import font
           </Button>
           <input
             ref={jsonInputRef}
@@ -126,13 +121,13 @@ export function HomeScreen() {
         {/* Project list */}
         {projects.length === 0 ? (
           <div className="text-muted-foreground py-16 text-center text-sm">
-            <p>No projects yet.</p>
+            <p>No fonts yet.</p>
             <p className="mt-1">Create a new font, open a saved font, or import an existing one to get started.</p>
           </div>
         ) : (
           <div className="grid gap-2">
             <h2 className="text-muted-foreground mb-2 text-xs font-medium uppercase tracking-wider">
-              Recent projects
+              Recent fonts
             </h2>
             {projects.map((project) => (
               <div
@@ -187,8 +182,7 @@ export function HomeScreen() {
       </main>
 
       <NewProjectDialog open={newProjectOpen} onOpenChange={setNewProjectOpen} />
-      <FontImportWizard open={importOpen} onOpenChange={setImportOpen} />
-      <BmfImportDialog open={bmfImportOpen} onOpenChange={(o) => { setBmfImportOpen(o); if (!o) loadProjects() }} />
+      <ImportWizard open={importOpen} onOpenChange={(o) => { setImportOpen(o); if (!o) loadProjects() }} />
       {deleteTarget && (
         <DeleteProjectDialog
           projectName={deleteTarget.name}

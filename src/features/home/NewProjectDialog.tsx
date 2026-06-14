@@ -53,7 +53,7 @@ export function NewProjectDialog({ open, onOpenChange }: Props) {
 
         <div className="grid gap-4 py-2">
           <div className="grid gap-1.5">
-            <Label htmlFor="np-name">Project name</Label>
+            <Label htmlFor="np-name">Font name</Label>
             <Input
               id="np-name"
               placeholder="Untitled"
@@ -132,7 +132,7 @@ export function NewProjectDialog({ open, onOpenChange }: Props) {
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleCreate}>Create project</Button>
+          <Button onClick={handleCreate}>Create font</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

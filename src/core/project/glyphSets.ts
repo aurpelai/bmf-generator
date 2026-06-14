@@ -2,11 +2,17 @@ export interface GlyphSet {
   id: string
   label: string
   codePoints: number[]
+  custom?: boolean
 }
 
 function range(from: number, to: number): number[] {
   return Array.from({ length: to - from + 1 }, (_, i) => from + i)
 }
+
+// A–Z + a–z
+const ASCII_LETTERS = [...range(0x41, 0x5a), ...range(0x61, 0x7a)]
+// 0–9
+const ASCII_DIGITS = range(0x30, 0x39)
 
 export const GLYPH_SETS: GlyphSet[] = [
   {
@@ -20,9 +26,22 @@ export const GLYPH_SETS: GlyphSet[] = [
     codePoints: range(0x20, 0x7e).concat(range(0xa0, 0xff)),
   },
   {
+    id: 'letters-digits',
+    label: 'Letters & digits (62 chars)',
+    codePoints: [...ASCII_LETTERS, ...ASCII_DIGITS].sort((a, b) => a - b),
+    custom: true,
+  },
+  {
+    id: 'letters',
+    label: 'Letters only (52 chars)',
+    codePoints: ASCII_LETTERS,
+    custom: true,
+  },
+  {
     id: 'digits',
     label: 'Digits only (10 chars)',
-    codePoints: range(0x30, 0x39),
+    codePoints: ASCII_DIGITS,
+    custom: true,
   },
 ]
 
