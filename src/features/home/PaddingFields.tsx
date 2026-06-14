@@ -3,6 +3,31 @@ import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
+const PaddingInput = ({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+}): React.JSX.Element => (
+  <div className="grid gap-1">
+    <span className="text-muted-foreground text-[10px]">{label}</span>
+    <div className="flex items-center gap-1">
+      <Input
+        className="w-20"
+        type="number"
+        min={0}
+        max={16}
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+      />
+      <span className="text-muted-foreground text-[10px]">px</span>
+    </div>
+  </div>
+);
+
 export const PaddingFields = ({
   top,
   right,
@@ -28,53 +53,13 @@ export const PaddingFields = ({
       <p className="text-muted-foreground text-xs">Extra space around each glyph.</p>
       <div className="mt-2 grid w-fit grid-cols-3 gap-2">
         <div />
-        <div className="grid gap-1">
-          <span className="text-muted-foreground text-[10px]">Top</span>
-          <Input
-            className="w-20"
-            type="number"
-            min={0}
-            max={16}
-            value={top}
-            onChange={(event) => onTopChange(Number(event.target.value))}
-          />
-        </div>
+        <PaddingInput label="Top" value={top} onChange={onTopChange} />
         <div />
-        <div className="grid gap-1">
-          <span className="text-muted-foreground text-[10px]">Left</span>
-          <Input
-            className="w-20"
-            type="number"
-            min={0}
-            max={16}
-            value={left}
-            onChange={(event) => onLeftChange(Number(event.target.value))}
-          />
-        </div>
+        <PaddingInput label="Left" value={left} onChange={onLeftChange} />
         <div />
-        <div className="grid gap-1">
-          <span className="text-muted-foreground text-[10px]">Right</span>
-          <Input
-            className="w-20"
-            type="number"
-            min={0}
-            max={16}
-            value={right}
-            onChange={(event) => onRightChange(Number(event.target.value))}
-          />
-        </div>
+        <PaddingInput label="Right" value={right} onChange={onRightChange} />
         <div />
-        <div className="grid gap-1">
-          <span className="text-muted-foreground text-[10px]">Bottom</span>
-          <Input
-            className="w-20"
-            type="number"
-            min={0}
-            max={16}
-            value={bottom}
-            onChange={(event) => onBottomChange(Number(event.target.value))}
-          />
-        </div>
+        <PaddingInput label="Bottom" value={bottom} onChange={onBottomChange} />
         <div />
       </div>
     </div>
