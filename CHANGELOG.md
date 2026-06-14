@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.1.2
+
+[compare changes](https://github.com/aurpelai/bmf-generator/compare/v1.1.1...v1.1.2)
+
+### 🏡 Chore
+
+- Collapse release script into a single changelogen invocation ([409ba17](https://github.com/aurpelai/bmf-generator/commit/409ba17))
+
+### ❤️ Contributors
+
+- Antti Urpelainen <antti.urpelainen@gmail.com>
+
 ## v1.1.1
 
 [compare changes](https://github.com/aurpelai/bmf-generator/compare/v1.1.0...v1.1.1)
