@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, ChevronLeft, Download, FileType, HelpCircle } from 'lucide-react'
+import { ArrowLeft, Download, FileType, HelpCircle, ImageIcon, Settings, Type } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useStore } from '@/store'
 import { getGlyphsForProject } from '@/db/glyphs'
@@ -7,7 +7,9 @@ import { saveGlyphs } from '@/db/glyphs'
 import { GlyphList } from './glyph-list/GlyphList'
 import { PixelEditor } from './pixel-editor/PixelEditor'
 import { EditorToolbar } from './toolbar/EditorToolbar'
-import { RightPanel } from './RightPanel'
+import { SettingsDialog } from './SettingsDialog'
+import { AtlasFloat } from './AtlasFloat'
+import { PreviewFloat } from './PreviewFloat'
 import { ExportDialog } from '@/features/export/ExportDialog'
 import { HelpOverlay } from './HelpOverlay'
 import type { EditorTool } from '@/store/editorSlice'
@@ -15,14 +17,13 @@ import type { EditorTool } from '@/store/editorSlice'
 export function EditorScreen() {
   const [exportOpen, setExportOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [atlasOpen, setAtlasOpen] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
   const [glyphListCollapsed, setGlyphListCollapsed] = useState(false)
-  const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false)
   const [glyphListWidth, setGlyphListWidth] = useState(192)
-  const [rightPanelWidth, setRightPanelWidth] = useState(256)
-  const draggingRef = useRef<{ panel: 'left' | 'right'; startX: number; startWidth: number } | null>(null)
+  const draggingRef = useRef<{ startX: number; startWidth: number } | null>(null)
   const rafRef = useRef<number | null>(null)
-  const panelsCollapsedRef = useRef({ left: false, right: false })
-  panelsCollapsedRef.current = { left: glyphListCollapsed, right: rightPanelCollapsed }
 
   useEffect(() => {
     function onMouseMove(e: MouseEvent) {
@@ -33,15 +34,9 @@ export function EditorScreen() {
       rafRef.current = requestAnimationFrame(() => {
         rafRef.current = null
         const delta = clientX - d.startX
-        if (d.panel === 'left') {
-          const w = d.startWidth + delta
-          if (w < 80) { setGlyphListCollapsed(true); draggingRef.current = null }
-          else setGlyphListWidth(Math.min(400, Math.max(120, w)))
-        } else {
-          const w = d.startWidth - delta
-          if (w < 100) { setRightPanelCollapsed(true); draggingRef.current = null }
-          else setRightPanelWidth(Math.min(480, Math.max(180, w)))
-        }
+        const w = d.startWidth + delta
+        if (w < 80) { setGlyphListCollapsed(true); draggingRef.current = null }
+        else setGlyphListWidth(Math.min(400, Math.max(120, w)))
       })
     }
     function onMouseUp() {
@@ -121,18 +116,46 @@ export function EditorScreen() {
         return
       }
 
+      // Ctrl+Shift+S — settings
+      if (ctrl && e.shiftKey && e.key.toLowerCase() === 's') {
+        e.preventDefault()
+        setSettingsOpen((v) => !v)
+        return
+      }
+
       // Ctrl+S is a no-op (auto-saved) but prevent browser save dialog
       if (ctrl && e.key === 's') {
         e.preventDefault()
         return
       }
 
-      // Cmd+' — toggle both panels
+      // Ctrl+Shift+A — toggle atlas
+      if (ctrl && e.shiftKey && e.key.toLowerCase() === 'a') {
+        e.preventDefault()
+        setAtlasOpen((v) => !v)
+        return
+      }
+
+      // Ctrl+Shift+P — toggle preview
+      if (ctrl && e.shiftKey && e.key.toLowerCase() === 'p') {
+        e.preventDefault()
+        setPreviewOpen((v) => !v)
+        return
+      }
+
+      // Cmd+' — toggle all non-editor elements
       if (ctrl && e.key === "'") {
         e.preventDefault()
-        const bothCollapsed = panelsCollapsedRef.current.left && panelsCollapsedRef.current.right
-        setGlyphListCollapsed(!bothCollapsed)
-        setRightPanelCollapsed(!bothCollapsed)
+        const anyVisible = !glyphListCollapsed || atlasOpen || previewOpen
+        if (anyVisible) {
+          setGlyphListCollapsed(true)
+          setAtlasOpen(false)
+          setPreviewOpen(false)
+        } else {
+          setGlyphListCollapsed(false)
+          setAtlasOpen(true)
+          setPreviewOpen(true)
+        }
         return
       }
 
@@ -177,7 +200,7 @@ export function EditorScreen() {
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
     }
-  }, [showGrid, activeTool, selectedCodePoint, glyphs])
+  }, [showGrid, activeTool, selectedCodePoint, glyphs, glyphListCollapsed, atlasOpen, previewOpen])
 
   return (
     <div className="flex h-full flex-col">
@@ -193,6 +216,15 @@ export function EditorScreen() {
         </span>
         <div className="ml-auto flex items-center gap-2">
           <span className="text-muted-foreground text-xs">Auto-saved</span>
+          <Button variant="ghost" size="icon" className="h-7 w-7" title="Atlas (Cmd+Shift+A)" onClick={() => setAtlasOpen((v) => !v)}>
+            <ImageIcon className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7" title="Preview (Cmd+Shift+P)" onClick={() => setPreviewOpen((v) => !v)}>
+            <Type className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7" title="Settings (Cmd+Shift+S)" onClick={() => setSettingsOpen(true)}>
+            <Settings className="h-4 w-4" />
+          </Button>
           <Button variant="ghost" size="icon" className="h-7 w-7" title="Keyboard shortcuts (?)" onClick={() => setHelpOpen(true)}>
             <HelpCircle className="h-4 w-4" />
           </Button>
@@ -221,7 +253,7 @@ export function EditorScreen() {
             className="hover:bg-primary/40 w-1 shrink-0 cursor-col-resize transition-colors"
             onMouseDown={(e) => {
               e.preventDefault()
-              draggingRef.current = { panel: 'left', startX: e.clientX, startWidth: glyphListWidth }
+              draggingRef.current = { startX: e.clientX, startWidth: glyphListWidth }
             }}
             onDoubleClick={() => setGlyphListCollapsed(true)}
           />
@@ -231,40 +263,11 @@ export function EditorScreen() {
           <EditorToolbar />
           <PixelEditor />
         </div>
-
-        {/* Right drag handle */}
-        {!rightPanelCollapsed && (
-          <div
-            role="separator"
-            aria-orientation="vertical"
-            aria-label="Resize right panel"
-            className="hover:bg-primary/40 w-1 shrink-0 cursor-col-resize transition-colors"
-            onMouseDown={(e) => {
-              e.preventDefault()
-              draggingRef.current = { panel: 'right', startX: e.clientX, startWidth: rightPanelWidth }
-            }}
-            onDoubleClick={() => setRightPanelCollapsed(true)}
-          />
-        )}
-
-        {/* Right panel — full or collapsed sliver */}
-        {rightPanelCollapsed ? (
-          <div className="border-border flex w-6 shrink-0 flex-col border-l">
-            <button
-              className="border-border flex h-9 shrink-0 cursor-pointer items-center justify-center border-b transition-colors hover:bg-muted"
-              onClick={() => setRightPanelCollapsed(false)}
-              title="Show panel"
-              aria-label="Expand right panel"
-              aria-expanded={false}
-            >
-              <ChevronLeft className="text-muted-foreground h-3.5 w-3.5" />
-            </button>
-          </div>
-        ) : (
-          <RightPanel onCollapse={() => setRightPanelCollapsed(true)} width={rightPanelWidth} />
-        )}
       </div>
 
+      <AtlasFloat open={atlasOpen} onClose={() => setAtlasOpen(false)} />
+      <PreviewFloat open={previewOpen} onClose={() => setPreviewOpen(false)} />
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
       <ExportDialog open={exportOpen} onOpenChange={setExportOpen} />
       <HelpOverlay open={helpOpen} onOpenChange={setHelpOpen} />
     </div>
