@@ -4,6 +4,7 @@ import path from 'path';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  base: '/bmf-generator/',
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
