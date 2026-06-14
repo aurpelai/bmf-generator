@@ -1,11 +1,18 @@
-import { Grid2x2, Grid2x2X, Minus, Move, Pencil, Plus, ZoomIn } from 'lucide-react'
+import { Grid2x2, Grid2x2X, ImageIcon, Minus, Move, Pencil, Plus, Type, ZoomIn } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useStore } from '@/store'
 import { cn } from '@/lib/utils'
 
 const ZOOM_PRESETS = [2, 4, 8, 12, 16, 24, 32]
 
-export function EditorToolbar() {
+interface EditorToolbarProps {
+  atlasOpen: boolean
+  previewOpen: boolean
+  onAtlasToggle: () => void
+  onPreviewToggle: () => void
+}
+
+export function EditorToolbar({ atlasOpen, previewOpen, onAtlasToggle, onPreviewToggle }: EditorToolbarProps) {
   const activeTool = useStore((s) => s.activeTool)
   const setActiveTool = useStore((s) => s.setActiveTool)
   const brushSize = useStore((s) => s.brushSize)
@@ -80,6 +87,28 @@ export function EditorToolbar() {
         onClick={() => setShowGrid(!showGrid)}
       >
         <Grid2x2 className="h-3.5 w-3.5" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        title="Atlas (Cmd+Shift+A)"
+        aria-label="Toggle atlas panel"
+        aria-pressed={atlasOpen}
+        className={cn('h-7 w-7', atlasOpen && 'bg-accent text-accent-foreground')}
+        onClick={onAtlasToggle}
+      >
+        <ImageIcon className="h-3.5 w-3.5" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        title="Font preview (Cmd+Shift+P)"
+        aria-label="Toggle font preview panel"
+        aria-pressed={previewOpen}
+        className={cn('h-7 w-7', previewOpen && 'bg-accent text-accent-foreground')}
+        onClick={onPreviewToggle}
+      >
+        <Type className="h-3.5 w-3.5" />
       </Button>
     </div>
   )

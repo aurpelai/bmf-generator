@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, Download, FileType, HelpCircle, ImageIcon, Settings, Type } from 'lucide-react'
+import { ArrowLeft, Download, FileType, HelpCircle, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useStore } from '@/store'
 import { getGlyphsForProject } from '@/db/glyphs'
@@ -216,18 +216,13 @@ export function EditorScreen() {
         </span>
         <div className="ml-auto flex items-center gap-2">
           <span className="text-muted-foreground text-xs">Auto-saved</span>
-          <Button variant="ghost" size="icon" className="h-7 w-7" title="Atlas (Cmd+Shift+A)" onClick={() => setAtlasOpen((v) => !v)}>
-            <ImageIcon className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7" title="Preview (Cmd+Shift+P)" onClick={() => setPreviewOpen((v) => !v)}>
-            <Type className="h-4 w-4" />
+          <Button variant="ghost" size="icon" className="h-7 w-7" title="Keyboard shortcuts (?)" onClick={() => setHelpOpen(true)}>
+            <HelpCircle className="h-4 w-4" />
           </Button>
           <Button variant="ghost" size="icon" className="h-7 w-7" title="Settings (Cmd+Shift+S)" onClick={() => setSettingsOpen(true)}>
             <Settings className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7" title="Keyboard shortcuts (?)" onClick={() => setHelpOpen(true)}>
-            <HelpCircle className="h-4 w-4" />
-          </Button>
+          <div className="bg-border h-5 w-px" />
           <Button size="sm" className="h-7 text-xs" onClick={() => setExportOpen(true)}>
             <Download className="mr-1.5 h-3.5 w-3.5" />
             Export
@@ -260,7 +255,12 @@ export function EditorScreen() {
         )}
 
         <div className="relative flex flex-1 flex-col overflow-hidden">
-          <EditorToolbar />
+          <EditorToolbar
+            atlasOpen={atlasOpen}
+            previewOpen={previewOpen}
+            onAtlasToggle={() => setAtlasOpen((v) => !v)}
+            onPreviewToggle={() => setPreviewOpen((v) => !v)}
+          />
           <PixelEditor />
           <AtlasFloat open={atlasOpen} onClose={() => setAtlasOpen(false)} />
           <PreviewFloat open={previewOpen} onClose={() => setPreviewOpen(false)} />
