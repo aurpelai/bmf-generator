@@ -2,6 +2,64 @@
 
 All notable changes to this project will be documented in this file.
 
+## v0.2.0...main
+
+[compare changes](https://github.com/aurpelai/bmf-generator/compare/v0.2.0...main)
+
+### 🚀 Enhancements
+
+- Unified import wizard for TTF/OTF and BMF fonts ([8b1bfa8](https://github.com/aurpelai/bmf-generator/commit/8b1bfa8))
+- Replace New font dialog with 2-step wizard ([c602398](https://github.com/aurpelai/bmf-generator/commit/c602398))
+- Add font name validation and font metrics fields to wizards ([4317314](https://github.com/aurpelai/bmf-generator/commit/4317314))
+- Redesign wizard settings layout with cross padding, hints, and Advanced sub-header ([cc626b1](https://github.com/aurpelai/bmf-generator/commit/cc626b1))
+- Dynamically choose atlas size based on glyph area ([2455006](https://github.com/aurpelai/bmf-generator/commit/2455006))
+- Trim glyphs to ink bounds before atlas packing ([c85d8e8](https://github.com/aurpelai/bmf-generator/commit/c85d8e8))
+- Improve atlas packing with multiple heuristics and non-square sizes ([9544b27](https://github.com/aurpelai/bmf-generator/commit/9544b27))
+- Replace right panel with floating atlas, preview, and settings modal ([9b84a0e](https://github.com/aurpelai/bmf-generator/commit/9b84a0e))
+- Add clear glyph button to glyph action bar ([5ee6406](https://github.com/aurpelai/bmf-generator/commit/5ee6406))
+- Add remove glyph action with confirmation dialog ([978f189](https://github.com/aurpelai/bmf-generator/commit/978f189))
+- Add URL routing with react-router ([a3e1e10](https://github.com/aurpelai/bmf-generator/commit/a3e1e10))
+
+### 🩹 Fixes
+
+- Prevent wizard content from overflowing on short viewports ([34cefc0](https://github.com/aurpelai/bmf-generator/commit/34cefc0))
+- Prevent focus ring clipping on wizard inputs ([550abd8](https://github.com/aurpelai/bmf-generator/commit/550abd8))
+- Show readable names for invisible glyphs and accept space in add dialog ([2a7c26a](https://github.com/aurpelai/bmf-generator/commit/2a7c26a))
+- Constrain floating panels to editor area, fix preview rendering ([5749bf7](https://github.com/aurpelai/bmf-generator/commit/5749bf7))
+- Include space (U+0020) in letters and letters & digits glyph sets ([45a61b8](https://github.com/aurpelai/bmf-generator/commit/45a61b8))
+- Stabilise glyph list thumbnail position when toggling collapsed state ([9a6a93f](https://github.com/aurpelai/bmf-generator/commit/9a6a93f))
+- Improve export dialog UX and fix wizard close button visibility ([7c36248](https://github.com/aurpelai/bmf-generator/commit/7c36248))
+- Use visible hover backgrounds on interactive list items ([efd17f8](https://github.com/aurpelai/bmf-generator/commit/efd17f8))
+
+### 💅 Refactors
+
+- Match spacing input widths to padding inputs in wizard settings ([dcf9fbf](https://github.com/aurpelai/bmf-generator/commit/dcf9fbf))
+- Align Cancel button to the left in wizard footer ([93ff7ee](https://github.com/aurpelai/bmf-generator/commit/93ff7ee))
+- Standardise capitalisation — title case for titles, sentence case elsewhere ([4e41c15](https://github.com/aurpelai/bmf-generator/commit/4e41c15))
+- Remove Metrics tab, move xadvance to glyph list detail strip ([a46113f](https://github.com/aurpelai/bmf-generator/commit/a46113f))
+- Move atlas/preview toggles to toolbar, reorder header buttons ([88bc1a9](https://github.com/aurpelai/bmf-generator/commit/88bc1a9))
+- Apply new ESLint and formatting rules across codebase ([d7afd99](https://github.com/aurpelai/bmf-generator/commit/d7afd99))
+- Split multi-component files into one component per file ([ca13fcd](https://github.com/aurpelai/bmf-generator/commit/ca13fcd))
+
+### 📖 Documentation
+
+- Expand README with features list and getting-started section ([abf5e83](https://github.com/aurpelai/bmf-generator/commit/abf5e83))
+- Add code style guidelines to CLAUDE.md ([a7fe353](https://github.com/aurpelai/bmf-generator/commit/a7fe353))
+
+### 🏡 Chore
+
+- Add release:minor and release:major scripts ([9573792](https://github.com/aurpelai/bmf-generator/commit/9573792))
+- Retag releases as v0.1.0 and v0.2.0 ([c1d06f4](https://github.com/aurpelai/bmf-generator/commit/c1d06f4))
+- Document preference for shared components and logic in CLAUDE.md ([f5c7bea](https://github.com/aurpelai/bmf-generator/commit/f5c7bea))
+- Enable semicolons in Prettier config ([81786b4](https://github.com/aurpelai/bmf-generator/commit/81786b4))
+- Add strict ESLint rules and import sorting ([be5619c](https://github.com/aurpelai/bmf-generator/commit/be5619c))
+- Reformat remaining config and doc files with Prettier ([49f31e6](https://github.com/aurpelai/bmf-generator/commit/49f31e6))
+- Enforce one React component per file with ESLint ([41d8520](https://github.com/aurpelai/bmf-generator/commit/41d8520))
+
+### ❤️ Contributors
+
+- Antti Urpelainen <antti.urpelainen@gmail.com>
+
 ## v0.2.0
 
 [compare changes](https://github.com/aurpelai/bmf-generator/compare/v0.1.0...v0.2.0)
