@@ -1,6 +1,6 @@
 import { FileType, FolderOpen, Pencil, Plus, Trash2, Upload } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { useNavigate } from 'react-router';
 
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -46,10 +46,10 @@ export const HomeScreen = (): React.JSX.Element => {
 
   function openProject(project: Project): void {
     setCurrentProject(project);
+    void navigate('/editor');
   }
 
-  function startRename(project: Project, e: React.MouseEvent): void {
-    e.stopPropagation();
+  function startRename(project: Project): void {
     setRenamingId(project.id);
     setRenameValue(project.name);
   }
@@ -151,11 +151,18 @@ export const HomeScreen = (): React.JSX.Element => {
               Recent fonts
             </h2>
             {projects.map((project) => (
-              <Link
+              <div
                 key={project.id}
-                to="/editor"
-                className="border-border bg-card hover:bg-white/10 group flex items-center gap-3 rounded-md border px-4 py-3 transition-colors"
+                role="button"
+                tabIndex={0}
+                className="border-border bg-card hover:bg-white/10 group flex cursor-pointer items-center gap-3 rounded-md border px-4 py-3 transition-colors"
                 onClick={() => openProject(project)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    openProject(project);
+                  }
+                }}
               >
                 <div className="min-w-0 flex-1">
                   {renamingId === project.id ? (
@@ -193,7 +200,10 @@ export const HomeScreen = (): React.JSX.Element => {
                     size="icon"
                     variant="ghost"
                     className="h-7 w-7 hover:bg-white/20"
-                    onClick={(event) => startRename(project, event)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      startRename(project);
+                    }}
                   >
                     <Pencil className="h-3.5 w-3.5" />
                   </Button>
@@ -209,7 +219,7 @@ export const HomeScreen = (): React.JSX.Element => {
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         )}
