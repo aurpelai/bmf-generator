@@ -83,7 +83,6 @@ export const PixelEditor = (): React.JSX.Element => {
     const renderXoffset = origin ? origin.xoffset + dx : layoutXoffset;
     const renderYoffset = origin ? origin.yoffset + dy : layoutYoffset;
 
-    const LABEL_GUTTER_PX = 36;
     const glyphRight = currentGlyph
       ? Math.max(layoutXoffset + currentGlyph.width, renderXoffset + currentGlyph.width)
       : 0;
@@ -95,7 +94,25 @@ export const PixelEditor = (): React.JSX.Element => {
     const canvasCols = Math.max(fontSize, glyphRight) - originX;
     const canvasRows = Math.max(lineHeight, glyphBottom) - originY;
 
-    canvas.width = canvasCols * zoom + LABEL_GUTTER_PX;
+    // Measure the widest label so the right-hand gutter actually fits the text.
+    const labelSize = Math.max(8, Math.min(11, zoom * 1.5));
+    const GUTTER_LEFT_PAD = 10;
+    const GUTTER_RIGHT_PAD = 4;
+    const labelGutterPx = (() => {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const measureContext = canvas.getContext('2d')!; // canvas is a real DOM element
+
+      measureContext.font = `${labelSize}px monospace`;
+
+      const widest = Math.max(
+        measureContext.measureText('Baseline').width,
+        measureContext.measureText('Cap height').width,
+      );
+
+      return Math.ceil(GUTTER_LEFT_PAD + widest + GUTTER_RIGHT_PAD);
+    })();
+
+    canvas.width = canvasCols * zoom + labelGutterPx;
     canvas.height = canvasRows * zoom;
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const context = canvas.getContext('2d')!; // canvas is a real DOM element
@@ -140,10 +157,9 @@ export const PixelEditor = (): React.JSX.Element => {
     {
       const baselineY = (base - originY) * zoom;
       const capY = Math.max(0, baselineY - capHeight * zoom);
-      const labelSize = Math.max(8, Math.min(11, zoom * 1.5));
 
       const cellRight = cellX + fontSize * zoom;
-      const gutterX = cellRight + 10;
+      const gutterX = cellRight + GUTTER_LEFT_PAD;
 
       context.save();
       context.lineWidth = 1;
