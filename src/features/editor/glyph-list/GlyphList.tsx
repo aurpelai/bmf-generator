@@ -236,7 +236,7 @@ export const GlyphList = ({
                 aria-label={label}
                 className={cn(
                   'flex w-full cursor-pointer items-center px-2 py-1.5 transition-colors',
-                  isSelected ? 'bg-accent text-accent-foreground' : 'hover:bg-muted',
+                  isSelected ? 'bg-accent text-accent-foreground' : 'hover:bg-white/10',
                 )}
               >
                 <div className="bg-background/30 border-border/40 flex h-8 w-8 shrink-0 items-center justify-center rounded border">
@@ -307,7 +307,7 @@ export const GlyphList = ({
                 aria-selected={isSelected}
                 className={cn(
                   'flex w-full items-center gap-2 px-2 py-1.5 transition-colors',
-                  isSelected ? 'bg-accent text-accent-foreground' : 'hover:bg-muted',
+                  isSelected ? 'bg-accent text-accent-foreground' : 'hover:bg-white/10',
                 )}
               >
                 <button
@@ -338,7 +338,7 @@ export const GlyphList = ({
                     <Button
                       variant="ghost"
                       size="icon-xs"
-                      className="hover:text-accent-foreground/50 shrink-0 hover:bg-white/10"
+                      className="hover:text-accent-foreground/50 shrink-0 hover:bg-white/20"
                       title="Clear glyph"
                       aria-label="Clear glyph"
                       onClick={() => {
@@ -350,7 +350,7 @@ export const GlyphList = ({
                     <Button
                       variant="ghost"
                       size="icon-xs"
-                      className="hover:text-destructive shrink-0 hover:bg-white/10"
+                      className="hover:text-destructive shrink-0 hover:bg-white/20"
                       title="Remove glyph"
                       aria-label="Remove glyph"
                       onClick={() => setRemoveOpen(true)}

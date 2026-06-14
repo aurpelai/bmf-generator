@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -42,9 +43,9 @@ export const NewFontWizard = ({ open, onOpenChange }: Props): React.JSX.Element 
   const [creating, setCreating] = useState(false);
   const [nameError, setNameError] = useState('');
 
+  const navigate = useNavigate();
   const setCurrentProject = useStore((state) => state.setCurrentProject);
   const setGlyphs = useStore((state) => state.setGlyphs);
-  const setView = useStore((state) => state.setView);
 
   async function handleCreate(): Promise<void> {
     setCreating(true);
@@ -73,7 +74,7 @@ export const NewFontWizard = ({ open, onOpenChange }: Props): React.JSX.Element 
       await saveGlyphs(glyphs);
       setCurrentProject(project);
       setGlyphs(glyphs);
-      setView('editor');
+      void navigate('/editor');
       onOpenChange(false);
     } finally {
       setCreating(false);

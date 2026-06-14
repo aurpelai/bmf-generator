@@ -1,5 +1,6 @@
 import { ArrowLeft, Download, FileType, HelpCircle, Settings } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
+import { Navigate, useNavigate } from 'react-router';
 
 import { Button } from '@/components/ui/button';
 import { getGlyphsForProject } from '@/db/glyphs';
@@ -78,8 +79,8 @@ export const EditorScreen = (): React.JSX.Element => {
     };
   }, []);
 
+  const navigate = useNavigate();
   const currentProject = useStore((state) => state.currentProject);
-  const setView = useStore((state) => state.setView);
   const setGlyphs = useStore((state) => state.setGlyphs);
   const activeTool = useStore((state) => state.activeTool);
   const setActiveTool = useStore((state) => state.setActiveTool);
@@ -303,11 +304,15 @@ export const EditorScreen = (): React.JSX.Element => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showGrid, activeTool, selectedCodePoint, glyphs, glyphListCollapsed, atlasOpen, previewOpen]);
 
+  if (!currentProject) {
+    return <Navigate to="/" replace />;
+  }
+
   return (
     <div className="flex h-full flex-col">
       {/* Top bar */}
       <header className="border-border flex h-12 shrink-0 items-center gap-3 border-b px-3">
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setView('home')}>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => void navigate('/')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <FileType className="text-muted-foreground h-4 w-4" />

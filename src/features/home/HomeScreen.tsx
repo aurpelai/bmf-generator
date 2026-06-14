@@ -1,5 +1,6 @@
 import { FileType, FolderOpen, Pencil, Plus, Trash2, Upload } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router';
 
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -24,9 +25,9 @@ export const HomeScreen = (): React.JSX.Element => {
   const [jsonImportError, setJsonImportError] = useState<string | null>(null);
   const jsonInputRef = useRef<HTMLInputElement>(null);
 
+  const navigate = useNavigate();
   const setCurrentProject = useStore((state) => state.setCurrentProject);
   const setGlyphs = useStore((state) => state.setGlyphs);
-  const setView = useStore((state) => state.setView);
 
   async function loadProjects(): Promise<void> {
     setProjects(await getAllProjects());
@@ -45,7 +46,6 @@ export const HomeScreen = (): React.JSX.Element => {
 
   function openProject(project: Project): void {
     setCurrentProject(project);
-    setView('editor');
   }
 
   function startRename(project: Project, e: React.MouseEvent): void {
@@ -81,7 +81,7 @@ export const HomeScreen = (): React.JSX.Element => {
       await saveGlyphs(glyphs);
       setCurrentProject(project);
       setGlyphs(glyphs);
-      setView('editor');
+      void navigate('/editor');
     } catch (err) {
       setJsonImportError(err instanceof Error ? err.message : 'Failed to import project');
     }
@@ -151,9 +151,10 @@ export const HomeScreen = (): React.JSX.Element => {
               Recent fonts
             </h2>
             {projects.map((project) => (
-              <div
+              <Link
                 key={project.id}
-                className="border-border bg-card hover:bg-accent group flex cursor-pointer items-center gap-3 rounded-md border px-4 py-3 transition-colors"
+                to="/editor"
+                className="border-border bg-card hover:bg-white/10 group flex items-center gap-3 rounded-md border px-4 py-3 transition-colors"
                 onClick={() => openProject(project)}
               >
                 <div className="min-w-0 flex-1">
@@ -191,7 +192,7 @@ export const HomeScreen = (): React.JSX.Element => {
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="h-7 w-7"
+                    className="h-7 w-7 hover:bg-white/20"
                     onClick={(event) => startRename(project, event)}
                   >
                     <Pencil className="h-3.5 w-3.5" />
@@ -199,7 +200,7 @@ export const HomeScreen = (): React.JSX.Element => {
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="text-destructive hover:text-destructive h-7 w-7"
+                    className="text-destructive hover:text-destructive h-7 w-7 hover:bg-white/20"
                     onClick={(event) => {
                       event.stopPropagation();
                       setDeleteTarget(project);
@@ -208,7 +209,7 @@ export const HomeScreen = (): React.JSX.Element => {
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}
