@@ -1,5 +1,5 @@
 import { memo, useState, useMemo, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, Loader2, Plus, RotateCcw } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Loader2, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { useStore } from '@/store'
 import type { Glyph } from '@/core/project'
 import { cn } from '@/lib/utils'
@@ -148,6 +148,7 @@ export function GlyphList({ collapsed, onCollapse, width }: { collapsed: boolean
   const selectedCodePoint = useStore((s) => s.selectedCodePoint)
   const setSelectedCodePoint = useStore((s) => s.setSelectedCodePoint)
   const upsertGlyph = useStore((s) => s.upsertGlyph)
+  const pushUndo = useStore((s) => s.pushUndo)
   const updateCurrentProject = useStore((s) => s.updateCurrentProject)
   const { rasterize } = useRasterize()
 
@@ -190,6 +191,22 @@ export function GlyphList({ collapsed, onCollapse, width }: { collapsed: boolean
     } finally {
       setResetting(false)
     }
+  }
+
+  async function handleClearGlyph() {
+    if (!selectedGlyph) return
+    pushUndo(selectedGlyph.codePoint, {
+      pixels: new Uint8Array(selectedGlyph.pixels),
+      xoffset: selectedGlyph.xoffset,
+      yoffset: selectedGlyph.yoffset,
+    })
+    const cleared: Glyph = {
+      ...selectedGlyph,
+      pixels: new Uint8Array(selectedGlyph.width * selectedGlyph.height),
+      isDirty: true,
+    }
+    upsertGlyph(cleared)
+    await saveGlyphs([cleared])
   }
 
   if (!currentProject) return null
@@ -310,21 +327,33 @@ export function GlyphList({ collapsed, onCollapse, width }: { collapsed: boolean
                     onBlur={() => commitXadvance(xadvance)}
                     onKeyDown={(e) => e.key === 'Enter' && commitXadvance(xadvance)}
                   />
-                  {hasSourceFont && glyph.isDirty && (
+                  <div className="ml-auto flex shrink-0 gap-1">
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="ml-auto h-6 w-6 shrink-0"
-                      title="Reset to font"
-                      aria-label="Reset to font"
-                      onClick={handleResetToFont}
-                      disabled={resetting}
+                      className="h-6 w-6"
+                      title="Clear glyph"
+                      aria-label="Clear glyph"
+                      onClick={handleClearGlyph}
                     >
-                      {resetting
-                        ? <Loader2 className="h-3 w-3 animate-spin" />
-                        : <RotateCcw className="h-3 w-3" />}
+                      <Trash2 className="h-3 w-3" />
                     </Button>
-                  )}
+                    {hasSourceFont && glyph.isDirty && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        title="Reset to font"
+                        aria-label="Reset to font"
+                        onClick={handleResetToFont}
+                        disabled={resetting}
+                      >
+                        {resetting
+                          ? <Loader2 className="h-3 w-3 animate-spin" />
+                          : <RotateCcw className="h-3 w-3" />}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
