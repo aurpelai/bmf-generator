@@ -13,9 +13,9 @@
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
-    "release": "changelogen --release && git push --follow-tags && GITHUB_TOKEN=$(gh auth token) changelogen gh release",
-    "release:minor": "changelogen --release --minor && git push --follow-tags && GITHUB_TOKEN=$(gh auth token) changelogen gh release",
-    "release:major": "changelogen --release --major && git push --follow-tags && GITHUB_TOKEN=$(gh auth token) changelogen gh release"
+    "release": "GITHUB_TOKEN=$(gh auth token) changelogen --release --push",
+    "release:minor": "GITHUB_TOKEN=$(gh auth token) changelogen --release --minor --push",
+    "release:major": "GITHUB_TOKEN=$(gh auth token) changelogen --release --major --push"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
