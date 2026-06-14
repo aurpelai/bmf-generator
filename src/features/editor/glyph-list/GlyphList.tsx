@@ -1,10 +1,10 @@
 import { memo, useState, useMemo, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, Loader2, Plus, RotateCcw, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Eraser, Loader2, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { useStore } from '@/store'
 import type { Glyph } from '@/core/project'
 import { cn } from '@/lib/utils'
 import { makeBlankGlyph } from '@/core/project'
-import { getFontFile, saveGlyphs } from '@/db'
+import { deleteGlyph, getFontFile, saveGlyphs } from '@/db'
 import { useRasterize } from '@/hooks/useRasterize'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,6 +16,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 const GLYPH_NAMES: Record<number, string> = {
   0x0020: 'Space',
@@ -140,6 +150,7 @@ function AddGlyphDialog({
 
 export function GlyphList({ collapsed, onCollapse, width }: { collapsed: boolean; onCollapse: () => void; width: number }) {
   const [addOpen, setAddOpen] = useState(false)
+  const [removeOpen, setRemoveOpen] = useState(false)
   const [xadvance, setXadvance] = useState(0)
   const [resetting, setResetting] = useState(false)
 
@@ -149,6 +160,7 @@ export function GlyphList({ collapsed, onCollapse, width }: { collapsed: boolean
   const setSelectedCodePoint = useStore((s) => s.setSelectedCodePoint)
   const upsertGlyph = useStore((s) => s.upsertGlyph)
   const pushUndo = useStore((s) => s.pushUndo)
+  const removeGlyph = useStore((s) => s.removeGlyph)
   const updateCurrentProject = useStore((s) => s.updateCurrentProject)
   const { rasterize } = useRasterize()
 
@@ -191,6 +203,15 @@ export function GlyphList({ collapsed, onCollapse, width }: { collapsed: boolean
     } finally {
       setResetting(false)
     }
+  }
+
+  async function confirmRemoveGlyph() {
+    if (!selectedGlyph || !currentProject) return
+    setRemoveOpen(false)
+    removeGlyph(selectedGlyph.codePoint)
+    await deleteGlyph(currentProject.id, selectedGlyph.codePoint)
+    updateCurrentProject({ glyphs: currentProject.glyphs.filter((cp) => cp !== selectedGlyph.codePoint) })
+    setSelectedCodePoint(null)
   }
 
   async function handleClearGlyph() {
@@ -292,30 +313,58 @@ export function GlyphList({ collapsed, onCollapse, width }: { collapsed: boolean
           const label = `${char} U+${glyph.codePoint.toString(16).toUpperCase().padStart(4, '0')}`
           return (
             <div key={glyph.codePoint}>
-              <button
+              <div
                 role="option"
                 aria-selected={isSelected}
-                aria-label={label}
-                onClick={() => setSelectedCodePoint(glyph.codePoint)}
                 className={cn(
-                  'flex w-full cursor-pointer items-center gap-2 px-2 py-1.5 text-left transition-colors',
+                  'flex w-full items-center gap-2 px-2 py-1.5 transition-colors',
                   isSelected ? 'bg-accent text-accent-foreground' : 'hover:bg-muted',
                 )}
               >
-                <div className="bg-background/30 flex h-8 w-8 shrink-0 items-center justify-center rounded border border-border/40">
-                  {glyph.width > 0 && glyph.height > 0 ? (
-                    <GlyphThumbnail pixels={glyph.pixels} width={glyph.width} height={glyph.height} />
-                  ) : (
-                    <span className="text-muted-foreground text-xs">?</span>
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <div className="truncate text-xs font-medium">{char}</div>
-                  <div className="text-muted-foreground text-[10px]">
-                    U+{glyph.codePoint.toString(16).toUpperCase().padStart(4, '0')}
+                <button
+                  aria-label={label}
+                  onClick={() => setSelectedCodePoint(glyph.codePoint)}
+                  className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left"
+                >
+                  <div className="bg-background/30 flex h-8 w-8 shrink-0 items-center justify-center rounded border border-border/40">
+                    {glyph.width > 0 && glyph.height > 0 ? (
+                      <GlyphThumbnail pixels={glyph.pixels} width={glyph.width} height={glyph.height} />
+                    ) : (
+                      <span className="text-muted-foreground text-xs">?</span>
+                    )}
                   </div>
-                </div>
-              </button>
+                  <div className="min-w-0">
+                    <div className="truncate text-xs font-medium">{char}</div>
+                    <div className="text-muted-foreground text-[10px]">
+                      U+{glyph.codePoint.toString(16).toUpperCase().padStart(4, '0')}
+                    </div>
+                  </div>
+                </button>
+                {isSelected && (
+                  <div className="flex shrink-0 gap-0.5">
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      className="shrink-0 hover:bg-white/10 hover:text-accent-foreground/50"
+                      title="Clear glyph"
+                      aria-label="Clear glyph"
+                      onClick={handleClearGlyph}
+                    >
+                      <Eraser className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      className="shrink-0 hover:bg-white/10 hover:text-destructive"
+                      title="Remove glyph"
+                      aria-label="Remove glyph"
+                      onClick={() => setRemoveOpen(true)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+              </div>
               {isSelected && (
                 <div className="border-border/30 bg-muted/40 flex items-center gap-2 border-b px-2 py-1.5">
                   <Label className="text-muted-foreground shrink-0 text-[10px]">X advance</Label>
@@ -327,33 +376,21 @@ export function GlyphList({ collapsed, onCollapse, width }: { collapsed: boolean
                     onBlur={() => commitXadvance(xadvance)}
                     onKeyDown={(e) => e.key === 'Enter' && commitXadvance(xadvance)}
                   />
-                  <div className="ml-auto flex shrink-0 gap-1">
+                  {hasSourceFont && glyph.isDirty && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6"
-                      title="Clear glyph"
-                      aria-label="Clear glyph"
-                      onClick={handleClearGlyph}
+                      className="ml-auto h-6 w-6 shrink-0"
+                      title="Reset to font"
+                      aria-label="Reset to font"
+                      onClick={handleResetToFont}
+                      disabled={resetting}
                     >
-                      <Trash2 className="h-3 w-3" />
+                      {resetting
+                        ? <Loader2 className="h-3 w-3 animate-spin" />
+                        : <RotateCcw className="h-3 w-3" />}
                     </Button>
-                    {hasSourceFont && glyph.isDirty && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        title="Reset to font"
-                        aria-label="Reset to font"
-                        onClick={handleResetToFont}
-                        disabled={resetting}
-                      >
-                        {resetting
-                          ? <Loader2 className="h-3 w-3 animate-spin" />
-                          : <RotateCcw className="h-3 w-3" />}
-                      </Button>
-                    )}
-                  </div>
+                  )}
                 </div>
               )}
             </div>
@@ -362,6 +399,30 @@ export function GlyphList({ collapsed, onCollapse, width }: { collapsed: boolean
       </div>
 
       <AddGlyphDialog open={addOpen} onOpenChange={setAddOpen} onAdd={handleAddGlyph} />
+
+      <AlertDialog open={removeOpen} onOpenChange={setRemoveOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Glyph?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <span className="text-foreground font-medium">
+                {selectedGlyph ? glyphDisplayName(selectedGlyph.codePoint) : ''}
+              </span>{' '}
+              (U+{selectedGlyph?.codePoint.toString(16).toUpperCase().padStart(4, '0')}) will be
+              permanently removed. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={confirmRemoveGlyph}
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
