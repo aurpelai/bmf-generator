@@ -6,7 +6,7 @@ import { GLYPH_SETS } from '@/core/project/glyphSets'
 import { createProject, initializeGlyphs } from '@/core/project'
 import { saveProject, saveGlyphs } from '@/db'
 import { useStore } from '@/store'
-import { GlyphSetSelect, PaddingFields, SpacingFields, WizardFooter } from './import-shared'
+import { FontMetricsFields, GlyphSetSelect, PaddingFields, SpacingFields, WizardFooter } from './import-shared'
 
 interface Props {
   open: boolean
@@ -24,6 +24,9 @@ export function NewFontWizard({ open, onOpenChange }: Props) {
 
   // Step 2
   const [fontSize, setFontSize] = useState(32)
+  const [lineHeight, setLineHeight] = useState(Math.round(32 * 1.2))
+  const [base, setBase] = useState(Math.round(32 * 0.8))
+  const [capHeight, setCapHeight] = useState(Math.round(32 * 0.7))
   const [paddingTop, setPaddingTop] = useState(1)
   const [paddingRight, setPaddingRight] = useState(1)
   const [paddingBottom, setPaddingBottom] = useState(1)
@@ -31,6 +34,7 @@ export function NewFontWizard({ open, onOpenChange }: Props) {
   const [spacingX, setSpacingX] = useState(1)
   const [spacingY, setSpacingY] = useState(1)
   const [creating, setCreating] = useState(false)
+  const [nameError, setNameError] = useState('')
 
   const setCurrentProject = useStore((s) => s.setCurrentProject)
   const setGlyphs = useStore((s) => s.setGlyphs)
@@ -44,8 +48,9 @@ export function NewFontWizard({ open, onOpenChange }: Props) {
         fontSize,
         padding: { top: paddingTop, right: paddingRight, bottom: paddingBottom, left: paddingLeft },
         spacing: { x: spacingX, y: spacingY },
-        lineHeight: Math.round(fontSize * 1.2),
-        base: Math.round(fontSize * 0.8),
+        lineHeight,
+        base,
+        capHeight,
       })
       project.glyphs = glyphSet.codePoints
       const glyphs = initializeGlyphs(project.id, glyphSet.codePoints, fontSize, Math.round(fontSize * 1.2))
@@ -60,13 +65,25 @@ export function NewFontWizard({ open, onOpenChange }: Props) {
     }
   }
 
+  function handleNext() {
+    if (!name.trim()) {
+      setNameError('Font name is required')
+      return
+    }
+    setStep(2)
+  }
+
   function handleClose() {
     onOpenChange(false)
     setTimeout(() => {
       setStep(1)
       setName('')
+      setNameError('')
       setGlyphSetId(GLYPH_SETS[0].id)
       setFontSize(32)
+      setLineHeight(Math.round(32 * 1.2))
+      setBase(Math.round(32 * 0.8))
+      setCapHeight(Math.round(32 * 0.7))
       setPaddingTop(1); setPaddingRight(1); setPaddingBottom(1); setPaddingLeft(1)
       setSpacingX(1); setSpacingY(1)
     }, 200)
@@ -93,9 +110,11 @@ export function NewFontWizard({ open, onOpenChange }: Props) {
                 id="nf-name"
                 placeholder="Untitled"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && setStep(2)}
+                className={nameError ? 'border-destructive' : ''}
+                onChange={(e) => { setName(e.target.value); if (e.target.value.trim()) setNameError('') }}
+                onKeyDown={(e) => e.key === 'Enter' && handleNext()}
               />
+              {nameError && <p className="text-destructive text-xs">{nameError}</p>}
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="nf-glyphset">Glyph set</Label>
@@ -106,17 +125,16 @@ export function NewFontWizard({ open, onOpenChange }: Props) {
 
         {step === 2 && (
           <div className="grid gap-4 py-2">
-            <div className="grid gap-1.5">
-              <Label htmlFor="nf-fontsize">Font size (px)</Label>
-              <Input
-                id="nf-fontsize"
-                type="number"
-                min={4}
-                max={256}
-                value={fontSize}
-                onChange={(e) => setFontSize(Number(e.target.value))}
-              />
-            </div>
+            <FontMetricsFields
+              fontSize={fontSize} lineHeight={lineHeight} base={base} capHeight={capHeight}
+              onFontSizeChange={(s) => {
+                setFontSize(s)
+                setLineHeight(Math.round(s * 1.2))
+                setBase(Math.round(s * 0.8))
+                setCapHeight(Math.round(s * 0.7))
+              }}
+              onLineHeightChange={setLineHeight} onBaseChange={setBase} onCapHeightChange={setCapHeight}
+            />
             <PaddingFields
               top={paddingTop} right={paddingRight} bottom={paddingBottom} left={paddingLeft}
               onTopChange={setPaddingTop} onRightChange={setPaddingRight}
@@ -131,7 +149,7 @@ export function NewFontWizard({ open, onOpenChange }: Props) {
           totalSteps={2}
           onClose={handleClose}
           onBack={() => setStep(1)}
-          onNext={() => setStep(2)}
+          onNext={handleNext}
           onConfirm={handleCreate}
           backDisabled={creating}
           confirmDisabled={creating}

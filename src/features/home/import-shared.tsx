@@ -223,6 +223,50 @@ export function SpacingFields({
   )
 }
 
+export function FontMetricsFields({
+  fontSize, lineHeight, base, capHeight,
+  onFontSizeChange, onLineHeightChange, onBaseChange, onCapHeightChange,
+}: {
+  fontSize: number; lineHeight: number; base: number; capHeight: number
+  onFontSizeChange: (v: number) => void
+  onLineHeightChange: (v: number) => void
+  onBaseChange: (v: number) => void
+  onCapHeightChange: (v: number) => void
+}) {
+  return (
+    <div className="grid gap-1.5">
+      <Label>Font metrics</Label>
+      <div className="grid grid-cols-[1fr_2fr] gap-3">
+        <div className="grid gap-1">
+          <span className="text-muted-foreground text-[10px]">Font size</span>
+          <Input type="number" min={4} max={256} value={fontSize}
+            onChange={(e) => onFontSizeChange(Number(e.target.value))} />
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          <div className="grid gap-1">
+            <span className="text-muted-foreground text-[10px]">Line height</span>
+            <Input type="number" min={1} value={lineHeight}
+              onChange={(e) => onLineHeightChange(Number(e.target.value))} />
+          </div>
+          <div className="grid gap-1">
+            <span className="text-muted-foreground text-[10px]">Baseline</span>
+            <Input type="number" min={0} value={base}
+              onChange={(e) => onBaseChange(Math.min(Number(e.target.value), lineHeight))} />
+          </div>
+          <div className="grid gap-1">
+            <span className="text-muted-foreground text-[10px]">Cap height</span>
+            <Input type="number" min={0} value={capHeight}
+              onChange={(e) => onCapHeightChange(Math.min(Number(e.target.value), lineHeight))} />
+          </div>
+        </div>
+      </div>
+      <p className="text-muted-foreground text-xs">
+        Font size sets the target pixel height. Line height is the total height of one text row. Baseline is where characters sit within the line. Cap height is the height of a capital letter, shown as a guide in the editor.
+      </p>
+    </div>
+  )
+}
+
 export function WizardFooter({
   step,
   totalSteps,

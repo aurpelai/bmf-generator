@@ -14,7 +14,7 @@ import type { Glyph } from '@/core/project/types'
 import type { RasterizedGlyph } from '@/core/font/rasterize'
 import { parseBmfText } from '@/core/bmf/parse'
 import type { BmfParseResult } from '@/core/bmf/parse'
-import { DropZone, GlyphPreviewStep, GlyphSetSelect, PaddingFields, SpacingFields, WizardFooter } from './import-shared'
+import { DropZone, FontMetricsFields, GlyphPreviewStep, GlyphSetSelect, PaddingFields, SpacingFields, WizardFooter } from './import-shared'
 
 interface Props {
   open: boolean
@@ -92,9 +92,13 @@ export function ImportWizard({ open, onOpenChange }: Props) {
   const [pngFile, setPngFile] = useState<File | null>(null)
   const [projectName, setProjectName] = useState('')
   const [importPreset, setImportPreset] = useState<ImportPreset>('all')
+  const [nameError, setNameError] = useState('')
 
   // Step 2 — settings (shared, BMF pre-populates from parsed .fnt)
   const [fontSize, setFontSize] = useState(32)
+  const [lineHeight, setLineHeight] = useState(Math.round(32 * 1.2))
+  const [base, setBase] = useState(Math.round(32 * 0.8))
+  const [capHeight, setCapHeight] = useState(Math.round(32 * 0.7))
   const [atlasSize, setAtlasSize] = useState(512)
   const [glyphSetId, setGlyphSetId] = useState(GLYPH_SETS[0].id)
   const [paddingTop, setPaddingTop] = useState(1)
@@ -159,12 +163,19 @@ export function ImportWizard({ open, onOpenChange }: Props) {
   // --- Step 1 → 2 transition: parse BMF early to pre-populate settings ---
 
   async function goToSettings() {
+    if (!projectName.trim()) {
+      setNameError('Font name is required')
+      return
+    }
     if (format === 'bmf' && fntFile) {
       try {
         // May already be parsed eagerly when the .fnt was dropped
         const parsed = bmfParsedRef.current ?? parseBmfText(await fntFile.text())
         bmfParsedRef.current = parsed
         setFontSize(parsed.info.size)
+        setLineHeight(parsed.common.lineHeight)
+        setBase(parsed.common.base)
+        setCapHeight(Math.round(parsed.common.base * 0.7 / 0.8))
         setAtlasSize(closestAtlasSize(parsed.common.scaleW))
         setPaddingTop(parsed.info.padding.top)
         setPaddingRight(parsed.info.padding.right)
@@ -251,9 +262,9 @@ export function ImportWizard({ open, onOpenChange }: Props) {
         const filteredCodePoints = filterCodePointsByPreset(importPreset, glyphSet.codePoints)
         const project = createProject(projectName || 'Untitled', {
           sourceFontId: fontId, fontSize, padding, spacing,
-          lineHeight: ttfMetricsRef.current.lineHeight || Math.round(fontSize * 1.2),
-          base: ttfMetricsRef.current.base || Math.round(fontSize * 0.8),
-          capHeight: ttfMetricsRef.current.capHeight || Math.round(fontSize * 0.7),
+          lineHeight,
+          base,
+          capHeight,
         })
         project.glyphs = filteredCodePoints
         const glyphs: Glyph[] = (previewGlyphs as RasterizedGlyph[]).map((rg) => ({
@@ -273,8 +284,9 @@ export function ImportWizard({ open, onOpenChange }: Props) {
         const name = projectName.trim() || parsed.info.face || 'Imported Font'
         const project = createProject(name, {
           sourceFontId: null, fontSize, padding, spacing,
-          lineHeight: parsed.common.lineHeight,
-          base: parsed.common.base,
+          lineHeight,
+          base,
+          capHeight,
         })
         project.glyphs = glyphSet.codePoints
         const allFntCodePoints = parsed.chars.map((c) => c.id)
@@ -314,8 +326,12 @@ export function ImportWizard({ open, onOpenChange }: Props) {
       setFntFile(null)
       setPngFile(null)
       setProjectName('')
+      setNameError('')
       setImportPreset('all')
       setFontSize(32)
+      setLineHeight(Math.round(32 * 1.2))
+      setBase(Math.round(32 * 0.8))
+      setCapHeight(Math.round(32 * 0.7))
       setAtlasSize(512)
       setGlyphSetId(GLYPH_SETS[0].id)
       setPaddingTop(1); setPaddingRight(1); setPaddingBottom(1); setPaddingLeft(1)
@@ -399,33 +415,32 @@ export function ImportWizard({ open, onOpenChange }: Props) {
             <div className="grid gap-1.5">
               <Label htmlFor="imp-name">Font name</Label>
               <Input id="imp-name" value={projectName} placeholder="Untitled"
-                onChange={(e) => setProjectName(e.target.value)} />
+                className={nameError ? 'border-destructive' : ''}
+                onChange={(e) => { setProjectName(e.target.value); if (e.target.value.trim()) setNameError('') }} />
+              {nameError && <p className="text-destructive text-xs">{nameError}</p>}
             </div>
           </div>
         )}
 
         {step === 2 && (
           <div className="grid gap-4 py-2">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label htmlFor="imp-fontsize">Font size (px)</Label>
-                <Input id="imp-fontsize" type="number" min={4} max={256} value={fontSize}
-                  onChange={(e) => setFontSize(Number(e.target.value))} />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="imp-atlas">Atlas size</Label>
-                <select id="imp-atlas"
-                  className="bg-input border-border text-foreground h-8 rounded-md border px-3 text-sm"
-                  value={atlasSize}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setAtlasSize(Number(e.target.value))}>
-                  {ATLAS_SIZES.map((s) => <option key={s} value={s}>{s} × {s}</option>)}
-                </select>
-              </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="imp-atlas">Atlas size</Label>
+              <select id="imp-atlas"
+                className="bg-input border-border text-foreground h-8 rounded-md border px-3 text-sm"
+                value={atlasSize}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setAtlasSize(Number(e.target.value))}>
+                {ATLAS_SIZES.map((s) => <option key={s} value={s}>{s} × {s}</option>)}
+              </select>
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="imp-glyphset">Glyph set</Label>
               <GlyphSetSelect id="imp-glyphset" value={glyphSetId} onChange={setGlyphSetId} />
             </div>
+            <FontMetricsFields
+              fontSize={fontSize} lineHeight={lineHeight} base={base} capHeight={capHeight}
+              onFontSizeChange={setFontSize} onLineHeightChange={setLineHeight} onBaseChange={setBase} onCapHeightChange={setCapHeight}
+            />
             <PaddingFields
               top={paddingTop} right={paddingRight} bottom={paddingBottom} left={paddingLeft}
               onTopChange={setPaddingTop} onRightChange={setPaddingRight}
