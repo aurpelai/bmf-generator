@@ -16,11 +16,7 @@ interface FakeGlyph {
   getPath: (x: number, y: number, fontSize: number) => { draw: (ctx: unknown) => void };
 }
 
-function makeFakeGlyph(
-  index: number,
-  advanceWidth: number,
-  boundingBox: BoundingBox,
-): FakeGlyph {
+function makeFakeGlyph(index: number, advanceWidth: number, boundingBox: BoundingBox): FakeGlyph {
   return {
     index,
     advanceWidth,
@@ -57,7 +53,12 @@ class FakeOffscreenCanvas {
   }
 
   getContext(_contextId: string): {
-    getImageData: (x: number, y: number, width: number, height: number) => { data: Uint8ClampedArray };
+    getImageData: (
+      x: number,
+      y: number,
+      width: number,
+      height: number,
+    ) => { data: Uint8ClampedArray };
   } {
     return {
       getImageData: (_x, _y, width, height) => {

@@ -155,7 +155,7 @@ export const HomeScreen = (): React.JSX.Element => {
                 key={project.id}
                 role="button"
                 tabIndex={0}
-                className="border-border bg-card hover:bg-white/10 group flex cursor-pointer items-center gap-3 rounded-md border px-4 py-3 transition-colors"
+                className="border-border bg-card group flex cursor-pointer items-center gap-3 rounded-md border px-4 py-3 transition-colors hover:bg-white/10"
                 onClick={() => openProject(project)}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter' || event.key === ' ') {
