@@ -54,7 +54,7 @@ export function HelpOverlay({ open, onOpenChange }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Keyboard shortcuts</DialogTitle>
+          <DialogTitle>Keyboard Shortcuts</DialogTitle>
         </DialogHeader>
 
         <div className="grid gap-5 py-1">

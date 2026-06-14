@@ -97,7 +97,7 @@ function AddGlyphDialog({
     <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) setValue('') }}>
       <DialogContent className="sm:max-w-xs">
         <DialogHeader>
-          <DialogTitle>Add glyph</DialogTitle>
+          <DialogTitle>Add Glyph</DialogTitle>
         </DialogHeader>
         <div className="grid gap-2 py-1">
           <Input

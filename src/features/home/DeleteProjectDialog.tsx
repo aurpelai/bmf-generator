@@ -21,7 +21,7 @@ export function DeleteProjectDialog({ projectName, open, onOpenChange, onConfirm
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete font?</AlertDialogTitle>
+          <AlertDialogTitle>Delete Font?</AlertDialogTitle>
           <AlertDialogDescription>
             <span className="text-foreground font-medium">{projectName}</span> will be permanently
             deleted. This cannot be undone.

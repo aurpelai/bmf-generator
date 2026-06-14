@@ -350,9 +350,9 @@ export function ImportWizard({ open, onOpenChange }: Props) {
   const step1Valid = format === 'ttf' ? !!ttfFile : !!(fntFile && pngFile)
 
   const stepTitles: Record<Step, string> = {
-    1: 'Import font — Upload',
-    2: 'Import font — Settings',
-    3: 'Import font — Preview',
+    1: 'Import Font — Upload',
+    2: 'Import Font — Settings',
+    3: 'Import Font — Preview',
   }
 
   const primaryFileName = format === 'ttf' ? ttfFile?.name : fntFile?.name

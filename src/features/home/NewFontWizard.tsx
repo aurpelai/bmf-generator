@@ -90,8 +90,8 @@ export function NewFontWizard({ open, onOpenChange }: Props) {
   }
 
   const stepTitles: Record<Step, string> = {
-    1: 'New font — Name & glyphs',
-    2: 'New font — Settings',
+    1: 'New Font — Name & Glyphs',
+    2: 'New Font — Settings',
   }
 
   return (
