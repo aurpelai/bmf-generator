@@ -286,28 +286,98 @@ export const PixelEditor = (): React.JSX.Element => {
 
   function applyPaint(cell: { col: number; row: number } | null): void {
     const currentGlyph = stateRef.current.glyph;
+    const project = currentProject;
 
-    if (!currentGlyph || !cell) {
+    if (!currentGlyph || !cell || !project) {
       return;
     }
 
     const tool = stateRef.current.activeTool;
     const size = stateRef.current.brushSize;
     const half = Math.floor(size / 2);
-    const newPixels = new Uint8Array(currentGlyph.pixels);
-    let changed = false;
+    const value = tool === 'pencil' ? 255 : 0;
 
-    for (let dy = 0; dy < size; dy++) {
-      for (let dx = 0; dx < size; dx++) {
-        const px = cell.col - half + dx - currentGlyph.xoffset;
-        const py = cell.row - half + dy - currentGlyph.yoffset;
+    // Brush footprint in cell-space.
+    const brushLeft = cell.col - half;
+    const brushTop = cell.row - half;
+    const brushRight = brushLeft + size; // exclusive
+    const brushBottom = brushTop + size; // exclusive
 
-        if (px < 0 || py < 0 || px >= currentGlyph.width || py >= currentGlyph.height) {
+    // Eraser is a no-op outside the existing buffer — nothing to erase there.
+    // Pencil grows the buffer to include any in-cell footprint pixels that fall
+    // outside the current rect. We never grow beyond the editable cell area.
+    const { fontSize, lineHeight } = project.settings;
+
+    // Clip brush to the cell — painting outside the cell is dropped (matches the
+    // existing in-cell vs out-of-cell rendering distinction).
+    const clipLeft = Math.max(brushLeft, 0);
+    const clipTop = Math.max(brushTop, 0);
+    const clipRight = Math.min(brushRight, fontSize);
+    const clipBottom = Math.min(brushBottom, lineHeight);
+
+    if (clipLeft >= clipRight || clipTop >= clipBottom) {
+      return;
+    }
+
+    const currentLeft = currentGlyph.xoffset;
+    const currentTop = currentGlyph.yoffset;
+    const currentRight = currentLeft + currentGlyph.width;
+    const currentBottom = currentTop + currentGlyph.height;
+
+    let newLeft = currentLeft;
+    let newTop = currentTop;
+    let newRight = currentRight;
+    let newBottom = currentBottom;
+
+    if (tool === 'pencil') {
+      newLeft = Math.min(currentLeft, clipLeft);
+      newTop = Math.min(currentTop, clipTop);
+      newRight = Math.max(currentRight, clipRight);
+      newBottom = Math.max(currentBottom, clipBottom);
+    }
+
+    const newWidth = newRight - newLeft;
+    const newHeight = newBottom - newTop;
+    const grew =
+      newLeft !== currentLeft ||
+      newTop !== currentTop ||
+      newWidth !== currentGlyph.width ||
+      newHeight !== currentGlyph.height;
+
+    let newPixels: Uint8Array;
+
+    if (grew) {
+      newPixels = new Uint8Array(newWidth * newHeight);
+      const shiftX = currentLeft - newLeft;
+      const shiftY = currentTop - newTop;
+
+      for (let row = 0; row < currentGlyph.height; row++) {
+        for (let col = 0; col < currentGlyph.width; col++) {
+          newPixels[(row + shiftY) * newWidth + (col + shiftX)] =
+            currentGlyph.pixels[row * currentGlyph.width + col];
+        }
+      }
+    } else {
+      newPixels = new Uint8Array(currentGlyph.pixels);
+    }
+
+    let changed = grew;
+
+    for (let py = clipTop; py < clipBottom; py++) {
+      for (let px = clipLeft; px < clipRight; px++) {
+        const bufferX = px - newLeft;
+        const bufferY = py - newTop;
+
+        if (
+          bufferX < 0 ||
+          bufferY < 0 ||
+          bufferX >= newWidth ||
+          bufferY >= newHeight
+        ) {
           continue;
         }
 
-        const index = py * currentGlyph.width + px;
-        const value = tool === 'pencil' ? 255 : 0;
+        const index = bufferY * newWidth + bufferX;
 
         if (newPixels[index] !== value) {
           newPixels[index] = value;
@@ -320,7 +390,15 @@ export const PixelEditor = (): React.JSX.Element => {
       return;
     }
 
-    const updated: Glyph = { ...currentGlyph, pixels: newPixels, isDirty: true };
+    const updated: Glyph = {
+      ...currentGlyph,
+      pixels: newPixels,
+      width: newWidth,
+      height: newHeight,
+      xoffset: newLeft,
+      yoffset: newTop,
+      isDirty: true,
+    };
 
     upsertGlyph(updated);
     void saveGlyphs([updated]);
