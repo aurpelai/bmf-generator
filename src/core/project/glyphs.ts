@@ -14,7 +14,7 @@ export function makeBlankGlyph(
     height,
     xoffset: 0,
     yoffset: 0,
-    xadvance: width,
+    xadvance: Math.round(width * 0.7),
     isDirty: false,
   };
 }

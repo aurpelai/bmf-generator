@@ -25,10 +25,10 @@ describe('makeBlankGlyph', () => {
     }
   });
 
-  it('defaults xadvance to the cell width', () => {
+  it('defaults xadvance to 0.7× the cell width, rounded', () => {
     const glyph = makeBlankGlyph('project-1', 0x41, 8, 12);
 
-    expect(glyph.xadvance).toBe(8);
+    expect(glyph.xadvance).toBe(Math.round(8 * 0.7));
     expect(glyph.xoffset).toBe(0);
     expect(glyph.yoffset).toBe(0);
   });
