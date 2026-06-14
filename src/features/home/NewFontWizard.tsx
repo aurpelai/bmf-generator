@@ -96,14 +96,14 @@ export function NewFontWizard({ open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden sm:max-w-lg">
+      <DialogContent className="flex max-h-[90dvh] flex-col gap-0 sm:max-w-lg">
         <DialogHeader className="bg-popover z-10 -mx-4 px-4 -mt-4 pt-4 pb-4">
           <DialogTitle>{stepTitles[step]}</DialogTitle>
           <p className="text-muted-foreground text-xs">Step {step} of 2</p>
         </DialogHeader>
 
         {step === 1 && (
-          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pt-2 pb-4">
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-1 -mx-1 pt-2 pb-4">
             <div className="grid gap-1.5">
               <Label htmlFor="nf-name">Font name</Label>
               <Input
@@ -124,7 +124,7 @@ export function NewFontWizard({ open, onOpenChange }: Props) {
         )}
 
         {step === 2 && (
-          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pt-2 pb-4">
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-1 -mx-1 pt-2 pb-4">
             <FontMetricsFields
               fontSize={fontSize} lineHeight={lineHeight} base={base} capHeight={capHeight}
               onFontSizeChange={(s) => {
