@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.1.1
+
+[compare changes](https://github.com/aurpelai/bmf-generator/compare/v1.1.0...v1.1.1)
+
+### 🏡 Chore
+
+- Inject gh auth token into release script ([7a9c0eb](https://github.com/aurpelai/bmf-generator/commit/7a9c0eb))
+
+### ❤️ Contributors
+
+- Antti Urpelainen <antti.urpelainen@gmail.com>
+
 ## v1.1.0
 
 [compare changes](https://github.com/aurpelai/bmf-generator/compare/v1.0.0...v1.1.0)
