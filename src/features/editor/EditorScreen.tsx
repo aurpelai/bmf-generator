@@ -3,6 +3,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router';
 
 import { Button } from '@/components/ui/button';
+import {
+  GLYPH_LIST_COLLAPSE_THRESHOLD_PX,
+  GLYPH_LIST_INITIAL_WIDTH_PX,
+  GLYPH_LIST_MAX_WIDTH_PX,
+  GLYPH_LIST_MIN_WIDTH_PX,
+} from '@/config';
 import { getGlyphsForProject } from '@/db/glyphs';
 import { saveGlyphs } from '@/db/glyphs';
 import { ExportDialog } from '@/features/export/ExportDialog';
@@ -24,7 +30,7 @@ export const EditorScreen = (): React.JSX.Element => {
   const [atlasOpen, setAtlasOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [glyphListCollapsed, setGlyphListCollapsed] = useState(false);
-  const [glyphListWidth, setGlyphListWidth] = useState(192);
+  const [glyphListWidth, setGlyphListWidth] = useState(GLYPH_LIST_INITIAL_WIDTH_PX);
   const draggingRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const rafRef = useRef<number | null>(null);
 
@@ -47,11 +53,13 @@ export const EditorScreen = (): React.JSX.Element => {
         const delta = clientX - drag.startX;
         const width = drag.startWidth + delta;
 
-        if (width < 80) {
+        if (width < GLYPH_LIST_COLLAPSE_THRESHOLD_PX) {
           setGlyphListCollapsed(true);
           draggingRef.current = null;
         } else {
-          setGlyphListWidth(Math.min(400, Math.max(120, width)));
+          setGlyphListWidth(
+            Math.min(GLYPH_LIST_MAX_WIDTH_PX, Math.max(GLYPH_LIST_MIN_WIDTH_PX, width)),
+          );
         }
       });
     }

@@ -1,13 +1,24 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 
+import {
+  AUTO_SAVE_TOAST_DELAY_MS,
+  BRUSH_RESIZE_WHEEL_THRESHOLD,
+  GRID_MIN_ZOOM,
+  GUTTER_LEFT_PAD_PX,
+  GUTTER_RIGHT_PAD_PX,
+  LABEL_SIZE_MAX_PX,
+  LABEL_SIZE_MIN_PX,
+  LABEL_SIZE_SCALE,
+  OVERFLOW_PADDING_MULTIPLIER,
+  TOAST_DURATION_MS,
+  ZOOM_MAX,
+  ZOOM_MIN,
+  ZOOM_PRESETS,
+} from '@/config';
 import { effectiveThreshold } from '@/core/project/threshold';
 import type { Glyph } from '@/core/project/types';
 import { saveGlyphs } from '@/db/glyphs';
 import { useStore } from '@/store';
-
-const MIN_ZOOM = 2;
-const MAX_ZOOM = 32;
-const ZOOM_PRESETS = [2, 4, 8, 12, 16, 24, 32];
 
 function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
@@ -87,8 +98,8 @@ export const PixelEditor = (): React.JSX.Element => {
     // Holds the cell at the canvas (and therefore viewport) centre during normal
     // drags; the canvas only grows beyond this floor when a glyph is pushed
     // further than the padding allows.
-    const PAD_COLS = Math.ceil(fontSize * 1.5);
-    const PAD_ROWS = Math.ceil(lineHeight * 1.5);
+    const PAD_COLS = Math.ceil(fontSize * OVERFLOW_PADDING_MULTIPLIER);
+    const PAD_ROWS = Math.ceil(lineHeight * OVERFLOW_PADDING_MULTIPLIER);
 
     const glyphLeft = currentGlyph ? Math.min(layoutXoffset, renderXoffset) : 0;
     const glyphTop = currentGlyph ? Math.min(layoutYoffset, renderYoffset) : 0;
@@ -106,9 +117,7 @@ export const PixelEditor = (): React.JSX.Element => {
     const canvasRows = bottomExtent - originY;
 
     // Measure the widest label so the right-hand gutter actually fits the text.
-    const labelSize = Math.max(8, Math.min(11, zoom * 1.5));
-    const GUTTER_LEFT_PAD = 10;
-    const GUTTER_RIGHT_PAD = 4;
+    const labelSize = Math.max(LABEL_SIZE_MIN_PX, Math.min(LABEL_SIZE_MAX_PX, zoom * LABEL_SIZE_SCALE));
     const labelGutterPx = (() => {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const measureContext = canvas.getContext('2d')!; // canvas is a real DOM element
@@ -120,7 +129,7 @@ export const PixelEditor = (): React.JSX.Element => {
         measureContext.measureText('Cap height').width,
       );
 
-      return Math.ceil(GUTTER_LEFT_PAD + widest + GUTTER_RIGHT_PAD);
+      return Math.ceil(GUTTER_LEFT_PAD_PX + widest + GUTTER_RIGHT_PAD_PX);
     })();
 
     canvas.width = canvasCols * zoom + labelGutterPx;
@@ -170,7 +179,7 @@ export const PixelEditor = (): React.JSX.Element => {
       const capY = Math.max(0, baselineY - capHeight * zoom);
 
       const cellRight = cellX + fontSize * zoom;
-      const gutterX = cellRight + GUTTER_LEFT_PAD;
+      const gutterX = cellRight + GUTTER_LEFT_PAD_PX;
 
       context.save();
       context.lineWidth = 1;
@@ -210,7 +219,7 @@ export const PixelEditor = (): React.JSX.Element => {
     }
 
     // Grid overlay (cell area only)
-    if (grid && zoom >= 4 && currentGlyph) {
+    if (grid && zoom >= GRID_MIN_ZOOM && currentGlyph) {
       context.strokeStyle = 'rgba(255,255,255,0.08)';
       context.lineWidth = 1;
       context.setLineDash([]);
@@ -289,8 +298,8 @@ export const PixelEditor = (): React.JSX.Element => {
     const zoom = stateRef.current.zoomLevel;
     // Mirror the padded-floor origin from drawCanvas so cursor → cell mapping
     // aligns with the canvas the user sees.
-    const padCols = Math.ceil(project.settings.fontSize * 1.5);
-    const padRows = Math.ceil(project.settings.lineHeight * 1.5);
+    const padCols = Math.ceil(project.settings.fontSize * OVERFLOW_PADDING_MULTIPLIER);
+    const padRows = Math.ceil(project.settings.lineHeight * OVERFLOW_PADDING_MULTIPLIER);
     const originX = Math.min(-padCols, currentGlyph.xoffset);
     const originY = Math.min(-padRows, currentGlyph.yoffset);
 
@@ -562,8 +571,8 @@ export const PixelEditor = (): React.JSX.Element => {
         autoSaveToastShown.current = true;
         setTimeout(() => {
           autoSaveToastShown.current = false;
-        }, 3000);
-      }, 800);
+        }, TOAST_DURATION_MS);
+      }, AUTO_SAVE_TOAST_DELAY_MS);
     }
 
     stateRef.current.isDrawing = false;
@@ -577,9 +586,8 @@ export const PixelEditor = (): React.JSX.Element => {
 
     if (e.shiftKey) {
       stateRef.current.shiftWheelAccum += e.deltaY;
-      const threshold = 50;
 
-      if (Math.abs(stateRef.current.shiftWheelAccum) >= threshold) {
+      if (Math.abs(stateRef.current.shiftWheelAccum) >= BRUSH_RESIZE_WHEEL_THRESHOLD) {
         const step = stateRef.current.shiftWheelAccum < 0 ? 1 : -1;
 
         setBrushSize(stateRef.current.brushSize + step);
@@ -588,7 +596,7 @@ export const PixelEditor = (): React.JSX.Element => {
     } else {
       const delta = e.deltaY < 0 ? 1 : -1;
 
-      setZoomLevel(clamp(zoomLevel + delta, MIN_ZOOM, MAX_ZOOM));
+      setZoomLevel(clamp(zoomLevel + delta, ZOOM_MIN, ZOOM_MAX));
     }
   }
 

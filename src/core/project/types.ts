@@ -1,3 +1,13 @@
+import {
+  DEFAULT_ALPHA_THRESHOLD,
+  DEFAULT_BASE,
+  DEFAULT_CAP_HEIGHT,
+  DEFAULT_FONT_SIZE,
+  DEFAULT_LINE_HEIGHT,
+  DEFAULT_PADDING,
+  DEFAULT_SPACING,
+} from '@/config';
+
 export interface FontSettings {
   sourceFontId: string | null;
   fontSize: number;
@@ -55,12 +65,12 @@ export interface AtlasResult {
 export function defaultFontSettings(): FontSettings {
   return {
     sourceFontId: null,
-    fontSize: 32,
-    padding: { top: 1, right: 1, bottom: 1, left: 1 },
-    spacing: { x: 1, y: 1 },
-    lineHeight: 36,
-    base: 28,
-    capHeight: 22,
-    alphaThreshold: 128,
+    fontSize: DEFAULT_FONT_SIZE,
+    padding: { ...DEFAULT_PADDING },
+    spacing: { ...DEFAULT_SPACING },
+    lineHeight: DEFAULT_LINE_HEIGHT,
+    base: DEFAULT_BASE,
+    capHeight: DEFAULT_CAP_HEIGHT,
+    alphaThreshold: DEFAULT_ALPHA_THRESHOLD,
   };
 }

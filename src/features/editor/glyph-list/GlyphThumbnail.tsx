@@ -1,5 +1,7 @@
 import React, { memo } from 'react';
 
+import { GLYPH_THUMBNAIL_SIZE_PX } from '@/config';
+
 export const GlyphThumbnail = memo(function GlyphThumbnailInner({
   pixels,
   width,
@@ -11,12 +13,10 @@ export const GlyphThumbnail = memo(function GlyphThumbnailInner({
   height: number;
   threshold: number;
 }): React.JSX.Element {
-  const size = 28;
-
   return (
     <svg
-      width={size}
-      height={size}
+      width={GLYPH_THUMBNAIL_SIZE_PX}
+      height={GLYPH_THUMBNAIL_SIZE_PX}
       viewBox={`0 0 ${width} ${height}`}
       style={{ imageRendering: 'pixelated' }}
       className="shrink-0"

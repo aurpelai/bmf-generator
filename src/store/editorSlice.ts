@@ -1,5 +1,15 @@
 import type { StateCreator } from 'zustand';
 
+import {
+  INITIAL_ACTIVE_TOOL,
+  INITIAL_BRUSH_SIZE,
+  INITIAL_SHOW_GRID,
+  MAX_BRUSH_SIZE,
+  MAX_UNDO_STEPS,
+  ZOOM_DEFAULT,
+  ZOOM_MAX,
+} from '@/config';
+
 export type EditorTool = 'pencil' | 'eraser' | 'move' | 'zoom';
 
 export interface GlyphSnapshot {
@@ -29,20 +39,18 @@ export interface EditorSlice {
   redo: (codePoint: number, current: GlyphSnapshot) => GlyphSnapshot | null;
 }
 
-const MAX_UNDO_STEPS = 50;
-
 export const createEditorSlice: StateCreator<EditorSlice> = (set, get) => ({
   selectedCodePoint: null,
-  activeTool: 'pencil',
-  brushSize: 1,
-  zoomLevel: 8,
-  showGrid: true,
+  activeTool: INITIAL_ACTIVE_TOOL,
+  brushSize: INITIAL_BRUSH_SIZE,
+  zoomLevel: ZOOM_DEFAULT,
+  showGrid: INITIAL_SHOW_GRID,
   undoStacks: {},
   redoStacks: {},
   setSelectedCodePoint: (codePoint) => set({ selectedCodePoint: codePoint }),
   setActiveTool: (tool) => set({ activeTool: tool }),
-  setBrushSize: (size) => set({ brushSize: Math.max(1, Math.min(8, size)) }),
-  setZoomLevel: (zoom) => set({ zoomLevel: Math.max(1, Math.min(32, zoom)) }),
+  setBrushSize: (size) => set({ brushSize: Math.max(1, Math.min(MAX_BRUSH_SIZE, size)) }),
+  setZoomLevel: (zoom) => set({ zoomLevel: Math.max(1, Math.min(ZOOM_MAX, zoom)) }),
   setShowGrid: (show) => set({ showGrid: show }),
   pushUndo: (codePoint, snapshot) =>
     set((state) => {

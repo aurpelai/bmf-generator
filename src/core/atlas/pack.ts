@@ -1,3 +1,5 @@
+import { ATLAS_CANDIDATES } from '@/config';
+
 import { effectiveThreshold } from '../project/threshold';
 import type { FontSettings, Glyph, GlyphPlacement } from '../project/types';
 import { pack } from './maxrects';
@@ -14,24 +16,6 @@ export interface PackGlyphsResult {
   unpacked: number[]; // codePoints that did not fit
   efficiency: number; // 0–1, fraction of atlas area used
 }
-
-// Candidates ordered by total area ascending — square sizes plus half-height rectangles
-// to allow tighter fits when glyphs pack more efficiently in wide layouts.
-const ATLAS_CANDIDATES: [number, number][] = [
-  [64, 64],
-  [128, 64],
-  [128, 128],
-  [256, 128],
-  [256, 256],
-  [512, 256],
-  [512, 512],
-  [1024, 512],
-  [1024, 1024],
-  [2048, 1024],
-  [2048, 2048],
-  [4096, 2048],
-  [4096, 4096],
-];
 
 interface TrimmedGlyph {
   glyph: Glyph;
