@@ -3,6 +3,12 @@ import React, { useEffect, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  PREVIEW_CANVAS_SCALE,
+  PREVIEW_DEFAULT_TEXT,
+  PREVIEW_MISSING_GLYPH_ADVANCE_RATIO,
+  PREVIEW_PLACEHOLDER_HEIGHT_RATIO,
+} from '@/config';
 import { effectiveThreshold } from '@/core/project/threshold';
 import { useStore } from '@/store';
 
@@ -11,10 +17,8 @@ interface Props {
   onClose: () => void;
 }
 
-const DEFAULT_TEXT = 'Hello World';
-
 export const PreviewFloat = ({ open, onClose }: Props): React.JSX.Element => {
-  const [text, setText] = useState(DEFAULT_TEXT);
+  const [text, setText] = useState(PREVIEW_DEFAULT_TEXT);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const glyphs = useStore((state) => state.glyphs);
@@ -29,7 +33,7 @@ export const PreviewFloat = ({ open, onClose }: Props): React.JSX.Element => {
 
     const { lineHeight, base, spacing } = currentProject.settings;
     const glyphMap = new Map(glyphs.map((glyph) => [glyph.codePoint, glyph]));
-    const scale = 2;
+    const scale = PREVIEW_CANVAS_SCALE;
 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const codePoints = [...text].map((ch) => ch.codePointAt(0)!); // spread chars always have code points
@@ -41,7 +45,7 @@ export const PreviewFloat = ({ open, onClose }: Props): React.JSX.Element => {
 
       totalWidth += glyph
         ? glyph.xadvance + spacing.x
-        : Math.round(currentProject.settings.fontSize * 0.5);
+        : Math.round(currentProject.settings.fontSize * PREVIEW_MISSING_GLYPH_ADVANCE_RATIO);
     }
 
     totalWidth = Math.max(totalWidth, 1);
@@ -63,15 +67,13 @@ export const PreviewFloat = ({ open, onClose }: Props): React.JSX.Element => {
       const glyph = glyphMap.get(cp);
 
       if (!glyph || glyph.width === 0 || glyph.height === 0) {
-        const advance = glyph ? glyph.xadvance : Math.round(currentProject.settings.fontSize * 0.5);
+        const advance = glyph
+          ? glyph.xadvance
+          : Math.round(currentProject.settings.fontSize * PREVIEW_MISSING_GLYPH_ADVANCE_RATIO);
+        const placeholderHeight = currentProject.settings.fontSize * PREVIEW_PLACEHOLDER_HEIGHT_RATIO;
 
         context.strokeStyle = 'rgba(255,255,255,0.2)';
-        context.strokeRect(
-          x + 0.5,
-          base - currentProject.settings.fontSize * 0.7 + 0.5,
-          advance - 2,
-          currentProject.settings.fontSize * 0.7 - 1,
-        );
+        context.strokeRect(x + 0.5, base - placeholderHeight + 0.5, advance - 2, placeholderHeight - 1);
         x += advance + spacing.x;
 
         continue;
