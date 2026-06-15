@@ -83,16 +83,27 @@ export const PixelEditor = (): React.JSX.Element => {
     const renderXoffset = origin ? origin.xoffset + dx : layoutXoffset;
     const renderYoffset = origin ? origin.yoffset + dy : layoutYoffset;
 
+    // Symmetric overflow padding around the cell defines the canvas size floor.
+    // Holds the cell at the canvas (and therefore viewport) centre during normal
+    // drags; the canvas only grows beyond this floor when a glyph is pushed
+    // further than the padding allows.
+    const PAD_COLS = Math.ceil(fontSize * 1.5);
+    const PAD_ROWS = Math.ceil(lineHeight * 1.5);
+
+    const glyphLeft = currentGlyph ? Math.min(layoutXoffset, renderXoffset) : 0;
+    const glyphTop = currentGlyph ? Math.min(layoutYoffset, renderYoffset) : 0;
     const glyphRight = currentGlyph
       ? Math.max(layoutXoffset + currentGlyph.width, renderXoffset + currentGlyph.width)
       : 0;
     const glyphBottom = currentGlyph
       ? Math.max(layoutYoffset + currentGlyph.height, renderYoffset + currentGlyph.height)
       : 0;
-    const originX = Math.min(0, layoutXoffset, renderXoffset);
-    const originY = Math.min(0, layoutYoffset, renderYoffset);
-    const canvasCols = Math.max(fontSize, glyphRight) - originX;
-    const canvasRows = Math.max(lineHeight, glyphBottom) - originY;
+    const originX = Math.min(-PAD_COLS, glyphLeft);
+    const originY = Math.min(-PAD_ROWS, glyphTop);
+    const rightExtent = Math.max(fontSize + PAD_COLS, glyphRight);
+    const bottomExtent = Math.max(lineHeight + PAD_ROWS, glyphBottom);
+    const canvasCols = rightExtent - originX;
+    const canvasRows = bottomExtent - originY;
 
     // Measure the widest label so the right-hand gutter actually fits the text.
     const labelSize = Math.max(8, Math.min(11, zoom * 1.5));
@@ -268,15 +279,20 @@ export const PixelEditor = (): React.JSX.Element => {
   function cellFromEvent(e: React.PointerEvent): { col: number; row: number } | null {
     const canvas = canvasRef.current;
     const currentGlyph = stateRef.current.glyph;
+    const project = currentProject;
 
-    if (!canvas || !currentGlyph) {
+    if (!canvas || !currentGlyph || !project) {
       return null;
     }
 
     const rect = canvas.getBoundingClientRect();
     const zoom = stateRef.current.zoomLevel;
-    const originX = Math.min(0, currentGlyph.xoffset);
-    const originY = Math.min(0, currentGlyph.yoffset);
+    // Mirror the padded-floor origin from drawCanvas so cursor → cell mapping
+    // aligns with the canvas the user sees.
+    const padCols = Math.ceil(project.settings.fontSize * 1.5);
+    const padRows = Math.ceil(project.settings.lineHeight * 1.5);
+    const originX = Math.min(-padCols, currentGlyph.xoffset);
+    const originY = Math.min(-padRows, currentGlyph.yoffset);
 
     return {
       col: Math.floor((e.clientX - rect.left) / zoom) + originX,
