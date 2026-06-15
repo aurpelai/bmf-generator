@@ -14,7 +14,7 @@ import React from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { ZOOM_PRESETS } from '@/config';
+import { DEFAULT_ALPHA_THRESHOLD, MAX_BRUSH_SIZE, ZOOM_PRESETS } from '@/config';
 import { saveProject } from '@/db';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/store';
@@ -42,7 +42,7 @@ export const EditorToolbar = ({
   const setShowGrid = useStore((state) => state.setShowGrid);
   const currentProject = useStore((state) => state.currentProject);
   const updateCurrentProject = useStore((state) => state.updateCurrentProject);
-  const alphaThreshold = currentProject?.settings.alphaThreshold ?? 128;
+  const alphaThreshold = currentProject?.settings.alphaThreshold ?? DEFAULT_ALPHA_THRESHOLD;
 
   function zoomIn(): void {
     const next = ZOOM_PRESETS.find((z) => z > zoomLevel);
@@ -115,7 +115,7 @@ export const EditorToolbar = ({
           title="Increase brush size"
           aria-label="Increase brush size"
           onClick={() => setBrushSize(brushSize + 1)}
-          disabled={brushSize >= 8}
+          disabled={brushSize >= MAX_BRUSH_SIZE}
         >
           <Plus className="h-3.5 w-3.5" />
         </Button>
