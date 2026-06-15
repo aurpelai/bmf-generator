@@ -141,7 +141,7 @@ export const EditorToolbar = ({
                     return;
                   }
 
-                  const next = Array.isArray(value) ? value[0] : value;
+                  const next = typeof value === 'number' ? value : value[0];
                   const settings = { ...currentProject.settings, alphaThreshold: next };
 
                   updateCurrentProject({ settings });

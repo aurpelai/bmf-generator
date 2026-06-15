@@ -395,7 +395,7 @@ export const GlyphList = ({
                         max={255}
                         step={1}
                         onValueChange={(value: number | readonly number[]) => {
-                          const next = Array.isArray(value) ? value[0] : value;
+                          const next = typeof value === 'number' ? value : value[0];
 
                           setGlyphAlphaThreshold(glyph, next);
                         }}

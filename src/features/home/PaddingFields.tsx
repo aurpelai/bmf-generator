@@ -1,32 +1,8 @@
 import React from 'react';
 
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-const PaddingInput = ({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  onChange: (value: number) => void;
-}): React.JSX.Element => (
-  <div className="grid gap-1">
-    <span className="text-muted-foreground text-[10px]">{label}</span>
-    <div className="flex items-center gap-1">
-      <Input
-        className="w-20"
-        type="number"
-        min={0}
-        max={16}
-        value={value}
-        onChange={(event) => onChange(Number(event.target.value))}
-      />
-      <span className="text-muted-foreground text-[10px]">px</span>
-    </div>
-  </div>
-);
+import { PixelInput } from './PixelInput';
 
 export const PaddingFields = ({
   top,
@@ -53,13 +29,13 @@ export const PaddingFields = ({
       <p className="text-muted-foreground text-xs">Extra space around each glyph.</p>
       <div className="mt-2 grid w-fit grid-cols-3 gap-2">
         <div />
-        <PaddingInput label="Top" value={top} onChange={onTopChange} />
+        <PixelInput label="Top" value={top} onChange={onTopChange} />
         <div />
-        <PaddingInput label="Left" value={left} onChange={onLeftChange} />
+        <PixelInput label="Left" value={left} onChange={onLeftChange} />
         <div />
-        <PaddingInput label="Right" value={right} onChange={onRightChange} />
+        <PixelInput label="Right" value={right} onChange={onRightChange} />
         <div />
-        <PaddingInput label="Bottom" value={bottom} onChange={onBottomChange} />
+        <PixelInput label="Bottom" value={bottom} onChange={onBottomChange} />
         <div />
       </div>
     </div>

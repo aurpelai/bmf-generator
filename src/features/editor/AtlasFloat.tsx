@@ -35,6 +35,7 @@ export const AtlasFloat = ({ open, onClose }: Props): React.JSX.Element => {
   const atlasEfficiency = useStore((state) => state.atlasEfficiency);
   const setAtlasResult = useStore((state) => state.setAtlasResult);
   const exportSelection = useStore((state) => state.exportSelection);
+  const addToast = useStore((state) => state.addToast);
 
   const { packAtlas } = useAtlas();
 
@@ -67,7 +68,7 @@ export const AtlasFloat = ({ open, onClose }: Props): React.JSX.Element => {
       );
 
       if (unpacked.length > 0) {
-        console.warn(`${unpacked.length} glyphs did not fit in atlas`);
+        addToast(`${unpacked.length} glyphs did not fit in atlas`, 'error');
       }
 
       setAtlasResult(placements, imageData, packedWidth, packedHeight, efficiency);
