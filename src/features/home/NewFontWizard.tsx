@@ -8,6 +8,7 @@ import {
   BASE_RATIO,
   CAP_HEIGHT_RATIO,
   DEFAULT_FONT_SIZE,
+  DIALOG_RESET_DELAY_MS,
   LINE_HEIGHT_RATIO,
 } from '@/config';
 import { createProject, initializeGlyphs } from '@/core/project';
@@ -114,7 +115,7 @@ export const NewFontWizard = ({ open, onOpenChange }: Props): React.JSX.Element 
       setPaddingLeft(1);
       setSpacingX(1);
       setSpacingY(1);
-    }, 200);
+    }, DIALOG_RESET_DELAY_MS);
   }
 
   const stepTitles: Record<Step, string> = {

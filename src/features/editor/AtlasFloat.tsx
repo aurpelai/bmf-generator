@@ -2,6 +2,7 @@ import { Loader2, RefreshCw, X } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { ATLAS_REPACK_DEBOUNCE_MS } from '@/config';
 import { useAtlas } from '@/hooks/useAtlas';
 import { useStore } from '@/store';
 
@@ -42,7 +43,7 @@ export const AtlasFloat = ({ open, onClose }: Props): React.JSX.Element => {
       ? glyphs
       : glyphs.filter((glyph) => exportSelection.has(glyph.codePoint));
 
-  const debouncedSelected = useDebounce(selectedGlyphs, 800);
+  const debouncedSelected = useDebounce(selectedGlyphs, ATLAS_REPACK_DEBOUNCE_MS);
 
   async function runPack(glyphsToPack = selectedGlyphs): Promise<void> {
     if (!currentProject || glyphsToPack.length === 0) {

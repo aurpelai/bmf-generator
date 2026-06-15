@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 
 import {
+  AUTO_SAVE_TOAST_DELAY_MS,
+  AUTO_SAVE_TOAST_DURATION_MS,
   BRUSH_RESIZE_WHEEL_THRESHOLD,
   GRID_MIN_ZOOM,
   GUTTER_LEFT_PAD_PX,
@@ -569,8 +571,8 @@ export const PixelEditor = (): React.JSX.Element => {
         autoSaveToastShown.current = true;
         setTimeout(() => {
           autoSaveToastShown.current = false;
-        }, 3000);
-      }, 800);
+        }, AUTO_SAVE_TOAST_DURATION_MS);
+      }, AUTO_SAVE_TOAST_DELAY_MS);
     }
 
     stateRef.current.isDrawing = false;

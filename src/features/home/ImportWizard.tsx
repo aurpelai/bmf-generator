@@ -8,6 +8,7 @@ import {
   BASE_RATIO,
   CAP_HEIGHT_RATIO,
   DEFAULT_FONT_SIZE,
+  DIALOG_RESET_DELAY_MS,
   LINE_HEIGHT_RATIO,
 } from '@/config';
 import type { BmfParseResult } from '@/core/bmf/parse';
@@ -453,7 +454,7 @@ export const ImportWizard = ({ open, onOpenChange }: Props): React.JSX.Element =
       ttfBufferRef.current = null;
       bmfParsedRef.current = null;
       bmfImageDataRef.current = null;
-    }, 200);
+    }, DIALOG_RESET_DELAY_MS);
   }
 
   // --- Derived state ---

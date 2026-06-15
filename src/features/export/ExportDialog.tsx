@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { COPIED_TOAST_DURATION_MS } from '@/config';
 import type { BmfGlyphData } from '@/core/bmf';
 import { serializeBmfText } from '@/core/bmf';
 import { exportPortableProject } from '@/core/project';
@@ -115,7 +116,7 @@ export const ExportDialog = ({ open, onOpenChange }: Props): React.JSX.Element =
     try {
       await navigator.clipboard.writeText(fntText);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setCopied(false), COPIED_TOAST_DURATION_MS);
     } finally {
       setCopying(false);
     }
