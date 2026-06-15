@@ -1,27 +1,39 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   AUTO_SAVE_TOAST_DELAY_MS,
   BRUSH_RESIZE_WHEEL_THRESHOLD,
+  GLYPH_GRAB_OUTLINE_COLOR,
+  GLYPH_GRAB_PADDING_CELLS,
   GRID_MIN_ZOOM,
   GUTTER_LEFT_PAD_PX,
   GUTTER_RIGHT_PAD_PX,
   LABEL_SIZE_MAX_PX,
   LABEL_SIZE_MIN_PX,
   LABEL_SIZE_SCALE,
-  OVERFLOW_PADDING_MULTIPLIER,
   TOAST_DURATION_MS,
   ZOOM_MAX,
   ZOOM_MIN,
   ZOOM_PRESETS,
+  ZOOM_WHEEL_SENSITIVITY,
 } from '@/config';
 import { effectiveThreshold } from '@/core/project/threshold';
 import type { Glyph } from '@/core/project/types';
 import { saveGlyphs } from '@/db/glyphs';
 import { useStore } from '@/store';
 
-function clamp(v: number, lo: number, hi: number): number {
-  return Math.max(lo, Math.min(hi, v));
+import { computeCanvasLayout } from './zoom-helpers';
+
+function nextZoomStep(currentZoom: number, direction: 1 | -1): number {
+  if (direction > 0) {
+    return ZOOM_PRESETS.find((preset) => preset > currentZoom) ?? currentZoom;
+  }
+
+  return [...ZOOM_PRESETS].reverse().find((preset) => preset < currentZoom) ?? currentZoom;
+}
+
+function clamp(value: number, lo: number, hi: number): number {
+  return Math.max(lo, Math.min(hi, value));
 }
 
 export const PixelEditor = (): React.JSX.Element => {
@@ -34,6 +46,7 @@ export const PixelEditor = (): React.JSX.Element => {
   const brushSize = useStore((state) => state.brushSize);
   const zoomLevel = useStore((state) => state.zoomLevel);
   const showGrid = useStore((state) => state.showGrid);
+  const pendingRecenter = useStore((state) => state.pendingRecenter);
   const setZoomLevel = useStore((state) => state.setZoomLevel);
   const setBrushSize = useStore((state) => state.setBrushSize);
   const upsertGlyph = useStore((state) => state.upsertGlyph);
@@ -46,30 +59,62 @@ export const PixelEditor = (): React.JSX.Element => {
 
   const glyph = glyphs.find((glyphItem) => glyphItem.codePoint === selectedCodePoint) ?? null;
 
+  // overGrab drives both the JSX cursor and the grab-outline pass in drawCanvas;
+  // lifting it to React state keeps the cursor in sync without flicker.
+  const [overGrab, setOverGrab] = useState(false);
+
   const stateRef = useRef({
     glyph,
     activeTool,
     brushSize,
     zoomLevel,
     showGrid,
+    overGrab: false,
     isDrawing: false,
     lastPixel: -1,
     cursorCell: null as { col: number; row: number } | null,
     moveOrigin: null as { x: number; y: number; xoffset: number; yoffset: number } | null,
     moveDelta: { dx: 0, dy: 0 },
+    isPanning: false,
+    panOrigin: null as {
+      clientX: number;
+      clientY: number;
+      scrollLeft: number;
+      scrollTop: number;
+    } | null,
     shiftWheelAccum: 0,
+    // The actual origin used by the last drawCanvas pass — stashed here so
+    // pointer-to-cell mapping uses the exact same origin (including any
+    // viewport-overscan adjustment) that the canvas was painted with.
+    lastLayout: {
+      originX: 0,
+      originY: 0,
+      canvasCols: 0,
+      canvasRows: 0,
+      labelGutterPx: 0,
+    },
+    // Pending zoom-at-cursor recenter — cell coordinates and viewport-relative
+    // cursor position, captured at the moment Ctrl/Cmd+wheel fires. After the
+    // next paint the effect on zoomLevel applies the scroll so the cell stays
+    // under the cursor.
+    pendingZoomCursor: null as {
+      cellCol: number;
+      cellRow: number;
+      viewportX: number;
+      viewportY: number;
+    } | null,
   });
 
-  // eslint-disable-next-line react-hooks/refs
-  stateRef.current.glyph = glyph;
-  // eslint-disable-next-line react-hooks/refs
-  stateRef.current.activeTool = activeTool;
-  // eslint-disable-next-line react-hooks/refs
-  stateRef.current.brushSize = brushSize;
-  // eslint-disable-next-line react-hooks/refs
-  stateRef.current.zoomLevel = zoomLevel;
-  // eslint-disable-next-line react-hooks/refs
-  stateRef.current.showGrid = showGrid;
+  // Sync the latest props/state into the ref so the imperative event handlers
+  // and the canvas draw routine always read fresh values without re-binding.
+  useEffect(() => {
+    stateRef.current.glyph = glyph;
+    stateRef.current.activeTool = activeTool;
+    stateRef.current.brushSize = brushSize;
+    stateRef.current.zoomLevel = zoomLevel;
+    stateRef.current.showGrid = showGrid;
+    stateRef.current.overGrab = overGrab;
+  });
 
   const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -94,30 +139,34 @@ export const PixelEditor = (): React.JSX.Element => {
     const renderXoffset = origin ? origin.xoffset + dx : layoutXoffset;
     const renderYoffset = origin ? origin.yoffset + dy : layoutYoffset;
 
-    // Symmetric overflow padding around the cell defines the canvas size floor.
-    // Holds the cell at the canvas (and therefore viewport) centre during normal
-    // drags; the canvas only grows beyond this floor when a glyph is pushed
-    // further than the padding allows.
-    const PAD_COLS = Math.ceil(fontSize * OVERFLOW_PADDING_MULTIPLIER);
-    const PAD_ROWS = Math.ceil(lineHeight * OVERFLOW_PADDING_MULTIPLIER);
-
-    const glyphLeft = currentGlyph ? Math.min(layoutXoffset, renderXoffset) : 0;
-    const glyphTop = currentGlyph ? Math.min(layoutYoffset, renderYoffset) : 0;
-    const glyphRight = currentGlyph
-      ? Math.max(layoutXoffset + currentGlyph.width, renderXoffset + currentGlyph.width)
-      : 0;
-    const glyphBottom = currentGlyph
-      ? Math.max(layoutYoffset + currentGlyph.height, renderYoffset + currentGlyph.height)
-      : 0;
-    const originX = Math.min(-PAD_COLS, glyphLeft);
-    const originY = Math.min(-PAD_ROWS, glyphTop);
-    const rightExtent = Math.max(fontSize + PAD_COLS, glyphRight);
-    const bottomExtent = Math.max(lineHeight + PAD_ROWS, glyphBottom);
-    const canvasCols = rightExtent - originX;
-    const canvasRows = bottomExtent - originY;
+    // The layout bounding box covers both the original and dragged-to glyph
+    // position so panning during a drag never reveals empty canvas.
+    const container = containerRef.current;
+    const dragBounds = currentGlyph
+      ? {
+          xoffset: Math.min(layoutXoffset, renderXoffset),
+          yoffset: Math.min(layoutYoffset, renderYoffset),
+          width:
+            Math.max(layoutXoffset + currentGlyph.width, renderXoffset + currentGlyph.width) -
+            Math.min(layoutXoffset, renderXoffset),
+          height:
+            Math.max(layoutYoffset + currentGlyph.height, renderYoffset + currentGlyph.height) -
+            Math.min(layoutYoffset, renderYoffset),
+        }
+      : null;
+    const layout = computeCanvasLayout(
+      project.settings,
+      dragBounds,
+      zoom,
+      container ? { width: container.clientWidth, height: container.clientHeight } : null,
+    );
+    const { originX, originY, canvasCols, canvasRows } = layout;
 
     // Measure the widest label so the right-hand gutter actually fits the text.
-    const labelSize = Math.max(LABEL_SIZE_MIN_PX, Math.min(LABEL_SIZE_MAX_PX, zoom * LABEL_SIZE_SCALE));
+    const labelSize = Math.max(
+      LABEL_SIZE_MIN_PX,
+      Math.min(LABEL_SIZE_MAX_PX, zoom * LABEL_SIZE_SCALE),
+    );
     const labelGutterPx = (() => {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const measureContext = canvas.getContext('2d')!; // canvas is a real DOM element
@@ -134,6 +183,17 @@ export const PixelEditor = (): React.JSX.Element => {
 
     canvas.width = canvasCols * zoom + labelGutterPx;
     canvas.height = canvasRows * zoom;
+
+    // Stash the layout so pointer-to-cell mapping and the post-paint
+    // zoom-at-cursor recenter both use the same origin the canvas was
+    // actually painted with.
+    stateRef.current.lastLayout = {
+      originX,
+      originY,
+      canvasCols,
+      canvasRows,
+      labelGutterPx,
+    };
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const context = canvas.getContext('2d')!; // canvas is a real DOM element
 
@@ -218,6 +278,32 @@ export const PixelEditor = (): React.JSX.Element => {
       context.restore();
     }
 
+    // Move-tool grab outline — drawn around the glyph's pixel rect when the
+    // cursor is over the grab region. Skipped while actively dragging the glyph.
+    if (
+      stateRef.current.activeTool === 'move' &&
+      stateRef.current.overGrab &&
+      !stateRef.current.moveOrigin &&
+      currentGlyph &&
+      currentGlyph.width > 0 &&
+      currentGlyph.height > 0
+    ) {
+      // Outline encloses the full grab region — the glyph rect expanded by
+      // GLYPH_GRAB_PADDING_CELLS on every side, matching isOverGlyphGrab.
+      const padding = GLYPH_GRAB_PADDING_CELLS;
+      const rectX = (renderXoffset - padding - originX) * zoom + 0.5;
+      const rectY = (renderYoffset - padding - originY) * zoom + 0.5;
+      const rectWidth = (currentGlyph.width + padding * 2) * zoom - 1;
+      const rectHeight = (currentGlyph.height + padding * 2) * zoom - 1;
+
+      context.save();
+      context.strokeStyle = GLYPH_GRAB_OUTLINE_COLOR;
+      context.lineWidth = 1;
+      context.setLineDash([]);
+      context.strokeRect(rectX, rectY, rectWidth, rectHeight);
+      context.restore();
+    }
+
     // Grid overlay (cell area only)
     if (grid && zoom >= GRID_MIN_ZOOM && currentGlyph) {
       context.strokeStyle = 'rgba(255,255,255,0.08)';
@@ -261,7 +347,70 @@ export const PixelEditor = (): React.JSX.Element => {
 
   useEffect(() => {
     drawCanvas();
-  }, [glyph, zoomLevel, showGrid, drawCanvas]);
+
+    // After repainting, apply any pending zoom-at-cursor scroll adjustment.
+    // The new origin lives in stateRef.current.lastLayout (just written by
+    // drawCanvas), so we can place the captured cell directly under the cursor.
+    const pending = stateRef.current.pendingZoomCursor;
+
+    if (pending) {
+      const container = containerRef.current;
+
+      if (container) {
+        const { originX, originY } = stateRef.current.lastLayout;
+        const cellCanvasX = (pending.cellCol - originX) * zoomLevel;
+        const cellCanvasY = (pending.cellRow - originY) * zoomLevel;
+
+        container.scrollLeft = cellCanvasX - pending.viewportX;
+        container.scrollTop = cellCanvasY - pending.viewportY;
+      }
+
+      stateRef.current.pendingZoomCursor = null;
+    }
+  }, [glyph, zoomLevel, showGrid, overGrab, drawCanvas]);
+
+  // Hide the brush highlight whenever the container scrolls (trackpad pan,
+  // mouse wheel, or programmatic). The pointer is stationary on screen during
+  // a scroll while the underlying cell shifts, so the cached cursorCell would
+  // be visually misleading. Refreshed on the next pointermove.
+  useEffect(() => {
+    const container = containerRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    function handleScroll(): void {
+      if (stateRef.current.cursorCell) {
+        stateRef.current.cursorCell = null;
+        drawCanvas();
+      }
+    }
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+    };
+  }, [drawCanvas]);
+
+  // Redraw when the scroll container changes size — the canvas dimensions
+  // depend on container.clientWidth/Height via CANVAS_VIEWPORT_OVERSCAN.
+  useEffect(() => {
+    const container = containerRef.current;
+
+    if (!container || typeof ResizeObserver === 'undefined') {
+      return;
+    }
+
+    const observer = new ResizeObserver(() => {
+      drawCanvas();
+    });
+
+    observer.observe(container);
+
+    return () => observer.disconnect();
+  }, [drawCanvas]);
 
   // Prevent the browser from scrolling the container when dragging on the canvas.
   // Must be native non-passive listeners — React synthetic events are passive by default.
@@ -272,8 +421,8 @@ export const PixelEditor = (): React.JSX.Element => {
       return;
     }
 
-    function prevent(e: PointerEvent): void {
-      e.preventDefault();
+    function prevent(event: PointerEvent): void {
+      event.preventDefault();
     }
 
     canvas.addEventListener('pointerdown', prevent, { passive: false });
@@ -285,28 +434,223 @@ export const PixelEditor = (): React.JSX.Element => {
     };
   }, []);
 
-  function cellFromEvent(e: React.PointerEvent): { col: number; row: number } | null {
+  // Center the glyph cell inside the scroll container's viewport. Used on
+  // initial mount, glyph changes, and after zoom-to-fit / zoom-to-100%.
+  // The canvas is much larger than the cell (overscan padding), so centering
+  // the cell — not the canvas — keeps the meaningful content in view.
+  const recenterCanvas = useCallback(() => {
     const canvas = canvasRef.current;
-    const currentGlyph = stateRef.current.glyph;
+    const container = containerRef.current;
     const project = currentProject;
 
-    if (!canvas || !currentGlyph || !project) {
+    if (!canvas || !container || !project) {
+      return;
+    }
+
+    const zoom = stateRef.current.zoomLevel;
+    const currentGlyph = stateRef.current.glyph;
+    const { fontSize, lineHeight } = project.settings;
+    // Shared layout math with drawCanvas — single source of truth for where
+    // the cell sits within the (possibly overscan-padded) canvas.
+    const { originX, originY } = computeCanvasLayout(
+      project.settings,
+      currentGlyph
+        ? {
+            xoffset: currentGlyph.xoffset,
+            yoffset: currentGlyph.yoffset,
+            width: currentGlyph.width,
+            height: currentGlyph.height,
+          }
+        : null,
+      zoom,
+      { width: container.clientWidth, height: container.clientHeight },
+    );
+    const cellCenterX = (-originX + fontSize / 2) * zoom;
+    const cellCenterY = (-originY + lineHeight / 2) * zoom;
+
+    container.scrollLeft = Math.max(0, cellCenterX - container.clientWidth / 2);
+    container.scrollTop = Math.max(0, cellCenterY - container.clientHeight / 2);
+  }, [currentProject]);
+
+  // Native non-passive wheel listener:
+  //  - Shift+wheel        → adjust brush size (existing behavior)
+  //  - Ctrl/Meta+wheel    → zoom toward the cursor (also catches trackpad pinch)
+  //  - plain wheel        → fall through to native container scrolling (pan)
+  // Bound natively because React's synthetic wheel listeners are passive in
+  // modern React, so preventDefault() is ignored.
+  useEffect(() => {
+    const container = containerRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    function handleWheel(event: WheelEvent): void {
+      // Shift-only → brush size
+      if (event.shiftKey && !event.ctrlKey && !event.metaKey) {
+        event.preventDefault();
+        stateRef.current.shiftWheelAccum += event.deltaY;
+
+        if (Math.abs(stateRef.current.shiftWheelAccum) >= BRUSH_RESIZE_WHEEL_THRESHOLD) {
+          const step = stateRef.current.shiftWheelAccum < 0 ? 1 : -1;
+
+          setBrushSize(stateRef.current.brushSize + step);
+          stateRef.current.shiftWheelAccum = 0;
+        }
+
+        return;
+      }
+
+      // Ctrl/Meta+wheel (and trackpad pinch) → smooth continuous zoom at cursor.
+      // Capture the cell under the cursor and the viewport-relative cursor
+      // position; an effect on zoomLevel applies the scroll once the canvas
+      // has been repainted at the new zoom (and the new origin is known).
+      if (event.ctrlKey || event.metaKey) {
+        event.preventDefault();
+
+        const currentZoom = stateRef.current.zoomLevel;
+        const nextZoom = clamp(
+          currentZoom * Math.exp(-event.deltaY * ZOOM_WHEEL_SENSITIVITY),
+          ZOOM_MIN,
+          ZOOM_MAX,
+        );
+
+        if (nextZoom === currentZoom) {
+          return;
+        }
+
+        const canvas = canvasRef.current;
+        const containerEl = containerRef.current;
+
+        if (canvas && containerEl) {
+          const canvasRect = canvas.getBoundingClientRect();
+          const containerRect = containerEl.getBoundingClientRect();
+          const { originX, originY } = stateRef.current.lastLayout;
+          // Convert the cursor's canvas-pixel position to cell-space using the
+          // ORIGIN the canvas was just painted with — independent of zoom.
+          const cellCol = (event.clientX - canvasRect.left) / currentZoom + originX;
+          const cellRow = (event.clientY - canvasRect.top) / currentZoom + originY;
+
+          stateRef.current.pendingZoomCursor = {
+            cellCol,
+            cellRow,
+            viewportX: event.clientX - containerRect.left,
+            viewportY: event.clientY - containerRect.top,
+          };
+        }
+
+        setZoomLevel(nextZoom);
+
+        return;
+      }
+
+      // Plain wheel / two-finger trackpad → let the container scroll natively.
+    }
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Zoom toward a specific client point, keeping the canvas cell under that
+  // point fixed in the viewport. Captures the cell coordinate at the current
+  // zoom; a useEffect on zoomLevel applies the scroll after the canvas has
+  // repainted at the new zoom (and the new origin is known).
+  function zoomTowardClientPoint(nextZoom: number, clientX: number, clientY: number): void {
+    const currentZoom = stateRef.current.zoomLevel;
+
+    if (nextZoom === currentZoom) {
+      return;
+    }
+
+    const canvas = canvasRef.current;
+    const containerEl = containerRef.current;
+
+    if (canvas && containerEl) {
+      const canvasRect = canvas.getBoundingClientRect();
+      const containerRect = containerEl.getBoundingClientRect();
+      const { originX, originY } = stateRef.current.lastLayout;
+      const cellCol = (clientX - canvasRect.left) / currentZoom + originX;
+      const cellRow = (clientY - canvasRect.top) / currentZoom + originY;
+
+      stateRef.current.pendingZoomCursor = {
+        cellCol,
+        cellRow,
+        viewportX: clientX - containerRect.left,
+        viewportY: clientY - containerRect.top,
+      };
+    }
+
+    setZoomLevel(nextZoom);
+  }
+
+  // Recenter when an external action (zoom-to-fit / 100%) requests it.
+  // Runs after the drawCanvas effect, so lastLayout reflects the new zoom.
+  useEffect(() => {
+    if (pendingRecenter === 0) {
+      return;
+    }
+
+    recenterCanvas();
+  }, [pendingRecenter, recenterCanvas]);
+
+  // Center on initial mount and whenever the selected glyph changes.
+  // Runs after the drawCanvas effect declared above, so lastLayout has been
+  // refreshed for the new glyph before we read it.
+  useEffect(() => {
+    recenterCanvas();
+  }, [selectedCodePoint, recenterCanvas]);
+
+  function cellFromClientPoint(
+    clientX: number,
+    clientY: number,
+  ): { col: number; row: number } | null {
+    const canvas = canvasRef.current;
+    const project = currentProject;
+
+    if (!canvas || !project) {
       return null;
     }
 
     const rect = canvas.getBoundingClientRect();
     const zoom = stateRef.current.zoomLevel;
-    // Mirror the padded-floor origin from drawCanvas so cursor → cell mapping
-    // aligns with the canvas the user sees.
-    const padCols = Math.ceil(project.settings.fontSize * OVERFLOW_PADDING_MULTIPLIER);
-    const padRows = Math.ceil(project.settings.lineHeight * OVERFLOW_PADDING_MULTIPLIER);
-    const originX = Math.min(-padCols, currentGlyph.xoffset);
-    const originY = Math.min(-padRows, currentGlyph.yoffset);
+    // Read the exact origin the canvas was last painted with — any
+    // viewport-overscan growth must be reflected here or pointer → cell
+    // mapping ends up far to the right/below the visible glyph.
+    const { originX, originY } = stateRef.current.lastLayout;
 
     return {
-      col: Math.floor((e.clientX - rect.left) / zoom) + originX,
-      row: Math.floor((e.clientY - rect.top) / zoom) + originY,
+      col: Math.floor((clientX - rect.left) / zoom) + originX,
+      row: Math.floor((clientY - rect.top) / zoom) + originY,
     };
+  }
+
+  function cellFromEvent(event: React.PointerEvent): { col: number; row: number } | null {
+    return cellFromClientPoint(event.clientX, event.clientY);
+  }
+
+  // Move-tool hit-test: is the cell inside the glyph's pixel rect, expanded by
+  // GLYPH_GRAB_PADDING_CELLS for a forgiving target on thin glyphs? Empty
+  // glyphs (0×0) fall back to a single-cell grab target at the offset point.
+  function isOverGlyphGrab(cell: { col: number; row: number } | null): boolean {
+    const currentGlyph = stateRef.current.glyph;
+
+    if (!cell || !currentGlyph) {
+      return false;
+    }
+
+    const padding = GLYPH_GRAB_PADDING_CELLS;
+    const width = Math.max(1, currentGlyph.width);
+    const height = Math.max(1, currentGlyph.height);
+    const left = currentGlyph.xoffset - padding;
+    const top = currentGlyph.yoffset - padding;
+    const right = currentGlyph.xoffset + width + padding;
+    const bottom = currentGlyph.yoffset + height + padding;
+
+    return cell.col >= left && cell.col < right && cell.row >= top && cell.row < bottom;
   }
 
   function applyPaint(cell: { col: number; row: number } | null): void {
@@ -393,12 +737,7 @@ export const PixelEditor = (): React.JSX.Element => {
         const bufferX = px - newLeft;
         const bufferY = py - newTop;
 
-        if (
-          bufferX < 0 ||
-          bufferY < 0 ||
-          bufferX >= newWidth ||
-          bufferY >= newHeight
-        ) {
+        if (bufferX < 0 || bufferY < 0 || bufferX >= newWidth || bufferY >= newHeight) {
           continue;
         }
 
@@ -430,112 +769,173 @@ export const PixelEditor = (): React.JSX.Element => {
     drawCanvas();
   }
 
-  function onPointerDown(e: React.PointerEvent): void {
+  function onPointerDown(event: React.PointerEvent): void {
     const currentGlyph = stateRef.current.glyph;
 
+    // Zoom tool — discrete step at cursor. Works without a glyph.
+    if (stateRef.current.activeTool === 'zoom') {
+      const direction: 1 | -1 = event.altKey ? -1 : 1;
+
+      zoomTowardClientPoint(
+        nextZoomStep(stateRef.current.zoomLevel, direction),
+        event.clientX,
+        event.clientY,
+      );
+
+      return;
+    }
+
+    // Move tool — branches into glyph-drag (over the glyph rect) or canvas-pan.
+    if (stateRef.current.activeTool === 'move') {
+      const cell = cellFromEvent(event);
+      const overGlyph = isOverGlyphGrab(cell);
+
+      event.currentTarget.setPointerCapture(event.pointerId);
+
+      if (overGlyph && currentGlyph) {
+        // Glyph drag — undoable.
+        pushUndo(currentGlyph.codePoint, {
+          pixels: new Uint8Array(currentGlyph.pixels),
+          width: currentGlyph.width,
+          height: currentGlyph.height,
+          xoffset: currentGlyph.xoffset,
+          yoffset: currentGlyph.yoffset,
+        });
+        stateRef.current.moveOrigin = {
+          x: event.clientX,
+          y: event.clientY,
+          xoffset: currentGlyph.xoffset,
+          yoffset: currentGlyph.yoffset,
+        };
+        stateRef.current.isDrawing = true;
+        (event.currentTarget as HTMLCanvasElement).style.cursor = 'grabbing';
+      } else {
+        // Pan drag — ephemeral, NOT undoable.
+        const container = containerRef.current;
+
+        if (container) {
+          stateRef.current.panOrigin = {
+            clientX: event.clientX,
+            clientY: event.clientY,
+            scrollLeft: container.scrollLeft,
+            scrollTop: container.scrollTop,
+          };
+          stateRef.current.isPanning = true;
+          (event.currentTarget as HTMLCanvasElement).style.cursor = 'grabbing';
+        }
+      }
+
+      return;
+    }
+
+    // Pencil / Eraser — need a glyph to paint into.
     if (!currentGlyph) {
       return;
     }
 
-    if (stateRef.current.activeTool === 'zoom') {
-      const zoomIn = !e.altKey;
-      const currentZoom = stateRef.current.zoomLevel;
-      const nextZoom = zoomIn
-        ? (ZOOM_PRESETS.find((z) => z > currentZoom) ?? currentZoom)
-        : ([...ZOOM_PRESETS].reverse().find((z) => z < currentZoom) ?? currentZoom);
-
-      if (nextZoom === currentZoom) {
-        return;
-      }
-
-      // Zoom towards cursor: keep the canvas point under the cursor fixed
-      const canvas = canvasRef.current;
-      const container = containerRef.current;
-
-      if (canvas && container) {
-        const rect = canvas.getBoundingClientRect();
-        const cx = e.clientX - rect.left; // cursor offset within canvas
-        const cy = e.clientY - rect.top;
-        const scale = nextZoom / currentZoom;
-        // After zoom the canvas resizes; adjust scroll so cursor point stays put
-        const containerRect = container.getBoundingClientRect();
-        const scrollX = container.scrollLeft + cx * scale - (e.clientX - containerRect.left);
-        const scrollY = container.scrollTop + cy * scale - (e.clientY - containerRect.top);
-
-        setZoomLevel(nextZoom);
-        requestAnimationFrame(() => {
-          container.scrollLeft = scrollX;
-          container.scrollTop = scrollY;
-        });
-      } else {
-        setZoomLevel(nextZoom);
-      }
-
-      return;
-    }
-
-    e.currentTarget.setPointerCapture(e.pointerId);
+    event.currentTarget.setPointerCapture(event.pointerId);
     pushUndo(currentGlyph.codePoint, {
       pixels: new Uint8Array(currentGlyph.pixels),
+      width: currentGlyph.width,
+      height: currentGlyph.height,
       xoffset: currentGlyph.xoffset,
       yoffset: currentGlyph.yoffset,
     });
     stateRef.current.isDrawing = true;
     stateRef.current.lastPixel = -1;
-
-    if (stateRef.current.activeTool === 'move') {
-      stateRef.current.moveOrigin = {
-        x: e.clientX,
-        y: e.clientY,
-        xoffset: currentGlyph.xoffset,
-        yoffset: currentGlyph.yoffset,
-      };
-      (e.currentTarget as HTMLCanvasElement).style.cursor = 'grabbing';
-    } else {
-      stateRef.current.moveOrigin = null;
-      applyPaint(cellFromEvent(e));
-    }
+    stateRef.current.moveOrigin = null;
+    applyPaint(cellFromEvent(event));
   }
 
-  function onPointerMove(e: React.PointerEvent): void {
-    if (stateRef.current.activeTool === 'move') {
-      if (!stateRef.current.isDrawing) {
-        return;
+  function onPointerMove(event: React.PointerEvent): void {
+    // Active pan drag — adjust container scroll directly. The container's
+    // scroll listener handles hiding the brush highlight; nothing else to do.
+    if (stateRef.current.isPanning) {
+      const container = containerRef.current;
+      const origin = stateRef.current.panOrigin;
+
+      if (container && origin) {
+        container.scrollLeft = origin.scrollLeft - (event.clientX - origin.clientX);
+        container.scrollTop = origin.scrollTop - (event.clientY - origin.clientY);
       }
 
+      return;
+    }
+
+    // Active glyph drag — move tool with moveOrigin set.
+    if (stateRef.current.activeTool === 'move' && stateRef.current.moveOrigin) {
       const origin = stateRef.current.moveOrigin;
-
-      if (!origin) {
-        return;
-      }
-
       const zoom = stateRef.current.zoomLevel;
 
       stateRef.current.moveDelta = {
-        dx: Math.round((e.clientX - origin.x) / zoom),
-        dy: Math.round((e.clientY - origin.y) / zoom),
+        dx: Math.round((event.clientX - origin.x) / zoom),
+        dy: Math.round((event.clientY - origin.y) / zoom),
       };
       drawCanvas();
-    } else {
-      // Always update cursor cell for highlight, paint only while drawing
-      const cell = cellFromEvent(e);
+
+      return;
+    }
+
+    // Move tool, hovering — recompute over-glyph state for the outline + cursor.
+    if (stateRef.current.activeTool === 'move') {
+      const cell = cellFromEvent(event);
+      const overGlyph = isOverGlyphGrab(cell);
 
       stateRef.current.cursorCell = cell;
 
-      if (stateRef.current.isDrawing) {
-        applyPaint(cell);
+      if (overGlyph !== stateRef.current.overGrab) {
+        setOverGrab(overGlyph);
       }
 
-      drawCanvas();
+      return;
     }
+
+    // Pencil/Eraser — update brush highlight and paint if drawing.
+    const cell = cellFromEvent(event);
+
+    stateRef.current.cursorCell = cell;
+
+    if (stateRef.current.isDrawing) {
+      applyPaint(cell);
+    }
+
+    drawCanvas();
   }
 
   function onPointerLeave(): void {
     stateRef.current.cursorCell = null;
+
+    if (stateRef.current.overGrab) {
+      setOverGrab(false);
+    }
+
     drawCanvas();
   }
 
-  function onPointerUp(e: React.PointerEvent): void {
+  function onPointerUp(event: React.PointerEvent): void {
+    // Pan drag — release without saving, toasting, or pushing undo.
+    if (stateRef.current.isPanning) {
+      stateRef.current.isPanning = false;
+      stateRef.current.panOrigin = null;
+
+      try {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      } catch {
+        // pointer capture may already be released; ignore.
+      }
+
+      (event.currentTarget as HTMLCanvasElement).style.cursor = stateRef.current.overGrab
+        ? 'move'
+        : 'grab';
+
+      // Refresh cursorCell so the brush highlight reappears at the right
+      // place when the user toggles back to a paint tool (e.g. releasing Space).
+      stateRef.current.cursorCell = cellFromEvent(event);
+      drawCanvas();
+
+      return;
+    }
+
     const currentGlyph = stateRef.current.glyph;
     let didSave = false;
 
@@ -556,7 +956,9 @@ export const PixelEditor = (): React.JSX.Element => {
         didSave = true;
       }
 
-      (e.currentTarget as HTMLCanvasElement).style.cursor = 'grab';
+      (event.currentTarget as HTMLCanvasElement).style.cursor = stateRef.current.overGrab
+        ? 'move'
+        : 'grab';
     } else if (stateRef.current.isDrawing) {
       didSave = true;
     }
@@ -581,25 +983,6 @@ export const PixelEditor = (): React.JSX.Element => {
     stateRef.current.moveDelta = { dx: 0, dy: 0 };
   }
 
-  function onWheel(e: React.WheelEvent): void {
-    e.preventDefault();
-
-    if (e.shiftKey) {
-      stateRef.current.shiftWheelAccum += e.deltaY;
-
-      if (Math.abs(stateRef.current.shiftWheelAccum) >= BRUSH_RESIZE_WHEEL_THRESHOLD) {
-        const step = stateRef.current.shiftWheelAccum < 0 ? 1 : -1;
-
-        setBrushSize(stateRef.current.brushSize + step);
-        stateRef.current.shiftWheelAccum = 0;
-      }
-    } else {
-      const delta = e.deltaY < 0 ? 1 : -1;
-
-      setZoomLevel(clamp(zoomLevel + delta, ZOOM_MIN, ZOOM_MAX));
-    }
-  }
-
   // No project open at all
   if (!currentProject) {
     return (
@@ -609,38 +992,54 @@ export const PixelEditor = (): React.JSX.Element => {
     );
   }
 
+  const moveCursor = overGrab ? 'move' : 'grab';
+  const canvasCursor =
+    activeTool === 'move'
+      ? moveCursor
+      : activeTool === 'zoom'
+        ? 'zoom-in'
+        : activeTool === 'eraser'
+          ? 'cell'
+          : 'crosshair';
+
   return (
     <div
       ref={containerRef}
-      className="flex flex-1 items-center justify-center overflow-auto bg-[#111]"
+      data-editor-canvas-container
+      className="relative flex-1 overflow-auto bg-[#111]"
       style={{ touchAction: 'none' }}
-      onWheel={onWheel}
     >
-      {!glyph ? (
-        <span className="text-muted-foreground text-sm">Select a glyph to edit</span>
-      ) : (
-        <canvas
-          ref={canvasRef}
-          role="img"
-          aria-label={`Pixel editor — ${activeTool} tool`}
-          style={{
-            imageRendering: 'pixelated',
-            touchAction: 'none',
-            cursor:
-              activeTool === 'move'
-                ? 'grab'
-                : activeTool === 'zoom'
-                  ? 'zoom-in'
-                  : activeTool === 'eraser'
-                    ? 'cell'
-                    : 'crosshair',
-          }}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerLeave={onPointerLeave}
-          onPointerUp={onPointerUp}
-        />
-      )}
+      {/* Inner wrapper centers the canvas when it's smaller than the viewport
+          and grows to the canvas size when it's larger — so the scroll
+          container has somewhere to pan to once the canvas exceeds the
+          viewport. inline-flex (not flex) keeps the wrapper from collapsing
+          to the parent's width when the canvas is wider than the viewport,
+          so scrollWidth reflects the canvas's actual painted width and
+          recenterCanvas / pointer mapping work. */}
+      <div
+        className="inline-flex items-center justify-center"
+        style={{ minWidth: '100%', minHeight: '100%' }}
+      >
+        {!glyph ? (
+          <span className="text-muted-foreground text-sm">Select a glyph to edit</span>
+        ) : (
+          <canvas
+            ref={canvasRef}
+            role="img"
+            aria-label={`Pixel editor — ${activeTool} tool`}
+            className="block shrink-0"
+            style={{
+              imageRendering: 'pixelated',
+              touchAction: 'none',
+              cursor: canvasCursor,
+            }}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerLeave={onPointerLeave}
+            onPointerUp={onPointerUp}
+          />
+        )}
+      </div>
     </div>
   );
 };

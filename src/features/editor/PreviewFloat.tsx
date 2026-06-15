@@ -70,10 +70,16 @@ export const PreviewFloat = ({ open, onClose }: Props): React.JSX.Element => {
         const advance = glyph
           ? glyph.xadvance
           : Math.round(currentProject.settings.fontSize * PREVIEW_MISSING_GLYPH_ADVANCE_RATIO);
-        const placeholderHeight = currentProject.settings.fontSize * PREVIEW_PLACEHOLDER_HEIGHT_RATIO;
+        const placeholderHeight =
+          currentProject.settings.fontSize * PREVIEW_PLACEHOLDER_HEIGHT_RATIO;
 
         context.strokeStyle = 'rgba(255,255,255,0.2)';
-        context.strokeRect(x + 0.5, base - placeholderHeight + 0.5, advance - 2, placeholderHeight - 1);
+        context.strokeRect(
+          x + 0.5,
+          base - placeholderHeight + 0.5,
+          advance - 2,
+          placeholderHeight - 1,
+        );
         x += advance + spacing.x;
 
         continue;

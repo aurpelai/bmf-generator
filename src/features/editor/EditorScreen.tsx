@@ -8,10 +8,12 @@ import {
   GLYPH_LIST_INITIAL_WIDTH_PX,
   GLYPH_LIST_MAX_WIDTH_PX,
   GLYPH_LIST_MIN_WIDTH_PX,
+  ZOOM_REFERENCE,
 } from '@/config';
 import { getGlyphsForProject } from '@/db/glyphs';
 import { saveGlyphs } from '@/db/glyphs';
 import { ExportDialog } from '@/features/export/ExportDialog';
+import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { useStore } from '@/store';
 import type { EditorTool } from '@/store/editorSlice';
 
@@ -19,6 +21,7 @@ import { AtlasFloat } from './AtlasFloat';
 import { GlyphList } from './glyph-list/GlyphList';
 import { HelpOverlay } from './HelpOverlay';
 import { PixelEditor } from './pixel-editor/PixelEditor';
+import { zoomToFitLevel } from './pixel-editor/zoom-helpers';
 import { PreviewFloat } from './PreviewFloat';
 import { SettingsDialog } from './SettingsDialog';
 import { EditorToolbar } from './toolbar/EditorToolbar';
@@ -97,8 +100,10 @@ export const EditorScreen = (): React.JSX.Element => {
   const selectedCodePoint = useStore((state) => state.selectedCodePoint);
   const glyphs = useStore((state) => state.glyphs);
   const upsertGlyph = useStore((state) => state.upsertGlyph);
-  const undo = useStore((state) => state.undo);
-  const redo = useStore((state) => state.redo);
+  const { undo, redo } = useUndoRedo();
+  const setZoomLevel = useStore((state) => state.setZoomLevel);
+  const requestRecenter = useStore((state) => state.requestRecenter);
+  const pushUndo = useStore((state) => state.pushUndo);
 
   // Track the tool to restore after Space/Alt temporary overrides
   const toolBeforeOverride = useRef<EditorTool | null>(null);
@@ -125,74 +130,14 @@ export const EditorScreen = (): React.JSX.Element => {
       // Undo / redo
       if (ctrl && e.key.toLowerCase() === 'z' && !e.shiftKey) {
         e.preventDefault();
-
-        if (selectedCodePoint === null) {
-          return;
-        }
-
-        const glyph = glyphs.find((g) => g.codePoint === selectedCodePoint);
-
-        if (!glyph) {
-          return;
-        }
-
-        const snapshot = undo(selectedCodePoint, {
-          pixels: new Uint8Array(glyph.pixels),
-          xoffset: glyph.xoffset,
-          yoffset: glyph.yoffset,
-        });
-
-        if (!snapshot) {
-          return;
-        }
-
-        const updated = {
-          ...glyph,
-          pixels: snapshot.pixels,
-          xoffset: snapshot.xoffset,
-          yoffset: snapshot.yoffset,
-          isDirty: true,
-        };
-
-        upsertGlyph(updated);
-        void saveGlyphs([updated]);
+        undo();
 
         return;
       }
 
       if (ctrl && e.key.toLowerCase() === 'z' && e.shiftKey) {
         e.preventDefault();
-
-        if (selectedCodePoint === null) {
-          return;
-        }
-
-        const glyph = glyphs.find((g) => g.codePoint === selectedCodePoint);
-
-        if (!glyph) {
-          return;
-        }
-
-        const snapshot = redo(selectedCodePoint, {
-          pixels: new Uint8Array(glyph.pixels),
-          xoffset: glyph.xoffset,
-          yoffset: glyph.yoffset,
-        });
-
-        if (!snapshot) {
-          return;
-        }
-
-        const updated = {
-          ...glyph,
-          pixels: snapshot.pixels,
-          xoffset: snapshot.xoffset,
-          yoffset: snapshot.yoffset,
-          isDirty: true,
-        };
-
-        upsertGlyph(updated);
-        void saveGlyphs([updated]);
+        redo();
 
         return;
       }
@@ -258,6 +203,71 @@ export const EditorScreen = (): React.JSX.Element => {
         return;
       }
 
+      // Shift+1 → zoom to 100% (ZOOM_REFERENCE); Shift+0 → zoom to fit.
+      if (e.shiftKey && !ctrl && !e.altKey && (e.key === '1' || e.key === '0')) {
+        e.preventDefault();
+
+        if (e.key === '1') {
+          setZoomLevel(ZOOM_REFERENCE);
+          requestRecenter();
+        } else if (currentProject) {
+          const container = document.querySelector<HTMLElement>('[data-editor-canvas-container]');
+          const viewport = container
+            ? { width: container.clientWidth, height: container.clientHeight }
+            : { width: window.innerWidth, height: window.innerHeight };
+
+          setZoomLevel(zoomToFitLevel(currentProject.settings, viewport));
+          requestRecenter();
+        }
+
+        return;
+      }
+
+      // Arrow keys nudge glyph offset by 1px when the Move tool is active.
+      // Each press is its own undo step (matches Figma).
+      if (
+        activeTool === 'move' &&
+        !ctrl &&
+        !e.altKey &&
+        !e.shiftKey &&
+        (e.key === 'ArrowLeft' ||
+          e.key === 'ArrowRight' ||
+          e.key === 'ArrowUp' ||
+          e.key === 'ArrowDown') &&
+        selectedCodePoint !== null
+      ) {
+        const glyph = glyphs.find((glyphItem) => glyphItem.codePoint === selectedCodePoint);
+
+        if (!glyph) {
+          return;
+        }
+
+        e.preventDefault();
+
+        const dx = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0;
+        const dy = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
+
+        pushUndo(selectedCodePoint, {
+          pixels: new Uint8Array(glyph.pixels),
+          width: glyph.width,
+          height: glyph.height,
+          xoffset: glyph.xoffset,
+          yoffset: glyph.yoffset,
+        });
+
+        const updated = {
+          ...glyph,
+          xoffset: glyph.xoffset + dx,
+          yoffset: glyph.yoffset + dy,
+          isDirty: true,
+        };
+
+        upsertGlyph(updated);
+        void saveGlyphs([updated]);
+
+        return;
+      }
+
       // Tool switching
       switch (e.key.toLowerCase()) {
         case 'b':
@@ -283,11 +293,16 @@ export const EditorScreen = (): React.JSX.Element => {
         return;
       }
 
-      // Space — temporarily activate move tool
-      if (e.key === ' ' && !e.repeat && activeTool !== 'move') {
+      // Space — temporarily activate move tool. Always preventDefault so the
+      // browser doesn't scroll the editor container on space keydown (including
+      // auto-repeats after the first press).
+      if (e.key === ' ') {
         e.preventDefault();
-        toolBeforeOverride.current = activeTool;
-        setActiveTool('move');
+
+        if (!e.repeat && activeTool !== 'move') {
+          toolBeforeOverride.current = activeTool;
+          setActiveTool('move');
+        }
       }
 
       // Alt — invert active tool (pencil↔eraser)
@@ -318,7 +333,16 @@ export const EditorScreen = (): React.JSX.Element => {
       window.removeEventListener('keyup', onKeyUp);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showGrid, activeTool, selectedCodePoint, glyphs, glyphListCollapsed, atlasOpen, previewOpen]);
+  }, [
+    showGrid,
+    activeTool,
+    selectedCodePoint,
+    glyphs,
+    glyphListCollapsed,
+    atlasOpen,
+    previewOpen,
+    currentProject,
+  ]);
 
   if (!currentProject) {
     return <Navigate to="/" replace />;
