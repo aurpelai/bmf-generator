@@ -1,6 +1,6 @@
 // Candidate atlas dimensions ordered by total area ascending. Square sizes plus
 // half-height rectangles so glyphs that pack better wide can find a tighter fit.
-export const ATLAS_CANDIDATES: ReadonlyArray<readonly [number, number]> = [
+export const ATLAS_CANDIDATES: [number, number][] = [
   [64, 64],
   [128, 64],
   [128, 128],
