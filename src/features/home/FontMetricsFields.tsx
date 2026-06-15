@@ -2,6 +2,7 @@ import React from 'react';
 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { FONT_SIZE_MAX, FONT_SIZE_MIN } from '@/config';
 
 export const FontMetricsFields = ({
   fontSize,
@@ -32,8 +33,8 @@ export const FontMetricsFields = ({
             <Input
               className="w-24"
               type="number"
-              min={4}
-              max={256}
+              min={FONT_SIZE_MIN}
+              max={FONT_SIZE_MAX}
               value={fontSize}
               onChange={(event) => onFontSizeChange(Number(event.target.value))}
             />

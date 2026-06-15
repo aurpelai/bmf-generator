@@ -4,6 +4,12 @@ import { useNavigate } from 'react-router';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  BASE_RATIO,
+  CAP_HEIGHT_RATIO,
+  DEFAULT_FONT_SIZE,
+  LINE_HEIGHT_RATIO,
+} from '@/config';
 import { createProject, initializeGlyphs } from '@/core/project';
 import { GLYPH_SETS } from '@/core/project/glyphSets';
 import { saveGlyphs, saveProject } from '@/db';
@@ -30,10 +36,10 @@ export const NewFontWizard = ({ open, onOpenChange }: Props): React.JSX.Element 
   const [glyphSetId, setGlyphSetId] = useState(GLYPH_SETS[0].id);
 
   // Step 2
-  const [fontSize, setFontSize] = useState(32);
-  const [lineHeight, setLineHeight] = useState(Math.round(32 * 1.2));
-  const [base, setBase] = useState(Math.round(32 * 0.8));
-  const [capHeight, setCapHeight] = useState(Math.round(32 * 0.7));
+  const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE);
+  const [lineHeight, setLineHeight] = useState(Math.round(DEFAULT_FONT_SIZE * LINE_HEIGHT_RATIO));
+  const [base, setBase] = useState(Math.round(DEFAULT_FONT_SIZE * BASE_RATIO));
+  const [capHeight, setCapHeight] = useState(Math.round(DEFAULT_FONT_SIZE * CAP_HEIGHT_RATIO));
   const [paddingTop, setPaddingTop] = useState(1);
   const [paddingRight, setPaddingRight] = useState(1);
   const [paddingBottom, setPaddingBottom] = useState(1);
@@ -67,7 +73,7 @@ export const NewFontWizard = ({ open, onOpenChange }: Props): React.JSX.Element 
         project.id,
         glyphSet.codePoints,
         fontSize,
-        Math.round(fontSize * 1.2),
+        Math.round(fontSize * LINE_HEIGHT_RATIO),
       );
 
       await saveProject(project);
@@ -98,10 +104,10 @@ export const NewFontWizard = ({ open, onOpenChange }: Props): React.JSX.Element 
       setName('');
       setNameError('');
       setGlyphSetId(GLYPH_SETS[0].id);
-      setFontSize(32);
-      setLineHeight(Math.round(32 * 1.2));
-      setBase(Math.round(32 * 0.8));
-      setCapHeight(Math.round(32 * 0.7));
+      setFontSize(DEFAULT_FONT_SIZE);
+      setLineHeight(Math.round(DEFAULT_FONT_SIZE * LINE_HEIGHT_RATIO));
+      setBase(Math.round(DEFAULT_FONT_SIZE * BASE_RATIO));
+      setCapHeight(Math.round(DEFAULT_FONT_SIZE * CAP_HEIGHT_RATIO));
       setPaddingTop(1);
       setPaddingRight(1);
       setPaddingBottom(1);

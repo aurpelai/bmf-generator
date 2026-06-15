@@ -4,6 +4,12 @@ import { useNavigate } from 'react-router';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  BASE_RATIO,
+  CAP_HEIGHT_RATIO,
+  DEFAULT_FONT_SIZE,
+  LINE_HEIGHT_RATIO,
+} from '@/config';
 import type { BmfParseResult } from '@/core/bmf/parse';
 import { parseBmfText } from '@/core/bmf/parse';
 import type { RasterizedGlyph } from '@/core/font/rasterize';
@@ -125,10 +131,10 @@ export const ImportWizard = ({ open, onOpenChange }: Props): React.JSX.Element =
   const [nameError, setNameError] = useState('');
 
   // Step 2 — settings (shared, BMF pre-populates from parsed .fnt)
-  const [fontSize, setFontSize] = useState(32);
-  const [lineHeight, setLineHeight] = useState(Math.round(32 * 1.2));
-  const [base, setBase] = useState(Math.round(32 * 0.8));
-  const [capHeight, setCapHeight] = useState(Math.round(32 * 0.7));
+  const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE);
+  const [lineHeight, setLineHeight] = useState(Math.round(DEFAULT_FONT_SIZE * LINE_HEIGHT_RATIO));
+  const [base, setBase] = useState(Math.round(DEFAULT_FONT_SIZE * BASE_RATIO));
+  const [capHeight, setCapHeight] = useState(Math.round(DEFAULT_FONT_SIZE * CAP_HEIGHT_RATIO));
   const [glyphSetId, setGlyphSetId] = useState(GLYPH_SETS[0].id);
   const [paddingTop, setPaddingTop] = useState(1);
   const [paddingRight, setPaddingRight] = useState(1);
@@ -220,7 +226,7 @@ export const ImportWizard = ({ open, onOpenChange }: Props): React.JSX.Element =
         setFontSize(parsed.info.size);
         setLineHeight(parsed.common.lineHeight);
         setBase(parsed.common.base);
-        setCapHeight(Math.round((parsed.common.base * 0.7) / 0.8));
+        setCapHeight(Math.round((parsed.common.base * CAP_HEIGHT_RATIO) / BASE_RATIO));
         setPaddingTop(parsed.info.padding.top);
         setPaddingRight(parsed.info.padding.right);
         setPaddingBottom(parsed.info.padding.bottom);
@@ -430,10 +436,10 @@ export const ImportWizard = ({ open, onOpenChange }: Props): React.JSX.Element =
       setProjectName('');
       setNameError('');
       setImportPreset('all');
-      setFontSize(32);
-      setLineHeight(Math.round(32 * 1.2));
-      setBase(Math.round(32 * 0.8));
-      setCapHeight(Math.round(32 * 0.7));
+      setFontSize(DEFAULT_FONT_SIZE);
+      setLineHeight(Math.round(DEFAULT_FONT_SIZE * LINE_HEIGHT_RATIO));
+      setBase(Math.round(DEFAULT_FONT_SIZE * BASE_RATIO));
+      setCapHeight(Math.round(DEFAULT_FONT_SIZE * CAP_HEIGHT_RATIO));
       setGlyphSetId(GLYPH_SETS[0].id);
       setPaddingTop(1);
       setPaddingRight(1);
