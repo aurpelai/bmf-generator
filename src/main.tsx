@@ -11,8 +11,10 @@ import App from './App.tsx';
 document.documentElement.classList.add('dark');
 
 const spaRedirect = sessionStorage.getItem('spa-redirect');
+
 if (spaRedirect) {
   sessionStorage.removeItem('spa-redirect');
+
   if (spaRedirect.startsWith(import.meta.env.BASE_URL)) {
     history.replaceState(null, '', spaRedirect);
   }
