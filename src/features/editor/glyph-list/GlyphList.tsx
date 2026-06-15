@@ -169,6 +169,8 @@ export const GlyphList = ({
 
     pushUndo(selectedGlyph.codePoint, {
       pixels: new Uint8Array(selectedGlyph.pixels),
+      width: selectedGlyph.width,
+      height: selectedGlyph.height,
       xoffset: selectedGlyph.xoffset,
       yoffset: selectedGlyph.yoffset,
     });
@@ -386,9 +388,7 @@ export const GlyphList = ({
                 <div className="border-border/30 bg-muted/40 flex flex-col gap-1.5 border-b px-2 py-1.5">
                   {hasSourceFont && (
                     <div className="flex items-center gap-2">
-                      <Label className="text-muted-foreground shrink-0 text-[10px]">
-                        α cutoff
-                      </Label>
+                      <Label className="text-muted-foreground shrink-0 text-[10px]">α cutoff</Label>
                       <Slider
                         value={[glyph.alphaThreshold ?? currentProject.settings.alphaThreshold]}
                         min={0}

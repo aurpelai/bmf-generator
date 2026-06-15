@@ -12,13 +12,25 @@ interface Props {
 const TOOLS = [
   { key: 'B', tool: 'Pencil', description: 'Draw pixels onto the glyph' },
   { key: 'E', tool: 'Eraser', description: 'Erase pixels from the glyph' },
-  { key: 'M', tool: 'Move', description: 'Drag the glyph bitmap to reposition it' },
+  {
+    key: 'M',
+    tool: 'Move',
+    description: 'Drag the glyph to reposition it; drag anywhere else to pan the canvas',
+  },
   { key: 'Z', tool: 'Zoom', description: 'Click to zoom in; Alt+click to zoom out' },
 ];
 
 const MODIFIERS = [
   { keys: ['Alt'], description: 'Hold to invert the active tool (pencil↔eraser, zoom in↔out)' },
   { keys: ['Space'], description: 'Hold to temporarily activate the move tool' },
+];
+
+const NAVIGATION = [
+  { keys: ['Scroll'], description: 'Pan the canvas (two-finger trackpad or mouse wheel)' },
+  { keys: ['Ctrl', 'Scroll'], description: 'Zoom toward the cursor (also trackpad pinch)' },
+  { keys: ['Shift', '1'], description: 'Zoom to 100%' },
+  { keys: ['Shift', '0'], description: 'Zoom to fit' },
+  { keys: ['Arrow'], description: 'Nudge glyph offset by 1px (Move tool active)' },
 ];
 
 const SHORTCUTS = [
@@ -64,6 +76,18 @@ export const HelpOverlay = ({ open, onOpenChange }: Props): React.JSX.Element =>
               Tool modifiers
             </h3>
             {MODIFIERS.map(({ keys, description }) => (
+              <div key={keys.join('+')} className="flex items-center justify-between gap-4">
+                <span className="text-muted-foreground text-xs">{description}</span>
+                <Keys keys={keys} />
+              </div>
+            ))}
+          </section>
+
+          <section className="grid gap-1.5">
+            <h3 className="text-muted-foreground text-[10px] font-medium tracking-wider uppercase">
+              Navigation
+            </h3>
+            {NAVIGATION.map(({ keys, description }) => (
               <div key={keys.join('+')} className="flex items-center justify-between gap-4">
                 <span className="text-muted-foreground text-xs">{description}</span>
                 <Keys keys={keys} />

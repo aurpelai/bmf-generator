@@ -2,20 +2,25 @@ import {
   Grid2x2,
   Grid2x2X,
   ImageIcon,
+  Maximize2,
   Minus,
   Move,
   Pencil,
   Plus,
+  Redo2,
   SlidersHorizontal,
   Type,
+  Undo2,
   ZoomIn,
 } from 'lucide-react';
 import React from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { DEFAULT_ALPHA_THRESHOLD, MAX_BRUSH_SIZE, ZOOM_PRESETS } from '@/config';
+import { DEFAULT_ALPHA_THRESHOLD, MAX_BRUSH_SIZE, ZOOM_PRESETS, ZOOM_REFERENCE } from '@/config';
 import { saveProject } from '@/db';
+import { zoomToFitLevel } from '@/features/editor/pixel-editor/zoom-helpers';
+import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/store';
 
@@ -38,14 +43,16 @@ export const EditorToolbar = ({
   const setBrushSize = useStore((state) => state.setBrushSize);
   const zoomLevel = useStore((state) => state.zoomLevel);
   const setZoomLevel = useStore((state) => state.setZoomLevel);
+  const requestRecenter = useStore((state) => state.requestRecenter);
   const showGrid = useStore((state) => state.showGrid);
   const setShowGrid = useStore((state) => state.setShowGrid);
   const currentProject = useStore((state) => state.currentProject);
   const updateCurrentProject = useStore((state) => state.updateCurrentProject);
   const alphaThreshold = currentProject?.settings.alphaThreshold ?? DEFAULT_ALPHA_THRESHOLD;
+  const { undo, redo, canUndo, canRedo } = useUndoRedo();
 
   function zoomIn(): void {
-    const next = ZOOM_PRESETS.find((z) => z > zoomLevel);
+    const next = ZOOM_PRESETS.find((preset) => preset > zoomLevel);
 
     if (next) {
       setZoomLevel(next);
@@ -53,11 +60,30 @@ export const EditorToolbar = ({
   }
 
   function zoomOut(): void {
-    const next = [...ZOOM_PRESETS].reverse().find((z) => z < zoomLevel);
+    const next = [...ZOOM_PRESETS].reverse().find((preset) => preset < zoomLevel);
 
     if (next) {
       setZoomLevel(next);
     }
+  }
+
+  function zoomToReference(): void {
+    setZoomLevel(ZOOM_REFERENCE);
+    requestRecenter();
+  }
+
+  function zoomToFit(): void {
+    if (!currentProject) {
+      return;
+    }
+
+    const container = document.querySelector<HTMLElement>('[data-editor-canvas-container]');
+    const viewport = container
+      ? { width: container.clientWidth, height: container.clientHeight }
+      : { width: window.innerWidth, height: window.innerHeight };
+
+    setZoomLevel(zoomToFitLevel(currentProject.settings, viewport));
+    requestRecenter();
   }
 
   const toolBtn = (
@@ -82,6 +108,31 @@ export const EditorToolbar = ({
 
   return (
     <div className="border-border flex h-9 shrink-0 items-center gap-1 border-b px-2">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-7 w-7"
+        title="Undo (Cmd+Z)"
+        aria-label="Undo"
+        onClick={undo}
+        disabled={!canUndo}
+      >
+        <Undo2 className="h-3.5 w-3.5" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-7 w-7"
+        title="Redo (Cmd+Shift+Z)"
+        aria-label="Redo"
+        onClick={redo}
+        disabled={!canRedo}
+      >
+        <Redo2 className="h-3.5 w-3.5" />
+      </Button>
+
+      <div className="bg-border mx-1 h-5 w-px" />
+
       {toolBtn('pencil', <Pencil className="h-3.5 w-3.5" />, 'Pencil (B)')}
       {toolBtn('eraser', <Grid2x2X className="h-3.5 w-3.5" />, 'Eraser (E)')}
 
@@ -121,6 +172,70 @@ export const EditorToolbar = ({
         </Button>
       </div>
 
+      <div className="bg-border mx-1 h-5 w-px" />
+
+      {toolBtn('move', <Move className="h-3.5 w-3.5" />, 'Move (M)')}
+      {toolBtn('zoom', <ZoomIn className="h-3.5 w-3.5" />, 'Zoom (Z)')}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-7 w-7"
+        title="Zoom out"
+        aria-label="Zoom out"
+        onClick={zoomOut}
+        disabled={zoomLevel <= ZOOM_PRESETS[0]}
+      >
+        <Minus className="h-3.5 w-3.5" />
+      </Button>
+      <span
+        className="text-muted-foreground w-8 text-center text-xs"
+        aria-label={`Zoom ${Math.round(zoomLevel * 10) / 10}×`}
+      >
+        {Math.round(zoomLevel * 10) / 10}×
+      </span>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-7 w-7"
+        title="Zoom in"
+        aria-label="Zoom in"
+        onClick={zoomIn}
+        disabled={zoomLevel >= ZOOM_PRESETS[ZOOM_PRESETS.length - 1]}
+      >
+        <Plus className="h-3.5 w-3.5" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-7 px-2 text-xs"
+        title="Zoom to 100% (Shift+1)"
+        aria-label="Zoom to 100%"
+        onClick={zoomToReference}
+      >
+        100%
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-7 w-7"
+        title="Zoom to fit (Shift+0)"
+        aria-label="Zoom to fit"
+        onClick={zoomToFit}
+      >
+        <Maximize2 className="h-3.5 w-3.5" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        title="Toggle grid (G)"
+        aria-label="Toggle grid"
+        aria-pressed={showGrid}
+        className={cn('h-7 w-7', showGrid && 'bg-accent text-accent-foreground')}
+        onClick={() => setShowGrid(!showGrid)}
+      >
+        <Grid2x2 className="h-3.5 w-3.5" />
+      </Button>
+
       {currentProject?.settings.sourceFontId && (
         <>
           <div className="bg-border mx-1 h-5 w-px" />
@@ -159,50 +274,6 @@ export const EditorToolbar = ({
 
       <div className="bg-border mx-1 h-5 w-px" />
 
-      {toolBtn('move', <Move className="h-3.5 w-3.5" />, 'Move (M)')}
-      {toolBtn('zoom', <ZoomIn className="h-3.5 w-3.5" />, 'Zoom (Z)')}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-7 w-7"
-        title="Zoom out"
-        aria-label="Zoom out"
-        onClick={zoomOut}
-        disabled={zoomLevel <= ZOOM_PRESETS[0]}
-      >
-        <Minus className="h-3.5 w-3.5" />
-      </Button>
-      <span
-        className="text-muted-foreground w-8 text-center text-xs"
-        aria-label={`Zoom ${zoomLevel}×`}
-      >
-        {zoomLevel}×
-      </span>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-7 w-7"
-        title="Zoom in"
-        aria-label="Zoom in"
-        onClick={zoomIn}
-        disabled={zoomLevel >= ZOOM_PRESETS[ZOOM_PRESETS.length - 1]}
-      >
-        <Plus className="h-3.5 w-3.5" />
-      </Button>
-
-      <div className="bg-border mx-1 h-5 w-px" />
-
-      <Button
-        variant="ghost"
-        size="icon"
-        title="Toggle grid (G)"
-        aria-label="Toggle grid"
-        aria-pressed={showGrid}
-        className={cn('h-7 w-7', showGrid && 'bg-accent text-accent-foreground')}
-        onClick={() => setShowGrid(!showGrid)}
-      >
-        <Grid2x2 className="h-3.5 w-3.5" />
-      </Button>
       <Button
         variant="ghost"
         size="icon"

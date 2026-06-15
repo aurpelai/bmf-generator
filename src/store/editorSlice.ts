@@ -14,6 +14,8 @@ export type EditorTool = 'pencil' | 'eraser' | 'move' | 'zoom';
 
 export interface GlyphSnapshot {
   pixels: Uint8Array;
+  width: number;
+  height: number;
   xoffset: number;
   yoffset: number;
 }
@@ -24,6 +26,9 @@ export interface EditorSlice {
   brushSize: number;
   zoomLevel: number;
   showGrid: boolean;
+  // Monotonically incrementing counter bumped whenever the editor should
+  // recenter the canvas inside its scroll container (zoom-to-fit, 100%, etc.).
+  pendingRecenter: number;
   // Per-glyph undo stacks: codePoint → stack of glyph snapshots
   undoStacks: Record<number, GlyphSnapshot[]>;
   redoStacks: Record<number, GlyphSnapshot[]>;
@@ -32,6 +37,7 @@ export interface EditorSlice {
   setBrushSize: (size: number) => void;
   setZoomLevel: (zoom: number) => void;
   setShowGrid: (show: boolean) => void;
+  requestRecenter: () => void;
   pushUndo: (codePoint: number, snapshot: GlyphSnapshot) => void;
   /** Undo the last edit; pass the current glyph state so it can be pushed onto the redo stack. */
   undo: (codePoint: number, current: GlyphSnapshot) => GlyphSnapshot | null;
@@ -45,6 +51,7 @@ export const createEditorSlice: StateCreator<EditorSlice> = (set, get) => ({
   brushSize: INITIAL_BRUSH_SIZE,
   zoomLevel: ZOOM_DEFAULT,
   showGrid: INITIAL_SHOW_GRID,
+  pendingRecenter: 0,
   undoStacks: {},
   redoStacks: {},
   setSelectedCodePoint: (codePoint) => set({ selectedCodePoint: codePoint }),
@@ -52,6 +59,7 @@ export const createEditorSlice: StateCreator<EditorSlice> = (set, get) => ({
   setBrushSize: (size) => set({ brushSize: Math.max(1, Math.min(MAX_BRUSH_SIZE, size)) }),
   setZoomLevel: (zoom) => set({ zoomLevel: Math.max(1, Math.min(ZOOM_MAX, zoom)) }),
   setShowGrid: (show) => set({ showGrid: show }),
+  requestRecenter: () => set((state) => ({ pendingRecenter: state.pendingRecenter + 1 })),
   pushUndo: (codePoint, snapshot) =>
     set((state) => {
       const stack = [...(state.undoStacks[codePoint] ?? [])];
