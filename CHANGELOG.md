@@ -2,6 +2,45 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.2.0
+
+[compare changes](https://github.com/aurpelai/bmf-generator/compare/v1.1.2...v1.2.0)
+
+### 🚀 Enhancements
+
+- Figma-like editor UX ([c1e6e1e](https://github.com/aurpelai/bmf-generator/commit/c1e6e1e))
+
+### 🩹 Fixes
+
+- Keep pixel grid centred when glyph overflows the cell ([79fc21b](https://github.com/aurpelai/bmf-generator/commit/79fc21b))
+- Unify toast durations at 2s ([14f2c96](https://github.com/aurpelai/bmf-generator/commit/14f2c96))
+- Surface atlas overflow to the user via toast ([5ec853b](https://github.com/aurpelai/bmf-generator/commit/5ec853b))
+
+### 💅 Refactors
+
+- Scaffold src/config/ for tunable constants ([8f7c43b](https://github.com/aurpelai/bmf-generator/commit/8f7c43b))
+- Replace ZOOM_PRESETS/MIN/MAX duplicates with src/config/zoom ([bb44de1](https://github.com/aurpelai/bmf-generator/commit/bb44de1))
+- Move pixel-editor magic numbers to src/config ([fc4a843](https://github.com/aurpelai/bmf-generator/commit/fc4a843))
+- Move project default settings and wizard ratios to src/config ([68ba2a6](https://github.com/aurpelai/bmf-generator/commit/68ba2a6))
+- Move ATLAS_CANDIDATES to src/config/atlas ([3da5efe](https://github.com/aurpelai/bmf-generator/commit/3da5efe))
+- Move editor state defaults and limits to src/config ([269699a](https://github.com/aurpelai/bmf-generator/commit/269699a))
+- Move glyph-list layout sizes to src/config ([98beb6b](https://github.com/aurpelai/bmf-generator/commit/98beb6b))
+- Move UI debounce and toast durations to src/config ([674db32](https://github.com/aurpelai/bmf-generator/commit/674db32))
+- Move preview defaults and fallback ratios to src/config ([c106202](https://github.com/aurpelai/bmf-generator/commit/c106202))
+- Extract shared PixelInput from padding/spacing fields ([ab11cdb](https://github.com/aurpelai/bmf-generator/commit/ab11cdb))
+
+### 🏡 Chore
+
+- Clear remaining eslint errors ([ca96757](https://github.com/aurpelai/bmf-generator/commit/ca96757))
+
+### 🤖 CI
+
+- Run eslint on every pull request ([ae5751e](https://github.com/aurpelai/bmf-generator/commit/ae5751e))
+
+### ❤️ Contributors
+
+- Antti Urpelainen <antti.urpelainen@gmail.com>
+
 ## v1.1.2
 
 [compare changes](https://github.com/aurpelai/bmf-generator/compare/v1.1.1...v1.1.2)
