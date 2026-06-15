@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useRef } from 'react';
 
 import {
   AUTO_SAVE_TOAST_DELAY_MS,
-  AUTO_SAVE_TOAST_DURATION_MS,
   BRUSH_RESIZE_WHEEL_THRESHOLD,
   GRID_MIN_ZOOM,
   GUTTER_LEFT_PAD_PX,
@@ -11,6 +10,7 @@ import {
   LABEL_SIZE_MIN_PX,
   LABEL_SIZE_SCALE,
   OVERFLOW_PADDING_MULTIPLIER,
+  TOAST_DURATION_MS,
   ZOOM_MAX,
   ZOOM_MIN,
   ZOOM_PRESETS,
@@ -571,7 +571,7 @@ export const PixelEditor = (): React.JSX.Element => {
         autoSaveToastShown.current = true;
         setTimeout(() => {
           autoSaveToastShown.current = false;
-        }, AUTO_SAVE_TOAST_DURATION_MS);
+        }, TOAST_DURATION_MS);
       }, AUTO_SAVE_TOAST_DELAY_MS);
     }
 
