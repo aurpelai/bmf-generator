@@ -14,11 +14,10 @@ import React from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
+import { ZOOM_PRESETS } from '@/config';
 import { saveProject } from '@/db';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/store';
-
-const ZOOM_PRESETS = [2, 4, 8, 12, 16, 24, 32];
 
 interface EditorToolbarProps {
   atlasOpen: boolean;

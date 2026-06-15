@@ -1,5 +1,7 @@
 import type { StateCreator } from 'zustand';
 
+import { ZOOM_DEFAULT, ZOOM_MAX } from '@/config';
+
 export type EditorTool = 'pencil' | 'eraser' | 'move' | 'zoom';
 
 export interface GlyphSnapshot {
@@ -35,14 +37,14 @@ export const createEditorSlice: StateCreator<EditorSlice> = (set, get) => ({
   selectedCodePoint: null,
   activeTool: 'pencil',
   brushSize: 1,
-  zoomLevel: 8,
+  zoomLevel: ZOOM_DEFAULT,
   showGrid: true,
   undoStacks: {},
   redoStacks: {},
   setSelectedCodePoint: (codePoint) => set({ selectedCodePoint: codePoint }),
   setActiveTool: (tool) => set({ activeTool: tool }),
   setBrushSize: (size) => set({ brushSize: Math.max(1, Math.min(8, size)) }),
-  setZoomLevel: (zoom) => set({ zoomLevel: Math.max(1, Math.min(32, zoom)) }),
+  setZoomLevel: (zoom) => set({ zoomLevel: Math.max(1, Math.min(ZOOM_MAX, zoom)) }),
   setShowGrid: (show) => set({ showGrid: show }),
   pushUndo: (codePoint, snapshot) =>
     set((state) => {

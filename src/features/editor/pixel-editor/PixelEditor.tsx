@@ -1,13 +1,10 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 
+import { ZOOM_MAX, ZOOM_MIN, ZOOM_PRESETS } from '@/config';
 import { effectiveThreshold } from '@/core/project/threshold';
 import type { Glyph } from '@/core/project/types';
 import { saveGlyphs } from '@/db/glyphs';
 import { useStore } from '@/store';
-
-const MIN_ZOOM = 2;
-const MAX_ZOOM = 32;
-const ZOOM_PRESETS = [2, 4, 8, 12, 16, 24, 32];
 
 function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
@@ -588,7 +585,7 @@ export const PixelEditor = (): React.JSX.Element => {
     } else {
       const delta = e.deltaY < 0 ? 1 : -1;
 
-      setZoomLevel(clamp(zoomLevel + delta, MIN_ZOOM, MAX_ZOOM));
+      setZoomLevel(clamp(zoomLevel + delta, ZOOM_MIN, ZOOM_MAX));
     }
   }
 
