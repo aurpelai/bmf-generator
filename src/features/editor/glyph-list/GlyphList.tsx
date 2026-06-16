@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import type { Glyph } from '@/core/project';
 import { makeBlankGlyph } from '@/core/project';
+import { cloneLayers, makeBaseLayerFromBitmap, syncLegacyFields } from '@/core/project/layers';
 import { deleteGlyph, getFontFile, saveGlyphs } from '@/db';
 import { useRasterize } from '@/hooks/useRasterize';
 import { cn } from '@/lib/utils';
@@ -129,16 +130,21 @@ export const GlyphList = ({
         return;
       }
 
-      const updated: Glyph = {
+      // Reset from the source font discards all user-edited layers and replaces them with one fresh base layer.
+      const updated: Glyph = syncLegacyFields({
         ...selectedGlyph,
-        pixels: rg.pixels,
-        width: rg.width,
-        height: rg.height,
-        xoffset: rg.xoffset,
-        yoffset: rg.yoffset,
+        layers: [
+          makeBaseLayerFromBitmap({
+            pixels: rg.pixels,
+            width: rg.width,
+            height: rg.height,
+            xoffset: rg.xoffset,
+            yoffset: rg.yoffset,
+          }),
+        ],
         xadvance: rg.xadvance,
         isDirty: false,
-      };
+      });
 
       upsertGlyph(updated);
       await saveGlyphs([updated]);
@@ -167,18 +173,21 @@ export const GlyphList = ({
       return;
     }
 
-    pushUndo(selectedGlyph.codePoint, {
-      pixels: new Uint8Array(selectedGlyph.pixels),
-      width: selectedGlyph.width,
-      height: selectedGlyph.height,
-      xoffset: selectedGlyph.xoffset,
-      yoffset: selectedGlyph.yoffset,
-    });
-    const cleared: Glyph = {
+    pushUndo(selectedGlyph.codePoint, { layers: cloneLayers(selectedGlyph.layers) });
+    // Clear every layer (preserve their metadata: id, name, color, visibility, etc).
+    const clearedLayers = selectedGlyph.layers.map((layer) => ({
+      ...layer,
+      pixels: new Uint8Array(0),
+      width: 0,
+      height: 0,
+      xoffset: 0,
+      yoffset: 0,
+    }));
+    const cleared: Glyph = syncLegacyFields({
       ...selectedGlyph,
-      pixels: new Uint8Array(selectedGlyph.width * selectedGlyph.height),
+      layers: clearedLayers,
       isDirty: true,
-    };
+    });
 
     upsertGlyph(cleared);
     await saveGlyphs([cleared]);

@@ -10,6 +10,7 @@ import {
   GLYPH_LIST_MIN_WIDTH_PX,
   ZOOM_REFERENCE,
 } from '@/config';
+import { cloneLayers, syncLegacyFields } from '@/core/project/layers';
 import { getGlyphsForProject } from '@/db/glyphs';
 import { saveGlyphs } from '@/db/glyphs';
 import { ExportDialog } from '@/features/export/ExportDialog';
@@ -247,20 +248,19 @@ export const EditorScreen = (): React.JSX.Element => {
         const dx = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0;
         const dy = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
 
-        pushUndo(selectedCodePoint, {
-          pixels: new Uint8Array(glyph.pixels),
-          width: glyph.width,
-          height: glyph.height,
-          xoffset: glyph.xoffset,
-          yoffset: glyph.yoffset,
-        });
+        pushUndo(selectedCodePoint, { layers: cloneLayers(glyph.layers) });
 
-        const updated = {
+        // Arrow-key nudge moves every layer together (preserves the whole-glyph translation behaviour).
+        const shiftedLayers = glyph.layers.map((layer) => ({
+          ...layer,
+          xoffset: layer.xoffset + dx,
+          yoffset: layer.yoffset + dy,
+        }));
+        const updated = syncLegacyFields({
           ...glyph,
-          xoffset: glyph.xoffset + dx,
-          yoffset: glyph.yoffset + dy,
+          layers: shiftedLayers,
           isDirty: true,
-        };
+        });
 
         upsertGlyph(updated);
         void saveGlyphs([updated]);

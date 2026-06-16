@@ -1,6 +1,20 @@
 import { describe, expect, it } from 'vitest';
 
-import { flattenGlyph, makeBaseLayerFromBitmap, makeBlankLayer } from './layers';
+import { MAX_LAYERS_PER_GLYPH } from '@/config';
+
+import {
+  addLayer,
+  cycleHitLayer,
+  flattenGlyph,
+  hitTestLayer,
+  makeBaseLayerFromBitmap,
+  makeBlankLayer,
+  removeLayer,
+  reorderLayers,
+  syncLegacyFields,
+  updateLayer,
+  updateLayerPixels,
+} from './layers';
 import type { Glyph, Layer } from './types';
 
 function makeGlyph(layers: Layer[]): Glyph {
@@ -126,5 +140,164 @@ describe('makeBaseLayerFromBitmap', () => {
     expect(layer.yoffset).toBe(9);
     expect(layer.name).toBe('Base');
     expect(layer.visible).toBe(true);
+  });
+});
+
+describe('hitTestLayer', () => {
+  it('returns the topmost visible layer with ink at the cell', () => {
+    const lower = inkLayer(2, 1, 0, 0, [200, 200]);
+    const upper = { ...inkLayer(2, 1, 1, 0, [255, 0]), id: 'upper' };
+    const result = hitTestLayer(makeGlyph([lower, upper]), 1, 0, 128);
+
+    expect(result?.id).toBe('upper');
+  });
+
+  it('skips hidden and locked layers', () => {
+    const hidden = { ...inkLayer(1, 1, 0, 0, [255]), id: 'hidden', visible: false };
+    const locked = { ...inkLayer(1, 1, 0, 0, [255]), id: 'locked', locked: true };
+    const visible = { ...inkLayer(1, 1, 0, 0, [255]), id: 'visible' };
+    const result = hitTestLayer(makeGlyph([hidden, locked, visible]), 0, 0, 128);
+
+    expect(result?.id).toBe('visible');
+  });
+
+  it('returns null when no layer is inked under the cell', () => {
+    const layer = inkLayer(2, 1, 0, 0, [0, 0]);
+
+    expect(hitTestLayer(makeGlyph([layer]), 0, 0, 128)).toBeNull();
+  });
+
+  it('respects the threshold value', () => {
+    const layer = inkLayer(1, 1, 0, 0, [100]);
+
+    expect(hitTestLayer(makeGlyph([layer]), 0, 0, 50)).not.toBeNull();
+    expect(hitTestLayer(makeGlyph([layer]), 0, 0, 150)).toBeNull();
+  });
+});
+
+describe('cycleHitLayer', () => {
+  it('returns the next layer beneath the current one under the cursor', () => {
+    const a = { ...inkLayer(1, 1, 0, 0, [255]), id: 'a' };
+    const b = { ...inkLayer(1, 1, 0, 0, [255]), id: 'b' };
+    const c = { ...inkLayer(1, 1, 0, 0, [255]), id: 'c' };
+    // layers ordered bottom-to-top: a, b, c. hits iterate top→bottom: [c, b, a].
+    const glyph = makeGlyph([a, b, c]);
+
+    expect(cycleHitLayer(glyph, 0, 0, 128, 'c')?.id).toBe('b');
+    expect(cycleHitLayer(glyph, 0, 0, 128, 'b')?.id).toBe('a');
+    expect(cycleHitLayer(glyph, 0, 0, 128, 'a')?.id).toBe('c');
+  });
+
+  it('returns the only hit when just one layer is inked', () => {
+    const a = { ...inkLayer(1, 1, 0, 0, [255]), id: 'a' };
+
+    expect(cycleHitLayer(makeGlyph([a]), 0, 0, 128, 'a')?.id).toBe('a');
+  });
+});
+
+describe('layer mutators', () => {
+  it('addLayer appends a fresh layer up to the cap', () => {
+    let glyph = makeGlyph([makeBlankLayer()]);
+
+    for (let index = 1; index < MAX_LAYERS_PER_GLYPH; index++) {
+      glyph = addLayer(glyph);
+    }
+
+    expect(glyph.layers.length).toBe(MAX_LAYERS_PER_GLYPH);
+
+    const capped = addLayer(glyph);
+
+    expect(capped.layers.length).toBe(MAX_LAYERS_PER_GLYPH);
+    expect(capped).toBe(glyph);
+  });
+
+  it('removeLayer refuses to leave a glyph with zero layers', () => {
+    const onlyLayer = makeBlankLayer();
+    const glyph = makeGlyph([onlyLayer]);
+    const result = removeLayer(glyph, onlyLayer.id);
+
+    expect(result.layers.length).toBe(1);
+    expect(result).toBe(glyph);
+  });
+
+  it('removeLayer drops the matching layer', () => {
+    const first = makeBlankLayer({ index: 0 });
+    const second = makeBlankLayer({ index: 1 });
+    const result = removeLayer(makeGlyph([first, second]), second.id);
+
+    expect(result.layers.length).toBe(1);
+    expect(result.layers[0].id).toBe(first.id);
+  });
+
+  it('reorderLayers moves a layer to a new index', () => {
+    const a = makeBlankLayer({ index: 0 });
+    const b = makeBlankLayer({ index: 1 });
+    const c = makeBlankLayer({ index: 2 });
+    const result = reorderLayers(makeGlyph([a, b, c]), 0, 2);
+
+    expect(result.layers.map((layer) => layer.id)).toEqual([b.id, c.id, a.id]);
+  });
+
+  it('updateLayer patches the matching layer without touching others', () => {
+    const a = makeBlankLayer({ index: 0 });
+    const b = makeBlankLayer({ index: 1 });
+    const result = updateLayer(makeGlyph([a, b]), b.id, { visible: false, name: 'Renamed' });
+
+    expect(result.layers[0]).toBe(a);
+    expect(result.layers[1].visible).toBe(false);
+    expect(result.layers[1].name).toBe('Renamed');
+  });
+
+  it('updateLayerPixels writes the new buffer and rect on the target layer', () => {
+    const original = makeBlankLayer();
+    const glyph = makeGlyph([original]);
+    const newPixels = new Uint8Array([1, 2, 3, 4]);
+    const result = updateLayerPixels(glyph, original.id, {
+      pixels: newPixels,
+      width: 2,
+      height: 2,
+      xoffset: 5,
+      yoffset: 6,
+    });
+
+    expect(result.layers[0].pixels).toBe(newPixels);
+    expect(result.layers[0].width).toBe(2);
+    expect(result.layers[0].xoffset).toBe(5);
+  });
+
+  it('layer mutators keep the legacy fields in sync with flattenGlyph', () => {
+    const layer = inkLayer(2, 1, 3, 4, [255, 128]);
+    const result = updateLayer(makeGlyph([layer]), layer.id, { xoffset: 10 });
+
+    expect(result.width).toBe(2);
+    expect(result.height).toBe(1);
+    expect(result.xoffset).toBe(10);
+    expect(result.yoffset).toBe(4);
+    expect(Array.from(result.pixels)).toEqual([255, 128]);
+  });
+});
+
+describe('syncLegacyFields', () => {
+  it('rewrites the legacy bitmap fields to match the layer stack', () => {
+    const layer = inkLayer(2, 1, 7, 8, [99, 100]);
+    const stale: Glyph = {
+      codePoint: 0x41,
+      projectId: 'project-1',
+      layers: [layer],
+      pixels: new Uint8Array([0, 0, 0, 0]),
+      width: 9999,
+      height: 9999,
+      xoffset: 9999,
+      yoffset: 9999,
+      xadvance: 0,
+      isDirty: false,
+    };
+    const result = syncLegacyFields(stale);
+
+    expect(result.width).toBe(2);
+    expect(result.height).toBe(1);
+    expect(result.xoffset).toBe(7);
+    expect(result.yoffset).toBe(8);
+    expect(Array.from(result.pixels)).toEqual([99, 100]);
   });
 });

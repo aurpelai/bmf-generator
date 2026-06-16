@@ -17,6 +17,7 @@ import {
   ZOOM_PRESETS,
   ZOOM_WHEEL_SENSITIVITY,
 } from '@/config';
+import { cloneLayers } from '@/core/project/layers';
 import { effectiveThreshold } from '@/core/project/threshold';
 import type { Glyph } from '@/core/project/types';
 import { saveGlyphs } from '@/db/glyphs';
@@ -794,13 +795,7 @@ export const PixelEditor = (): React.JSX.Element => {
 
       if (overGlyph && currentGlyph) {
         // Glyph drag — undoable.
-        pushUndo(currentGlyph.codePoint, {
-          pixels: new Uint8Array(currentGlyph.pixels),
-          width: currentGlyph.width,
-          height: currentGlyph.height,
-          xoffset: currentGlyph.xoffset,
-          yoffset: currentGlyph.yoffset,
-        });
+        pushUndo(currentGlyph.codePoint, { layers: cloneLayers(currentGlyph.layers) });
         stateRef.current.moveOrigin = {
           x: event.clientX,
           y: event.clientY,
@@ -834,13 +829,7 @@ export const PixelEditor = (): React.JSX.Element => {
     }
 
     event.currentTarget.setPointerCapture(event.pointerId);
-    pushUndo(currentGlyph.codePoint, {
-      pixels: new Uint8Array(currentGlyph.pixels),
-      width: currentGlyph.width,
-      height: currentGlyph.height,
-      xoffset: currentGlyph.xoffset,
-      yoffset: currentGlyph.yoffset,
-    });
+    pushUndo(currentGlyph.codePoint, { layers: cloneLayers(currentGlyph.layers) });
     stateRef.current.isDrawing = true;
     stateRef.current.lastPixel = -1;
     stateRef.current.moveOrigin = null;

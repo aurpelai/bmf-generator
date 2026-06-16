@@ -1,4 +1,4 @@
-import { DEFAULT_LAYER_PALETTE } from '@/config';
+import { DEFAULT_LAYER_PALETTE, MAX_LAYERS_PER_GLYPH } from '@/config';
 
 import type { Glyph, Layer } from './types';
 
@@ -137,4 +137,195 @@ export function flattenGlyph(glyph: Glyph, options: FlattenOptions = {}): Flatte
   }
 
   return { pixels, width, height, xoffset: minX, yoffset: minY };
+}
+
+/** Deep-clones a layer stack (independent pixel buffers) for use as an undo snapshot. */
+export function cloneLayers(layers: Layer[]): Layer[] {
+  return layers.map((layer) => ({ ...layer, pixels: new Uint8Array(layer.pixels) }));
+}
+
+/**
+ * Refresh the legacy top-level pixel fields on a Glyph from its `layers` array.
+ *
+ * Maintains the Stage A invariant: every Glyph in memory and at rest has its
+ * legacy fields equal to flattenGlyph(glyph). Will be removed in Stage B once
+ * the editor and export pipeline read `layers` directly.
+ */
+export function syncLegacyFields(glyph: Glyph): Glyph {
+  const flat = flattenGlyph(glyph);
+
+  return {
+    ...glyph,
+    pixels: flat.pixels,
+    width: flat.width,
+    height: flat.height,
+    xoffset: flat.xoffset,
+    yoffset: flat.yoffset,
+  };
+}
+
+/** Returns the topmost visible inked layer under the given cell (in glyph cell-space), or null. */
+export function hitTestLayer(glyph: Glyph, cellX: number, cellY: number, threshold: number): Layer | null {
+  for (let layerIndex = glyph.layers.length - 1; layerIndex >= 0; layerIndex--) {
+    const layer = glyph.layers[layerIndex];
+
+    if (!layer.visible || layer.locked) {
+      continue;
+    }
+
+    const localX = cellX - layer.xoffset;
+    const localY = cellY - layer.yoffset;
+
+    if (localX < 0 || localY < 0 || localX >= layer.width || localY >= layer.height) {
+      continue;
+    }
+
+    const value = layer.pixels[localY * layer.width + localX];
+
+    if (value >= threshold) {
+      return layer;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Returns the layer directly beneath `currentLayerId` under the given cell, wrapping to the top
+ * of the stack if `currentLayerId` is the bottommost hit. Used to cycle the move tool's grab target.
+ */
+export function cycleHitLayer(
+  glyph: Glyph,
+  cellX: number,
+  cellY: number,
+  threshold: number,
+  currentLayerId: string,
+): Layer | null {
+  const hits: Layer[] = [];
+
+  for (let layerIndex = glyph.layers.length - 1; layerIndex >= 0; layerIndex--) {
+    const layer = glyph.layers[layerIndex];
+
+    if (!layer.visible || layer.locked) {
+      continue;
+    }
+
+    const localX = cellX - layer.xoffset;
+    const localY = cellY - layer.yoffset;
+
+    if (localX < 0 || localY < 0 || localX >= layer.width || localY >= layer.height) {
+      continue;
+    }
+
+    if (layer.pixels[localY * layer.width + localX] >= threshold) {
+      hits.push(layer);
+    }
+  }
+
+  if (hits.length <= 1) {
+    return hits[0] ?? null;
+  }
+
+  const currentIndex = hits.findIndex((layer) => layer.id === currentLayerId);
+
+  if (currentIndex === -1) {
+    return hits[0];
+  }
+
+  return hits[(currentIndex + 1) % hits.length];
+}
+
+function replaceLayer(glyph: Glyph, layerId: string, replacement: Layer): Glyph {
+  return syncLegacyFields({
+    ...glyph,
+    layers: glyph.layers.map((layer) => (layer.id === layerId ? replacement : layer)),
+  });
+}
+
+export function addLayer(glyph: Glyph): Glyph {
+  if (glyph.layers.length >= MAX_LAYERS_PER_GLYPH) {
+    return glyph;
+  }
+
+  const newLayer = makeBlankLayer({ index: glyph.layers.length });
+
+  return syncLegacyFields({ ...glyph, layers: [...glyph.layers, newLayer] });
+}
+
+export function removeLayer(glyph: Glyph, layerId: string): Glyph {
+  if (glyph.layers.length <= 1) {
+    return glyph;
+  }
+
+  const next = glyph.layers.filter((layer) => layer.id !== layerId);
+
+  if (next.length === glyph.layers.length) {
+    return glyph;
+  }
+
+  return syncLegacyFields({ ...glyph, layers: next });
+}
+
+export function reorderLayers(glyph: Glyph, fromIndex: number, toIndex: number): Glyph {
+  if (
+    fromIndex === toIndex ||
+    fromIndex < 0 ||
+    toIndex < 0 ||
+    fromIndex >= glyph.layers.length ||
+    toIndex >= glyph.layers.length
+  ) {
+    return glyph;
+  }
+
+  const next = [...glyph.layers];
+  const [moved] = next.splice(fromIndex, 1);
+
+  next.splice(toIndex, 0, moved);
+
+  return syncLegacyFields({ ...glyph, layers: next });
+}
+
+interface LayerPatch {
+  name?: string;
+  visible?: boolean;
+  preview?: boolean;
+  color?: string;
+  locked?: boolean;
+  xoffset?: number;
+  yoffset?: number;
+}
+
+export function updateLayer(glyph: Glyph, layerId: string, patch: LayerPatch): Glyph {
+  const target = glyph.layers.find((layer) => layer.id === layerId);
+
+  if (!target) {
+    return glyph;
+  }
+
+  return replaceLayer(glyph, layerId, { ...target, ...patch });
+}
+
+export interface LayerPixelsPatch {
+  pixels: Uint8Array;
+  width: number;
+  height: number;
+  xoffset: number;
+  yoffset: number;
+}
+
+export function updateLayerPixels(glyph: Glyph, layerId: string, patch: LayerPixelsPatch): Glyph {
+  const target = glyph.layers.find((layer) => layer.id === layerId);
+
+  if (!target) {
+    return glyph;
+  }
+
+  return replaceLayer(glyph, layerId, {
+    ...target,
+    pixels: patch.pixels,
+    width: patch.width,
+    height: patch.height,
+    xoffset: patch.xoffset,
+    yoffset: patch.yoffset,
+  });
 }
