@@ -139,6 +139,58 @@ export function flattenGlyph(glyph: Glyph, options: FlattenOptions = {}): Flatte
   return { pixels, width, height, xoffset: minX, yoffset: minY };
 }
 
+export interface LayerBounds {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+/**
+ * Union bbox of the named layers, optionally shifted by a (dx, dy) translation.
+ * Returns null if no inked layers were named (or all named layers are 0-sized).
+ */
+export function unionLayerBounds(
+  glyph: Glyph,
+  layerIds: readonly string[],
+  shift: { dx: number; dy: number } | null,
+): LayerBounds | null {
+  if (layerIds.length === 0) {
+    return null;
+  }
+
+  const dx = shift?.dx ?? 0;
+  const dy = shift?.dy ?? 0;
+  let left = Infinity;
+  let top = Infinity;
+  let right = -Infinity;
+  let bottom = -Infinity;
+  let found = false;
+
+  for (const layer of glyph.layers) {
+    if (!layerIds.includes(layer.id) || layer.width === 0 || layer.height === 0) {
+      continue;
+    }
+
+    const layerLeft = layer.xoffset + dx;
+    const layerTop = layer.yoffset + dy;
+    const layerRight = layerLeft + layer.width;
+    const layerBottom = layerTop + layer.height;
+
+    if (layerLeft < left) {left = layerLeft;}
+
+    if (layerTop < top) {top = layerTop;}
+
+    if (layerRight > right) {right = layerRight;}
+
+    if (layerBottom > bottom) {bottom = layerBottom;}
+
+    found = true;
+  }
+
+  return found ? { left, top, right, bottom } : null;
+}
+
 /** Deep-clones a layer stack (independent pixel buffers) for use as an undo snapshot. */
 export function cloneLayers(layers: Layer[]): Layer[] {
   return layers.map((layer) => ({ ...layer, pixels: new Uint8Array(layer.pixels) }));

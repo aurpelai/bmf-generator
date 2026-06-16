@@ -17,7 +17,14 @@ import {
   ZOOM_PRESETS,
   ZOOM_WHEEL_SENSITIVITY,
 } from '@/config';
-import { cloneLayers, updateLayerPixels } from '@/core/project/layers';
+import {
+  cloneLayers,
+  cycleHitLayer,
+  hitTestLayer,
+  syncLegacyFields,
+  unionLayerBounds,
+  updateLayerPixels,
+} from '@/core/project/layers';
 import { effectiveThreshold } from '@/core/project/threshold';
 import type { Glyph, Layer } from '@/core/project/types';
 import { saveGlyphs } from '@/db/glyphs';
@@ -56,6 +63,7 @@ export const PixelEditor = (): React.JSX.Element => {
   const currentProject = useStore((state) => state.currentProject);
   const activeLayerId = useStore((state) => state.activeLayerId);
   const setActiveLayerId = useStore((state) => state.setActiveLayerId);
+  const multiSelectLayerIds = useStore((state) => state.multiSelectLayerIds);
 
   const autoSaveToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoSaveToastShown = useRef(false);
@@ -66,6 +74,7 @@ export const PixelEditor = (): React.JSX.Element => {
   // lifting it to React state keeps the cursor in sync without flicker.
   const [overGrab, setOverGrab] = useState(false);
 
+  const initialMoveLayerOrigins: Record<string, { xoffset: number; yoffset: number }> = {};
   const stateRef = useRef({
     glyph,
     activeTool,
@@ -73,11 +82,17 @@ export const PixelEditor = (): React.JSX.Element => {
     zoomLevel,
     showGrid,
     activeLayerId: null as string | null,
+    multiSelectLayerIds: [] as string[],
     overGrab: false,
     isDrawing: false,
     lastPixel: -1,
     cursorCell: null as { col: number; row: number } | null,
-    moveOrigin: null as { x: number; y: number; xoffset: number; yoffset: number } | null,
+    // Layer IDs the move tool would grab right now under the cursor. Recomputed on hover.
+    // Empty when the cursor is over empty space — in that case the move tool falls back to canvas pan.
+    hoverGrabLayerIds: [] as string[],
+    moveOrigin: null as { x: number; y: number } | null,
+    // Pre-drag offsets per moved layer, captured at pointerdown.
+    moveLayerOrigins: initialMoveLayerOrigins,
     moveDelta: { dx: 0, dy: 0 },
     isPanning: false,
     panOrigin: null as {
@@ -118,6 +133,7 @@ export const PixelEditor = (): React.JSX.Element => {
     stateRef.current.zoomLevel = zoomLevel;
     stateRef.current.showGrid = showGrid;
     stateRef.current.activeLayerId = activeLayerId;
+    stateRef.current.multiSelectLayerIds = multiSelectLayerIds;
     stateRef.current.overGrab = overGrab;
   });
 
@@ -155,29 +171,31 @@ export const PixelEditor = (): React.JSX.Element => {
     const { fontSize, lineHeight, base, capHeight } = project.settings;
 
     // During a move drag the store is not updated — offsets live only in stateRef.
-    // layoutXoffset/Y use the original offsets so the grid stays fixed.
-    // renderXoffset/Y apply the current drag delta for pixel rendering only.
-    const origin = stateRef.current.moveOrigin;
+    // Only the layers being dragged are shifted by (dx, dy); other layers stay put.
+    const moveLayerOrigins = stateRef.current.moveLayerOrigins;
+    const movingLayerIds = Object.keys(moveLayerOrigins);
+    const dragging = movingLayerIds.length > 0;
     const { dx, dy } = stateRef.current.moveDelta;
     const layoutXoffset = currentGlyph?.xoffset ?? 0;
     const layoutYoffset = currentGlyph?.yoffset ?? 0;
-    const renderXoffset = origin ? origin.xoffset + dx : layoutXoffset;
-    const renderYoffset = origin ? origin.yoffset + dy : layoutYoffset;
-
-    // The layout bounding box covers both the original and dragged-to glyph
-    // position so panning during a drag never reveals empty canvas.
+    // dragBounds expands the layout to cover both the original and dragged glyph
+    // positions so panning during a drag never reveals empty canvas. We use the
+    // glyph-level (flat) bounds shifted by (dx, dy) as a slightly loose upper bound.
     const container = containerRef.current;
     const dragBounds = currentGlyph
-      ? {
-          xoffset: Math.min(layoutXoffset, renderXoffset),
-          yoffset: Math.min(layoutYoffset, renderYoffset),
-          width:
-            Math.max(layoutXoffset + currentGlyph.width, renderXoffset + currentGlyph.width) -
-            Math.min(layoutXoffset, renderXoffset),
-          height:
-            Math.max(layoutYoffset + currentGlyph.height, renderYoffset + currentGlyph.height) -
-            Math.min(layoutYoffset, renderYoffset),
-        }
+      ? dragging
+        ? {
+            xoffset: Math.min(layoutXoffset, layoutXoffset + dx),
+            yoffset: Math.min(layoutYoffset, layoutYoffset + dy),
+            width: currentGlyph.width + Math.abs(dx),
+            height: currentGlyph.height + Math.abs(dy),
+          }
+        : {
+            xoffset: layoutXoffset,
+            yoffset: layoutYoffset,
+            width: currentGlyph.width,
+            height: currentGlyph.height,
+          }
       : null;
     const layout = computeCanvasLayout(
       project.settings,
@@ -232,22 +250,18 @@ export const PixelEditor = (): React.JSX.Element => {
     context.fillRect(cellX, cellY, fontSize * zoom, lineHeight * zoom);
 
     // Glyph pixels — render each visible layer bottom-up.
-    // During a move drag every layer follows the cursor (whole-glyph move semantics
-    // for now; per-layer dragging arrives in a follow-up commit).
+    // Layers being dragged are shifted by (dx, dy); other layers stay at rest.
     if (currentGlyph) {
       const threshold = effectiveThreshold(currentGlyph, project.settings);
-      // Move drag offsets the rendered layer position; layoutXoffset/Y are still the
-      // glyph-level offsets used by isOverGlyphGrab and the layout bbox.
-      const moveDX = renderXoffset - layoutXoffset;
-      const moveDY = renderYoffset - layoutYoffset;
 
       for (const layer of currentGlyph.layers) {
         if (!layer.visible || layer.width === 0 || layer.height === 0) {
           continue;
         }
 
-        const layerOriginX = layer.xoffset + moveDX;
-        const layerOriginY = layer.yoffset + moveDY;
+        const beingMoved = layer.id in moveLayerOrigins;
+        const layerOriginX = layer.xoffset + (beingMoved ? dx : 0);
+        const layerOriginY = layer.yoffset + (beingMoved ? dy : 0);
         const inkColor = layer.preview ? layer.color : 'rgb(255,255,255)';
 
         for (let row = 0; row < layer.height; row++) {
@@ -323,30 +337,26 @@ export const PixelEditor = (): React.JSX.Element => {
       context.restore();
     }
 
-    // Move-tool grab outline — drawn around the glyph's pixel rect when the
-    // cursor is over the grab region. Skipped while actively dragging the glyph.
-    if (
-      stateRef.current.activeTool === 'move' &&
-      stateRef.current.overGrab &&
-      !stateRef.current.moveOrigin &&
-      currentGlyph &&
-      currentGlyph.width > 0 &&
-      currentGlyph.height > 0
-    ) {
-      // Outline encloses the full grab region — the glyph rect expanded by
-      // GLYPH_GRAB_PADDING_CELLS on every side, matching isOverGlyphGrab.
-      const padding = GLYPH_GRAB_PADDING_CELLS;
-      const rectX = (renderXoffset - padding - originX) * zoom + 0.5;
-      const rectY = (renderYoffset - padding - originY) * zoom + 0.5;
-      const rectWidth = (currentGlyph.width + padding * 2) * zoom - 1;
-      const rectHeight = (currentGlyph.height + padding * 2) * zoom - 1;
+    // Move-tool grab outline — wraps the layers under the cursor (or being
+    // dragged). Skipped if the move tool isn't active or no layers are picked.
+    if (stateRef.current.activeTool === 'move' && currentGlyph) {
+      const outlineIds = dragging ? movingLayerIds : stateRef.current.hoverGrabLayerIds;
+      const outlineBox = unionLayerBounds(currentGlyph, outlineIds, dragging ? { dx, dy } : null);
 
-      context.save();
-      context.strokeStyle = GLYPH_GRAB_OUTLINE_COLOR;
-      context.lineWidth = 1;
-      context.setLineDash([]);
-      context.strokeRect(rectX, rectY, rectWidth, rectHeight);
-      context.restore();
+      if (outlineBox) {
+        const padding = GLYPH_GRAB_PADDING_CELLS;
+        const rectX = (outlineBox.left - padding - originX) * zoom + 0.5;
+        const rectY = (outlineBox.top - padding - originY) * zoom + 0.5;
+        const rectWidth = (outlineBox.right - outlineBox.left + padding * 2) * zoom - 1;
+        const rectHeight = (outlineBox.bottom - outlineBox.top + padding * 2) * zoom - 1;
+
+        context.save();
+        context.strokeStyle = GLYPH_GRAB_OUTLINE_COLOR;
+        context.lineWidth = 1;
+        context.setLineDash([]);
+        context.strokeRect(rectX, rectY, rectWidth, rectHeight);
+        context.restore();
+      }
     }
 
     // Grid overlay (cell area only)
@@ -677,25 +687,28 @@ export const PixelEditor = (): React.JSX.Element => {
     return cellFromClientPoint(event.clientX, event.clientY);
   }
 
-  // Move-tool hit-test: is the cell inside the glyph's pixel rect, expanded by
-  // GLYPH_GRAB_PADDING_CELLS for a forgiving target on thin glyphs? Empty
-  // glyphs (0×0) fall back to a single-cell grab target at the offset point.
-  function isOverGlyphGrab(cell: { col: number; row: number } | null): boolean {
+  /**
+   * Returns the layer IDs the move tool would grab at the given cell.
+   * - If the user has a multi-selection in the layer panel, return those IDs (whole-glyph-style move).
+   * - Otherwise hit-test the topmost visible inked layer under the cursor.
+   * - Returns [] if nothing is under the cursor → move tool falls back to canvas pan.
+   */
+  function moveGrabLayerIds(cell: { col: number; row: number } | null): string[] {
     const currentGlyph = stateRef.current.glyph;
+    const project = currentProject;
 
-    if (!cell || !currentGlyph) {
-      return false;
+    if (!cell || !currentGlyph || !project) {
+      return [];
     }
 
-    const padding = GLYPH_GRAB_PADDING_CELLS;
-    const width = Math.max(1, currentGlyph.width);
-    const height = Math.max(1, currentGlyph.height);
-    const left = currentGlyph.xoffset - padding;
-    const top = currentGlyph.yoffset - padding;
-    const right = currentGlyph.xoffset + width + padding;
-    const bottom = currentGlyph.yoffset + height + padding;
+    if (stateRef.current.multiSelectLayerIds.length > 0) {
+      return stateRef.current.multiSelectLayerIds;
+    }
 
-    return cell.col >= left && cell.col < right && cell.row >= top && cell.row < bottom;
+    const threshold = effectiveThreshold(currentGlyph, project.settings);
+    const hit = hitTestLayer(currentGlyph, cell.col, cell.row, threshold);
+
+    return hit ? [hit.id] : [];
   }
 
   function resolveTargetLayer(currentGlyph: Glyph): Layer | null {
@@ -860,22 +873,53 @@ export const PixelEditor = (): React.JSX.Element => {
       return;
     }
 
-    // Move tool — branches into glyph-drag (over the glyph rect) or canvas-pan.
+    // Move tool — branches into layer-drag (over an inked layer) or canvas-pan.
     if (stateRef.current.activeTool === 'move') {
       const cell = cellFromEvent(event);
-      const overGlyph = isOverGlyphGrab(cell);
+      let targetIds = moveGrabLayerIds(cell);
+      const project = currentProject;
+
+      // Alt+click cycles to the next layer underneath the current pick (Figma-like
+      // "click through"). Only meaningful when not in multi-select mode.
+      if (
+        targetIds.length === 1 &&
+        event.altKey &&
+        currentGlyph &&
+        project &&
+        cell &&
+        stateRef.current.multiSelectLayerIds.length === 0
+      ) {
+        const threshold = effectiveThreshold(currentGlyph, project.settings);
+        const next = cycleHitLayer(currentGlyph, cell.col, cell.row, threshold, targetIds[0]);
+
+        if (next) {
+          targetIds = [next.id];
+        }
+      }
 
       event.currentTarget.setPointerCapture(event.pointerId);
 
-      if (overGlyph && currentGlyph) {
-        // Glyph drag — undoable.
+      if (targetIds.length > 0 && currentGlyph) {
+        // Layer drag — undoable.
         pushUndo(currentGlyph.codePoint, { layers: cloneLayers(currentGlyph.layers) });
-        stateRef.current.moveOrigin = {
-          x: event.clientX,
-          y: event.clientY,
-          xoffset: currentGlyph.xoffset,
-          yoffset: currentGlyph.yoffset,
-        };
+
+        const origins: Record<string, { xoffset: number; yoffset: number }> = {};
+
+        for (const layer of currentGlyph.layers) {
+          if (targetIds.includes(layer.id)) {
+            origins[layer.id] = { xoffset: layer.xoffset, yoffset: layer.yoffset };
+          }
+        }
+
+        stateRef.current.moveOrigin = { x: event.clientX, y: event.clientY };
+        stateRef.current.moveLayerOrigins = origins;
+
+        // Promote a single-layer hit to the active layer so subsequent paint
+        // strokes target the layer the user just grabbed.
+        if (targetIds.length === 1 && stateRef.current.multiSelectLayerIds.length === 0) {
+          setActiveLayerId(targetIds[0]);
+        }
+
         stateRef.current.isDrawing = true;
         (event.currentTarget as HTMLCanvasElement).style.cursor = 'grabbing';
       } else {
@@ -925,7 +969,7 @@ export const PixelEditor = (): React.JSX.Element => {
       return;
     }
 
-    // Active glyph drag — move tool with moveOrigin set.
+    // Active layer drag — move tool with moveOrigin set.
     if (stateRef.current.activeTool === 'move' && stateRef.current.moveOrigin) {
       const origin = stateRef.current.moveOrigin;
       const zoom = stateRef.current.zoomLevel;
@@ -939,15 +983,24 @@ export const PixelEditor = (): React.JSX.Element => {
       return;
     }
 
-    // Move tool, hovering — recompute over-glyph state for the outline + cursor.
+    // Move tool, hovering — recompute the picked layer(s) for the outline + cursor.
     if (stateRef.current.activeTool === 'move') {
       const cell = cellFromEvent(event);
-      const overGlyph = isOverGlyphGrab(cell);
+      const grabIds = moveGrabLayerIds(cell);
+      const wasGrabbing = stateRef.current.hoverGrabLayerIds;
+      const changed =
+        grabIds.length !== wasGrabbing.length ||
+        grabIds.some((id, index) => id !== wasGrabbing[index]);
 
       stateRef.current.cursorCell = cell;
+      stateRef.current.hoverGrabLayerIds = grabIds;
+
+      const overGlyph = grabIds.length > 0;
 
       if (overGlyph !== stateRef.current.overGrab) {
         setOverGrab(overGlyph);
+      } else if (changed) {
+        drawCanvas();
       }
 
       return;
@@ -967,6 +1020,7 @@ export const PixelEditor = (): React.JSX.Element => {
 
   function onPointerLeave(): void {
     stateRef.current.cursorCell = null;
+    stateRef.current.hoverGrabLayerIds = [];
 
     if (stateRef.current.overGrab) {
       setOverGrab(false);
@@ -1003,16 +1057,24 @@ export const PixelEditor = (): React.JSX.Element => {
     let didSave = false;
 
     if (stateRef.current.activeTool === 'move' && currentGlyph && stateRef.current.moveOrigin) {
-      const { xoffset, yoffset } = stateRef.current.moveOrigin;
       const { dx, dy } = stateRef.current.moveDelta;
+      const origins = stateRef.current.moveLayerOrigins;
 
-      if (dx !== 0 || dy !== 0) {
-        const updated: Glyph = {
+      if ((dx !== 0 || dy !== 0) && Object.keys(origins).length > 0) {
+        const shiftedLayers = currentGlyph.layers.map((layer) => {
+          const origin = origins[layer.id];
+
+          if (!origin) {
+            return layer;
+          }
+
+          return { ...layer, xoffset: origin.xoffset + dx, yoffset: origin.yoffset + dy };
+        });
+        const updated: Glyph = syncLegacyFields({
           ...currentGlyph,
-          xoffset: xoffset + dx,
-          yoffset: yoffset + dy,
+          layers: shiftedLayers,
           isDirty: true,
-        };
+        });
 
         upsertGlyph(updated);
         void saveGlyphs([updated]);
@@ -1043,6 +1105,7 @@ export const PixelEditor = (): React.JSX.Element => {
     stateRef.current.isDrawing = false;
     stateRef.current.lastPixel = -1;
     stateRef.current.moveOrigin = null;
+    stateRef.current.moveLayerOrigins = {};
     stateRef.current.moveDelta = { dx: 0, dy: 0 };
   }
 
