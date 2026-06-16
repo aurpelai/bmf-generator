@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.3.0
+
+[compare changes](https://github.com/aurpelai/bmf-generator/compare/v1.2.0...v1.3.0)
+
+### 🚀 Enhancements
+
+- Add layer data model and v2 migration ([f7150e4](https://github.com/aurpelai/bmf-generator/commit/f7150e4))
+- Layer-aware store, mutators, and undo ([73a0e34](https://github.com/aurpelai/bmf-generator/commit/73a0e34))
+- Render layers and target the active layer when drawing ([f03ddbf](https://github.com/aurpelai/bmf-generator/commit/f03ddbf))
+- Layer-aware move tool with hit-testing ([b490a78](https://github.com/aurpelai/bmf-generator/commit/b490a78))
+- Layer panel UI ([e3781a8](https://github.com/aurpelai/bmf-generator/commit/e3781a8))
+- Flatten layers before atlas packing ([6113c6b](https://github.com/aurpelai/bmf-generator/commit/6113c6b))
+- White base layer, drop magenta from layer palette ([d945955](https://github.com/aurpelai/bmf-generator/commit/d945955))
+- Drag-and-drop layer reordering in LayerPanel ([e120592](https://github.com/aurpelai/bmf-generator/commit/e120592))
+- Collapsible LayerPanel with cmd+' integration ([4c74ad9](https://github.com/aurpelai/bmf-generator/commit/4c74ad9))
+
+### 🩹 Fixes
+
+- Anchor empty layers at first paint and trim buffers to inked bounds ([ec640d6](https://github.com/aurpelai/bmf-generator/commit/ec640d6))
+- Anchor editor floats to the canvas, not the layer panel ([d5a2a32](https://github.com/aurpelai/bmf-generator/commit/d5a2a32))
+- Anchor AtlasFloat top spacing to its new positioning ancestor ([e320698](https://github.com/aurpelai/bmf-generator/commit/e320698))
+
+### 💅 Refactors
+
+- Match LayerPanel heading style to GlyphList ([410ed59](https://github.com/aurpelai/bmf-generator/commit/410ed59))
+- Unify list-row interactions in glyph and layer panels ([f8e647a](https://github.com/aurpelai/bmf-generator/commit/f8e647a))
+- Store layer color as palette index and refresh the palette ([126166b](https://github.com/aurpelai/bmf-generator/commit/126166b))
+- Tidy sidebar icons and unify collapse-button states ([8320add](https://github.com/aurpelai/bmf-generator/commit/8320add))
+
+### ❤️ Contributors
+
+- Antti Urpelainen <antti.urpelainen@gmail.com>
+
 ## v1.2.0
 
 [compare changes](https://github.com/aurpelai/bmf-generator/compare/v1.1.2...v1.2.0)
