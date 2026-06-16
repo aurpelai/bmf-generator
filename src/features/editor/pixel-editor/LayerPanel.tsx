@@ -126,7 +126,7 @@ export const LayerPanel = (): React.JSX.Element | null => {
       className="border-border bg-card flex w-56 shrink-0 flex-col border-l"
     >
       <header className="border-border flex items-center justify-between border-b px-3 py-2">
-        <span className="text-xs font-medium uppercase tracking-wide">Layers</span>
+        <span className="text-muted-foreground text-xs font-medium">Layers</span>
         <Button
           variant="ghost"
           size="icon"
