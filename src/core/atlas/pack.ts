@@ -1,5 +1,6 @@
 import { ATLAS_CANDIDATES } from '@/config';
 
+import { flattenGlyph } from '../project/layers';
 import { effectiveThreshold } from '../project/threshold';
 import type { FontSettings, Glyph, GlyphPlacement } from '../project/types';
 import { pack } from './maxrects';
@@ -27,7 +28,10 @@ interface TrimmedGlyph {
 }
 
 function trimGlyph(glyph: Glyph, threshold: number): TrimmedGlyph {
-  const { width, height, pixels } = glyph;
+  // Flatten the layer stack first — the export pipeline only cares about the
+  // composited result, not how the user organised their layers.
+  const flat = flattenGlyph(glyph);
+  const { width, height, pixels } = flat;
 
   let minX = width,
     maxX = -1,
