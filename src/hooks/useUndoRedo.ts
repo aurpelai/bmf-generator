@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 
+import { cloneLayers, syncLegacyFields } from '@/core/project/layers';
 import { saveGlyphs } from '@/db/glyphs';
 import { useStore } from '@/store';
 
@@ -37,27 +38,17 @@ export function useUndoRedo(): UseUndoRedoResult {
       return;
     }
 
-    const snapshot = undoAction(selectedCodePoint, {
-      pixels: new Uint8Array(glyph.pixels),
-      width: glyph.width,
-      height: glyph.height,
-      xoffset: glyph.xoffset,
-      yoffset: glyph.yoffset,
-    });
+    const snapshot = undoAction(selectedCodePoint, { layers: cloneLayers(glyph.layers) });
 
     if (!snapshot) {
       return;
     }
 
-    const updated = {
+    const updated = syncLegacyFields({
       ...glyph,
-      pixels: snapshot.pixels,
-      width: snapshot.width,
-      height: snapshot.height,
-      xoffset: snapshot.xoffset,
-      yoffset: snapshot.yoffset,
+      layers: snapshot.layers,
       isDirty: true,
-    };
+    });
 
     upsertGlyph(updated);
     void saveGlyphs([updated]);
@@ -74,27 +65,17 @@ export function useUndoRedo(): UseUndoRedoResult {
       return;
     }
 
-    const snapshot = redoAction(selectedCodePoint, {
-      pixels: new Uint8Array(glyph.pixels),
-      width: glyph.width,
-      height: glyph.height,
-      xoffset: glyph.xoffset,
-      yoffset: glyph.yoffset,
-    });
+    const snapshot = redoAction(selectedCodePoint, { layers: cloneLayers(glyph.layers) });
 
     if (!snapshot) {
       return;
     }
 
-    const updated = {
+    const updated = syncLegacyFields({
       ...glyph,
-      pixels: snapshot.pixels,
-      width: snapshot.width,
-      height: snapshot.height,
-      xoffset: snapshot.xoffset,
-      yoffset: snapshot.yoffset,
+      layers: snapshot.layers,
       isDirty: true,
-    };
+    });
 
     upsertGlyph(updated);
     void saveGlyphs([updated]);

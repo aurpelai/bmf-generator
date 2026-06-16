@@ -1,5 +1,6 @@
 import { useCallback, useRef } from 'react';
 
+import { flattenGlyph } from '@/core/project/layers';
 import type { Glyph, GlyphPlacement } from '@/core/project/types';
 import type { AtlasWorkerRequest, AtlasWorkerResponse } from '@/workers/atlas.worker';
 
@@ -80,9 +81,25 @@ export function useAtlas(): {
         const id = crypto.randomUUID();
 
         pendingRef.current.set(id, { resolve, reject });
+        // Flatten each glyph's layers into the legacy single-bitmap shape before
+        // posting to the worker. Keeps the worker's input contract stable and
+        // means Stage B (which drops the legacy top-level fields from the in-memory
+        // Glyph type) won't need to ship flattenGlyph into the worker bundle.
+        const flattenedGlyphs: Glyph[] = glyphs.map((glyph) => {
+          const flat = flattenGlyph(glyph);
+
+          return {
+            ...glyph,
+            pixels: flat.pixels,
+            width: flat.width,
+            height: flat.height,
+            xoffset: flat.xoffset,
+            yoffset: flat.yoffset,
+          };
+        });
         const req: AtlasWorkerRequest = {
           id,
-          glyphs,
+          glyphs: flattenedGlyphs,
           atlasWidth: 0,
           atlasHeight: 0,
           padding,

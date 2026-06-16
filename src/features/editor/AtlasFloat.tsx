@@ -108,7 +108,7 @@ export const AtlasFloat = ({ open, onClose }: Props): React.JSX.Element => {
 
   return (
     <div
-      className={`border-border/50 bg-popover absolute top-12 right-3 z-40 w-56 rounded-xl border shadow-lg transition-opacity ${
+      className={`border-border/50 bg-popover absolute top-3 right-3 z-40 w-56 rounded-xl border shadow-lg transition-opacity ${
         open ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
       }`}
     >

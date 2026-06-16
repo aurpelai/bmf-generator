@@ -10,6 +10,7 @@ import {
   GLYPH_LIST_MIN_WIDTH_PX,
   ZOOM_REFERENCE,
 } from '@/config';
+import { cloneLayers, syncLegacyFields, trimLayerToInk } from '@/core/project/layers';
 import { getGlyphsForProject } from '@/db/glyphs';
 import { saveGlyphs } from '@/db/glyphs';
 import { ExportDialog } from '@/features/export/ExportDialog';
@@ -20,6 +21,7 @@ import type { EditorTool } from '@/store/editorSlice';
 import { AtlasFloat } from './AtlasFloat';
 import { GlyphList } from './glyph-list/GlyphList';
 import { HelpOverlay } from './HelpOverlay';
+import { LayerPanel } from './pixel-editor/LayerPanel';
 import { PixelEditor } from './pixel-editor/PixelEditor';
 import { zoomToFitLevel } from './pixel-editor/zoom-helpers';
 import { PreviewFloat } from './PreviewFloat';
@@ -114,7 +116,18 @@ export const EditorScreen = (): React.JSX.Element => {
       return;
     }
 
-    void getGlyphsForProject(currentProject.id).then(setGlyphs);
+    void getGlyphsForProject(currentProject.id).then((loaded) =>
+      // Re-tighten every layer's buffer to its inked bounds on load — repairs
+      // any glyphs saved before the trim-on-write fix in updateLayerPixels.
+      setGlyphs(
+        loaded.map((loadedGlyph) =>
+          syncLegacyFields({
+            ...loadedGlyph,
+            layers: loadedGlyph.layers.map((layer) => trimLayerToInk(layer)),
+          }),
+        ),
+      ),
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentProject?.id]);
 
@@ -247,20 +260,19 @@ export const EditorScreen = (): React.JSX.Element => {
         const dx = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0;
         const dy = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
 
-        pushUndo(selectedCodePoint, {
-          pixels: new Uint8Array(glyph.pixels),
-          width: glyph.width,
-          height: glyph.height,
-          xoffset: glyph.xoffset,
-          yoffset: glyph.yoffset,
-        });
+        pushUndo(selectedCodePoint, { layers: cloneLayers(glyph.layers) });
 
-        const updated = {
+        // Arrow-key nudge moves every layer together (preserves the whole-glyph translation behaviour).
+        const shiftedLayers = glyph.layers.map((layer) => ({
+          ...layer,
+          xoffset: layer.xoffset + dx,
+          yoffset: layer.yoffset + dy,
+        }));
+        const updated = syncLegacyFields({
           ...glyph,
-          xoffset: glyph.xoffset + dx,
-          yoffset: glyph.yoffset + dy,
+          layers: shiftedLayers,
           isDirty: true,
-        };
+        });
 
         upsertGlyph(updated);
         void saveGlyphs([updated]);
@@ -412,16 +424,24 @@ export const EditorScreen = (): React.JSX.Element => {
           />
         )}
 
-        <div className="relative flex flex-1 flex-col overflow-hidden">
+        <div className="flex flex-1 flex-col overflow-hidden">
           <EditorToolbar
             atlasOpen={atlasOpen}
             previewOpen={previewOpen}
             onAtlasToggle={() => setAtlasOpen((value) => !value)}
             onPreviewToggle={() => setPreviewOpen((value) => !value)}
           />
-          <PixelEditor />
-          <AtlasFloat open={atlasOpen} onClose={() => setAtlasOpen(false)} />
-          <PreviewFloat open={previewOpen} onClose={() => setPreviewOpen(false)} />
+          <div className="flex flex-1 overflow-hidden">
+            {/* The relative wrapper anchors floating panels (AtlasFloat,
+                PreviewFloat) so their right/bottom positions are measured
+                against the canvas area, not the side rail. */}
+            <div className="relative flex flex-1 overflow-hidden">
+              <PixelEditor />
+              <AtlasFloat open={atlasOpen} onClose={() => setAtlasOpen(false)} />
+              <PreviewFloat open={previewOpen} onClose={() => setPreviewOpen(false)} />
+            </div>
+            <LayerPanel />
+          </div>
         </div>
       </div>
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />

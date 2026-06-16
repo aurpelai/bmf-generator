@@ -29,17 +29,35 @@ export interface Project {
   glyphs: number[]; // ordered list of Unicode code points
 }
 
-export interface Glyph {
-  codePoint: number;
-  projectId: string;
+export interface Layer {
+  id: string;
+  name: string;
   pixels: Uint8Array; // 8-bit greyscale, width × height bytes
   width: number;
   height: number;
   xoffset: number;
   yoffset: number;
+  visible: boolean;
+  // When true the editor renders the layer in its tint colour; when false it renders white (final look).
+  preview: boolean;
+  // Editor-only tint colour (e.g. CSS oklch string). Ignored at export time.
+  color: string;
+  locked: boolean;
+}
+
+export interface Glyph {
+  codePoint: number;
+  projectId: string;
+  // Stage A invariant: layers[0] mirrors the legacy top-level pixel fields exactly.
+  // Stage B will make layers authoritative and drop the legacy fields.
+  layers: Layer[];
+  pixels: Uint8Array;
+  width: number;
+  height: number;
+  xoffset: number;
+  yoffset: number;
   xadvance: number;
-  isDirty: boolean; // true when edited vs font-derived original
-  // Optional per-glyph alpha cutoff override. Undefined → use FontSettings.alphaThreshold.
+  isDirty: boolean;
   alphaThreshold?: number;
 }
 

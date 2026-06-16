@@ -1,10 +1,12 @@
+import { makeBaseLayerFromBitmap } from './layers';
 import type { Glyph, Project } from './types';
 
 export interface PortableProject {
   version: 1;
   project: Project;
-  // Pixels serialized as base64 strings to survive JSON round-trip
-  glyphs: Array<Omit<Glyph, 'pixels'> & { pixels: string }>;
+  // Pixels serialized as base64 strings to survive JSON round-trip.
+  // Layers are intentionally not serialized in v1 — they're reconstructed from the legacy bitmap on import.
+  glyphs: Array<Omit<Glyph, 'pixels' | 'layers'> & { pixels: string }>;
 }
 
 function toBase64(buf: Uint8Array): string {
@@ -32,7 +34,22 @@ export function exportPortableProject(project: Project, glyphs: Glyph[]): string
   const portable: PortableProject = {
     version: 1,
     project,
-    glyphs: glyphs.map((glyph) => ({ ...glyph, pixels: toBase64(glyph.pixels) })),
+    glyphs: glyphs.map((glyph) => {
+      // Drop `layers` from the serialized payload; v1 portable bundles store the legacy bitmap shape only.
+      const rest: Omit<Glyph, 'pixels' | 'layers'> = {
+        codePoint: glyph.codePoint,
+        projectId: glyph.projectId,
+        width: glyph.width,
+        height: glyph.height,
+        xoffset: glyph.xoffset,
+        yoffset: glyph.yoffset,
+        xadvance: glyph.xadvance,
+        isDirty: glyph.isDirty,
+        alphaThreshold: glyph.alphaThreshold,
+      };
+
+      return { ...rest, pixels: toBase64(glyph.pixels) };
+    }),
   };
 
   return JSON.stringify(portable, null, 2);
@@ -49,10 +66,23 @@ export function importPortableProject(json: string): { project: Project; glyphs:
     throw new Error('Invalid project bundle: missing project data');
   }
 
-  const glyphs: Glyph[] = data.glyphs.map((glyph) => ({
-    ...glyph,
-    pixels: fromBase64(glyph.pixels),
-  }));
+  const glyphs: Glyph[] = data.glyphs.map((glyph) => {
+    const pixels = fromBase64(glyph.pixels);
+
+    return {
+      ...glyph,
+      pixels,
+      layers: [
+        makeBaseLayerFromBitmap({
+          pixels,
+          width: glyph.width,
+          height: glyph.height,
+          xoffset: glyph.xoffset,
+          yoffset: glyph.yoffset,
+        }),
+      ],
+    };
+  });
 
   return { project: data.project, glyphs };
 }
