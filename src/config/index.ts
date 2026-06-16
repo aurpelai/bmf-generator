@@ -1,6 +1,7 @@
 export * from './atlas';
 export * from './editor-layout';
 export * from './editor-state';
+export * from './layers';
 export * from './pixel-editor';
 export * from './preview';
 export * from './project-defaults';

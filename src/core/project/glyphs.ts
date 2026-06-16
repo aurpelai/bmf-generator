@@ -1,3 +1,4 @@
+import { makeBlankLayer } from './layers';
 import type { Glyph } from './types';
 
 export function makeBlankGlyph(
@@ -9,6 +10,7 @@ export function makeBlankGlyph(
   return {
     codePoint,
     projectId,
+    layers: [makeBlankLayer()],
     pixels: new Uint8Array(width * height),
     width,
     height,

@@ -14,7 +14,12 @@ import {
 import type { BmfParseResult } from '@/core/bmf/parse';
 import { parseBmfText } from '@/core/bmf/parse';
 import type { RasterizedGlyph } from '@/core/font/rasterize';
-import { createProject, makeBlankGlyph } from '@/core/project';
+import {
+  createProject,
+  makeBaseLayerFromBitmap,
+  makeBlankGlyph,
+  makeBlankLayer,
+} from '@/core/project';
 import { GLYPH_SETS } from '@/core/project/glyphSets';
 import type { Glyph } from '@/core/project/types';
 import { saveFontFile, saveGlyphs } from '@/db/glyphs';
@@ -77,6 +82,7 @@ function sliceGlyphsFromAtlas(
       return {
         codePoint: char.id,
         projectId,
+        layers: [makeBlankLayer()],
         pixels: new Uint8Array(0),
         width: 0,
         height: 0,
@@ -106,6 +112,15 @@ function sliceGlyphsFromAtlas(
     return {
       codePoint: char.id,
       projectId,
+      layers: [
+        makeBaseLayerFromBitmap({
+          pixels,
+          width: char.width,
+          height: char.height,
+          xoffset: char.xoffset,
+          yoffset: char.yoffset,
+        }),
+      ],
       pixels,
       width: char.width,
       height: char.height,
@@ -359,6 +374,15 @@ export const ImportWizard = ({ open, onOpenChange }: Props): React.JSX.Element =
         const glyphs: Glyph[] = (previewGlyphs as RasterizedGlyph[]).map((rasterizedGlyph) => ({
           codePoint: rasterizedGlyph.codePoint,
           projectId: project.id,
+          layers: [
+            makeBaseLayerFromBitmap({
+              pixels: rasterizedGlyph.pixels,
+              width: rasterizedGlyph.width,
+              height: rasterizedGlyph.height,
+              xoffset: rasterizedGlyph.xoffset,
+              yoffset: rasterizedGlyph.yoffset,
+            }),
+          ],
           pixels: rasterizedGlyph.pixels,
           width: rasterizedGlyph.width,
           height: rasterizedGlyph.height,
