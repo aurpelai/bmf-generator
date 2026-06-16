@@ -17,9 +17,9 @@ import {
   ZOOM_PRESETS,
   ZOOM_WHEEL_SENSITIVITY,
 } from '@/config';
-import { cloneLayers } from '@/core/project/layers';
+import { cloneLayers, updateLayerPixels } from '@/core/project/layers';
 import { effectiveThreshold } from '@/core/project/threshold';
-import type { Glyph } from '@/core/project/types';
+import type { Glyph, Layer } from '@/core/project/types';
 import { saveGlyphs } from '@/db/glyphs';
 import { useStore } from '@/store';
 
@@ -54,6 +54,8 @@ export const PixelEditor = (): React.JSX.Element => {
   const pushUndo = useStore((state) => state.pushUndo);
   const addToast = useStore((state) => state.addToast);
   const currentProject = useStore((state) => state.currentProject);
+  const activeLayerId = useStore((state) => state.activeLayerId);
+  const setActiveLayerId = useStore((state) => state.setActiveLayerId);
 
   const autoSaveToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoSaveToastShown = useRef(false);
@@ -70,6 +72,7 @@ export const PixelEditor = (): React.JSX.Element => {
     brushSize,
     zoomLevel,
     showGrid,
+    activeLayerId: null as string | null,
     overGrab: false,
     isDrawing: false,
     lastPixel: -1,
@@ -114,8 +117,29 @@ export const PixelEditor = (): React.JSX.Element => {
     stateRef.current.brushSize = brushSize;
     stateRef.current.zoomLevel = zoomLevel;
     stateRef.current.showGrid = showGrid;
+    stateRef.current.activeLayerId = activeLayerId;
     stateRef.current.overGrab = overGrab;
   });
+
+  // Auto-select a layer when none is active (or when the active one no longer
+  // belongs to the selected glyph). Prefers the topmost visible unlocked layer.
+  useEffect(() => {
+    if (!glyph) {
+      return;
+    }
+
+    const stillValid = glyph.layers.some((layer) => layer.id === activeLayerId);
+
+    if (stillValid) {
+      return;
+    }
+
+    const candidate =
+      [...glyph.layers].reverse().find((layer) => layer.visible && !layer.locked) ??
+      glyph.layers[glyph.layers.length - 1];
+
+    setActiveLayerId(candidate?.id ?? null);
+  }, [glyph, activeLayerId, setActiveLayerId]);
 
   const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -207,31 +231,51 @@ export const PixelEditor = (): React.JSX.Element => {
     context.fillStyle = 'rgba(255,255,255,0.03)';
     context.fillRect(cellX, cellY, fontSize * zoom, lineHeight * zoom);
 
-    // Glyph pixels — dimmed outside the cell; binarized at the effective threshold
-    if (currentGlyph && currentGlyph.width > 0 && currentGlyph.height > 0) {
+    // Glyph pixels — render each visible layer bottom-up.
+    // During a move drag every layer follows the cursor (whole-glyph move semantics
+    // for now; per-layer dragging arrives in a follow-up commit).
+    if (currentGlyph) {
       const threshold = effectiveThreshold(currentGlyph, project.settings);
+      // Move drag offsets the rendered layer position; layoutXoffset/Y are still the
+      // glyph-level offsets used by isOverGlyphGrab and the layout bbox.
+      const moveDX = renderXoffset - layoutXoffset;
+      const moveDY = renderYoffset - layoutYoffset;
 
-      for (let py = 0; py < currentGlyph.height; py++) {
-        for (let px = 0; px < currentGlyph.width; px++) {
-          const value = currentGlyph.pixels[py * currentGlyph.width + px];
+      for (const layer of currentGlyph.layers) {
+        if (!layer.visible || layer.width === 0 || layer.height === 0) {
+          continue;
+        }
 
-          if (value < threshold) {
-            continue;
+        const layerOriginX = layer.xoffset + moveDX;
+        const layerOriginY = layer.yoffset + moveDY;
+        const inkColor = layer.preview ? layer.color : 'rgb(255,255,255)';
+
+        for (let row = 0; row < layer.height; row++) {
+          for (let column = 0; column < layer.width; column++) {
+            const value = layer.pixels[row * layer.width + column];
+
+            if (value < threshold) {
+              continue;
+            }
+
+            const cellColumn = layerOriginX + column;
+            const cellRow = layerOriginY + row;
+            const canvasX = (cellColumn - originX) * zoom;
+            const canvasY = (cellRow - originY) * zoom;
+            const inCell =
+              cellColumn >= 0 &&
+              cellColumn < fontSize &&
+              cellRow >= 0 &&
+              cellRow < lineHeight;
+
+            context.globalAlpha = inCell ? 1 : 0.35;
+            context.fillStyle = inkColor;
+            context.fillRect(canvasX, canvasY, zoom, zoom);
           }
-
-          const cx = (renderXoffset + px - originX) * zoom;
-          const cy = (renderYoffset + py - originY) * zoom;
-          const inCell =
-            renderXoffset + px >= 0 &&
-            renderXoffset + px < fontSize &&
-            renderYoffset + py >= 0 &&
-            renderYoffset + py < lineHeight;
-          const alpha = inCell ? 1 : 0.35;
-
-          context.fillStyle = `rgba(255,255,255,${alpha})`;
-          context.fillRect(cx, cy, zoom, zoom);
         }
       }
+
+      context.globalAlpha = 1;
     }
 
     // Guide lines: baseline and cap-height
@@ -654,11 +698,40 @@ export const PixelEditor = (): React.JSX.Element => {
     return cell.col >= left && cell.col < right && cell.row >= top && cell.row < bottom;
   }
 
+  function resolveTargetLayer(currentGlyph: Glyph): Layer | null {
+    const id = stateRef.current.activeLayerId;
+
+    if (id) {
+      const match = currentGlyph.layers.find((layer) => layer.id === id);
+
+      if (match) {
+        return match;
+      }
+    }
+
+    // Fall back to the topmost visible unlocked layer.
+    for (let index = currentGlyph.layers.length - 1; index >= 0; index--) {
+      const layer = currentGlyph.layers[index];
+
+      if (layer.visible && !layer.locked) {
+        return layer;
+      }
+    }
+
+    return null;
+  }
+
   function applyPaint(cell: { col: number; row: number } | null): void {
     const currentGlyph = stateRef.current.glyph;
     const project = currentProject;
 
     if (!currentGlyph || !cell || !project) {
+      return;
+    }
+
+    const targetLayer = resolveTargetLayer(currentGlyph);
+
+    if (!targetLayer || targetLayer.locked) {
       return;
     }
 
@@ -689,10 +762,10 @@ export const PixelEditor = (): React.JSX.Element => {
       return;
     }
 
-    const currentLeft = currentGlyph.xoffset;
-    const currentTop = currentGlyph.yoffset;
-    const currentRight = currentLeft + currentGlyph.width;
-    const currentBottom = currentTop + currentGlyph.height;
+    const currentLeft = targetLayer.xoffset;
+    const currentTop = targetLayer.yoffset;
+    const currentRight = currentLeft + targetLayer.width;
+    const currentBottom = currentTop + targetLayer.height;
 
     let newLeft = currentLeft;
     let newTop = currentTop;
@@ -711,8 +784,8 @@ export const PixelEditor = (): React.JSX.Element => {
     const grew =
       newLeft !== currentLeft ||
       newTop !== currentTop ||
-      newWidth !== currentGlyph.width ||
-      newHeight !== currentGlyph.height;
+      newWidth !== targetLayer.width ||
+      newHeight !== targetLayer.height;
 
     let newPixels: Uint8Array;
 
@@ -721,14 +794,14 @@ export const PixelEditor = (): React.JSX.Element => {
       const shiftX = currentLeft - newLeft;
       const shiftY = currentTop - newTop;
 
-      for (let row = 0; row < currentGlyph.height; row++) {
-        for (let col = 0; col < currentGlyph.width; col++) {
+      for (let row = 0; row < targetLayer.height; row++) {
+        for (let col = 0; col < targetLayer.width; col++) {
           newPixels[(row + shiftY) * newWidth + (col + shiftX)] =
-            currentGlyph.pixels[row * currentGlyph.width + col];
+            targetLayer.pixels[row * targetLayer.width + col];
         }
       }
     } else {
-      newPixels = new Uint8Array(currentGlyph.pixels);
+      newPixels = new Uint8Array(targetLayer.pixels);
     }
 
     let changed = grew;
@@ -756,12 +829,13 @@ export const PixelEditor = (): React.JSX.Element => {
     }
 
     const updated: Glyph = {
-      ...currentGlyph,
-      pixels: newPixels,
-      width: newWidth,
-      height: newHeight,
-      xoffset: newLeft,
-      yoffset: newTop,
+      ...updateLayerPixels(currentGlyph, targetLayer.id, {
+        pixels: newPixels,
+        width: newWidth,
+        height: newHeight,
+        xoffset: newLeft,
+        yoffset: newTop,
+      }),
       isDirty: true,
     };
 
