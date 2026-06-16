@@ -424,7 +424,7 @@ export const EditorScreen = (): React.JSX.Element => {
           />
         )}
 
-        <div className="relative flex flex-1 flex-col overflow-hidden">
+        <div className="flex flex-1 flex-col overflow-hidden">
           <EditorToolbar
             atlasOpen={atlasOpen}
             previewOpen={previewOpen}
@@ -432,11 +432,16 @@ export const EditorScreen = (): React.JSX.Element => {
             onPreviewToggle={() => setPreviewOpen((value) => !value)}
           />
           <div className="flex flex-1 overflow-hidden">
-            <PixelEditor />
+            {/* The relative wrapper anchors floating panels (AtlasFloat,
+                PreviewFloat) so their right/bottom positions are measured
+                against the canvas area, not the side rail. */}
+            <div className="relative flex flex-1 overflow-hidden">
+              <PixelEditor />
+              <AtlasFloat open={atlasOpen} onClose={() => setAtlasOpen(false)} />
+              <PreviewFloat open={previewOpen} onClose={() => setPreviewOpen(false)} />
+            </div>
             <LayerPanel />
           </div>
-          <AtlasFloat open={atlasOpen} onClose={() => setAtlasOpen(false)} />
-          <PreviewFloat open={previewOpen} onClose={() => setPreviewOpen(false)} />
         </div>
       </div>
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
