@@ -35,6 +35,7 @@ export const EditorScreen = (): React.JSX.Element => {
   const [atlasOpen, setAtlasOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [glyphListCollapsed, setGlyphListCollapsed] = useState(false);
+  const [layerPanelCollapsed, setLayerPanelCollapsed] = useState(false);
   const [glyphListWidth, setGlyphListWidth] = useState(GLYPH_LIST_INITIAL_WIDTH_PX);
   const draggingRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -197,14 +198,17 @@ export const EditorScreen = (): React.JSX.Element => {
       // Cmd+' — toggle all non-editor elements
       if (ctrl && e.key === "'") {
         e.preventDefault();
-        const anyVisible = !glyphListCollapsed || atlasOpen || previewOpen;
+        const anyVisible =
+          !glyphListCollapsed || !layerPanelCollapsed || atlasOpen || previewOpen;
 
         if (anyVisible) {
           setGlyphListCollapsed(true);
+          setLayerPanelCollapsed(true);
           setAtlasOpen(false);
           setPreviewOpen(false);
         } else {
           setGlyphListCollapsed(false);
+          setLayerPanelCollapsed(false);
           setAtlasOpen(true);
           setPreviewOpen(true);
         }
@@ -351,6 +355,7 @@ export const EditorScreen = (): React.JSX.Element => {
     selectedCodePoint,
     glyphs,
     glyphListCollapsed,
+    layerPanelCollapsed,
     atlasOpen,
     previewOpen,
     currentProject,
@@ -440,7 +445,10 @@ export const EditorScreen = (): React.JSX.Element => {
               <AtlasFloat open={atlasOpen} onClose={() => setAtlasOpen(false)} />
               <PreviewFloat open={previewOpen} onClose={() => setPreviewOpen(false)} />
             </div>
-            <LayerPanel />
+            <LayerPanel
+              collapsed={layerPanelCollapsed}
+              onCollapse={() => setLayerPanelCollapsed(!layerPanelCollapsed)}
+            />
           </div>
         </div>
       </div>
