@@ -1,6 +1,6 @@
 import {
+  Eraser,
   Grid2x2,
-  Grid2x2X,
   ImageIcon,
   Maximize2,
   Minus,
@@ -134,7 +134,7 @@ export const EditorToolbar = ({
       <div className="bg-border mx-1 h-5 w-px" />
 
       {toolBtn('pencil', <Pencil className="h-3.5 w-3.5" />, 'Pencil (B)')}
-      {toolBtn('eraser', <Grid2x2X className="h-3.5 w-3.5" />, 'Eraser (E)')}
+      {toolBtn('eraser', <Eraser className="h-3.5 w-3.5" />, 'Eraser (E)')}
 
       <div
         className={cn(

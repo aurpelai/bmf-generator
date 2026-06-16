@@ -1,4 +1,12 @@
-import { ChevronLeft, ChevronRight, Eraser, Loader2, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Grid2x2X,
+  Loader2,
+  Plus,
+  RotateCcw,
+  Trash2,
+} from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 
 import {
@@ -234,7 +242,6 @@ export const GlyphList = ({
             className="h-6 w-6"
             title="Expand glyph list"
             aria-label="Expand glyph list"
-            aria-expanded={false}
             onClick={onCollapse}
           >
             <ChevronRight className="h-3.5 w-3.5" />
@@ -300,7 +307,6 @@ export const GlyphList = ({
           className="h-6 w-6 shrink-0"
           title="Collapse glyph list"
           aria-label="Collapse glyph list"
-          aria-expanded={true}
           onClick={onCollapse}
         >
           <ChevronLeft className="h-3.5 w-3.5" />
@@ -378,7 +384,7 @@ export const GlyphList = ({
                         void handleClearGlyph();
                       }}
                     >
-                      <Eraser className="h-3 w-3" />
+                      <Grid2x2X className="h-3 w-3" />
                     </Button>
                     <Button
                       variant="ghost"
