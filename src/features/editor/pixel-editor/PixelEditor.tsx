@@ -775,10 +775,13 @@ export const PixelEditor = (): React.JSX.Element => {
       return;
     }
 
-    const currentLeft = targetLayer.xoffset;
-    const currentTop = targetLayer.yoffset;
-    const currentRight = currentLeft + targetLayer.width;
-    const currentBottom = currentTop + targetLayer.height;
+    // An empty layer (0×0) has no meaningful offset; anchor the new buffer at
+    // the brush footprint instead of unioning with the placeholder (0, 0) origin.
+    const layerIsEmpty = targetLayer.width === 0 || targetLayer.height === 0;
+    const currentLeft = layerIsEmpty ? clipLeft : targetLayer.xoffset;
+    const currentTop = layerIsEmpty ? clipTop : targetLayer.yoffset;
+    const currentRight = layerIsEmpty ? clipRight : currentLeft + targetLayer.width;
+    const currentBottom = layerIsEmpty ? clipBottom : currentTop + targetLayer.height;
 
     let newLeft = currentLeft;
     let newTop = currentTop;

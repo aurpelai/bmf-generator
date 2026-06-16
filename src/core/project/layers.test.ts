@@ -12,6 +12,7 @@ import {
   removeLayer,
   reorderLayers,
   syncLegacyFields,
+  trimLayerToInk,
   updateLayer,
   updateLayerPixels,
 } from './layers';
@@ -274,6 +275,65 @@ describe('layer mutators', () => {
     expect(result.xoffset).toBe(10);
     expect(result.yoffset).toBe(4);
     expect(Array.from(result.pixels)).toEqual([255, 128]);
+  });
+});
+
+describe('trimLayerToInk', () => {
+  it('crops a buffer with blank top-left rows and columns, shifting the offset to compensate', () => {
+    // 4×3 buffer with ink at (2, 1) and (3, 2); the inked bbox is x=2..3, y=1..2.
+    const pixels = new Uint8Array(4 * 3);
+
+    pixels[1 * 4 + 2] = 200;
+    pixels[2 * 4 + 3] = 150;
+
+    const layer: Layer = {
+      ...makeBlankLayer(),
+      pixels,
+      width: 4,
+      height: 3,
+      xoffset: 10,
+      yoffset: 20,
+    };
+    const result = trimLayerToInk(layer);
+
+    expect(result.width).toBe(2);
+    expect(result.height).toBe(2);
+    expect(result.xoffset).toBe(12);
+    expect(result.yoffset).toBe(21);
+    // Trimmed buffer: row 0 = [200, 0]; row 1 = [0, 150]
+    expect(Array.from(result.pixels)).toEqual([200, 0, 0, 150]);
+  });
+
+  it('collapses a fully-erased non-empty buffer to 0×0 at the origin', () => {
+    const layer: Layer = {
+      ...makeBlankLayer(),
+      pixels: new Uint8Array(4),
+      width: 2,
+      height: 2,
+      xoffset: 5,
+      yoffset: 7,
+    };
+    const result = trimLayerToInk(layer);
+
+    expect(result.width).toBe(0);
+    expect(result.height).toBe(0);
+    expect(result.xoffset).toBe(0);
+    expect(result.yoffset).toBe(0);
+    expect(result.pixels.length).toBe(0);
+  });
+
+  it('returns the same reference when the buffer already hugs its ink', () => {
+    const layer = inkLayer(2, 2, 0, 0, [10, 20, 30, 40]);
+    const result = trimLayerToInk(layer);
+
+    expect(result).toBe(layer);
+  });
+
+  it('returns the same reference for a layer that is already 0×0', () => {
+    const layer = makeBlankLayer();
+    const result = trimLayerToInk(layer);
+
+    expect(result).toBe(layer);
   });
 });
 

@@ -197,6 +197,78 @@ export function cloneLayers(layers: Layer[]): Layer[] {
 }
 
 /**
+ * Crops a layer's pixel buffer to its non-zero bounds, adjusting xoffset/yoffset
+ * to keep the visible ink in the same world-space location. A fully-empty layer
+ * collapses to width=0, height=0 at offset (0, 0). Returns the same layer object
+ * when no trim is needed, so consumers can compare references to detect changes.
+ */
+export function trimLayerToInk(layer: Layer): Layer {
+  if (layer.width === 0 || layer.height === 0) {
+    return layer;
+  }
+
+  let minX = layer.width;
+  let minY = layer.height;
+  let maxX = -1;
+  let maxY = -1;
+
+  for (let row = 0; row < layer.height; row++) {
+    for (let column = 0; column < layer.width; column++) {
+      if (layer.pixels[row * layer.width + column] === 0) {
+        continue;
+      }
+
+      if (column < minX) {minX = column;}
+
+      if (column > maxX) {maxX = column;}
+
+      if (row < minY) {minY = row;}
+
+      if (row > maxY) {maxY = row;}
+    }
+  }
+
+  if (maxX === -1) {
+    if (layer.width === 0 && layer.height === 0) {
+      return layer;
+    }
+
+    return {
+      ...layer,
+      pixels: new Uint8Array(0),
+      width: 0,
+      height: 0,
+      xoffset: 0,
+      yoffset: 0,
+    };
+  }
+
+  const trimmedWidth = maxX - minX + 1;
+  const trimmedHeight = maxY - minY + 1;
+
+  if (trimmedWidth === layer.width && trimmedHeight === layer.height) {
+    return layer;
+  }
+
+  const trimmed = new Uint8Array(trimmedWidth * trimmedHeight);
+
+  for (let row = 0; row < trimmedHeight; row++) {
+    const sourceStart = (minY + row) * layer.width + minX;
+
+    trimmed.set(layer.pixels.subarray(sourceStart, sourceStart + trimmedWidth), row * trimmedWidth);
+  }
+
+  return {
+    ...layer,
+    pixels: trimmed,
+    width: trimmedWidth,
+    height: trimmedHeight,
+    xoffset: layer.xoffset + minX,
+    yoffset: layer.yoffset + minY,
+  };
+}
+
+/**
  * Refresh the legacy top-level pixel fields on a Glyph from its `layers` array.
  *
  * Maintains the Stage A invariant: every Glyph in memory and at rest has its
@@ -372,7 +444,10 @@ export function updateLayerPixels(glyph: Glyph, layerId: string, patch: LayerPix
     return glyph;
   }
 
-  return replaceLayer(glyph, layerId, {
+  // Trim the new buffer to its inked bounds so the layer's rect always hugs the
+  // visible ink. Without this the buffer can keep blank rows/columns on its top
+  // or left edge — which mispositions the move-tool grab outline.
+  const trimmed = trimLayerToInk({
     ...target,
     pixels: patch.pixels,
     width: patch.width,
@@ -380,4 +455,7 @@ export function updateLayerPixels(glyph: Glyph, layerId: string, patch: LayerPix
     xoffset: patch.xoffset,
     yoffset: patch.yoffset,
   });
+
+  return replaceLayer(glyph, layerId, trimmed);
 }
+

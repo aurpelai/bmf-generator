@@ -10,7 +10,7 @@ import {
   GLYPH_LIST_MIN_WIDTH_PX,
   ZOOM_REFERENCE,
 } from '@/config';
-import { cloneLayers, syncLegacyFields } from '@/core/project/layers';
+import { cloneLayers, syncLegacyFields, trimLayerToInk } from '@/core/project/layers';
 import { getGlyphsForProject } from '@/db/glyphs';
 import { saveGlyphs } from '@/db/glyphs';
 import { ExportDialog } from '@/features/export/ExportDialog';
@@ -116,7 +116,18 @@ export const EditorScreen = (): React.JSX.Element => {
       return;
     }
 
-    void getGlyphsForProject(currentProject.id).then(setGlyphs);
+    void getGlyphsForProject(currentProject.id).then((loaded) =>
+      // Re-tighten every layer's buffer to its inked bounds on load — repairs
+      // any glyphs saved before the trim-on-write fix in updateLayerPixels.
+      setGlyphs(
+        loaded.map((loadedGlyph) =>
+          syncLegacyFields({
+            ...loadedGlyph,
+            layers: loadedGlyph.layers.map((layer) => trimLayerToInk(layer)),
+          }),
+        ),
+      ),
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentProject?.id]);
 
