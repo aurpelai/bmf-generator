@@ -1,5 +1,5 @@
 import { Eye, EyeOff, Lock, Palette, Plus, Trash2, Unlock } from 'lucide-react';
-import React from 'react';
+import React, { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { MAX_LAYERS_PER_GLYPH } from '@/config';
@@ -8,6 +8,7 @@ import {
   cloneLayers,
   layerColor,
   removeLayer,
+  reorderLayers,
   updateLayer,
 } from '@/core/project/layers';
 import { saveGlyphs } from '@/db/glyphs';
@@ -23,6 +24,11 @@ export const LayerPanel = (): React.JSX.Element | null => {
   const setMultiSelectLayerIds = useStore((state) => state.setMultiSelectLayerIds);
   const upsertGlyph = useStore((state) => state.upsertGlyph);
   const pushUndo = useStore((state) => state.pushUndo);
+
+  const [dragSourceId, setDragSourceId] = useState<string | null>(null);
+  const [dropIndicator, setDropIndicator] = useState<
+    { targetId: string; position: 'above' | 'below' } | null
+  >(null);
 
   const glyph = glyphs.find((glyphItem) => glyphItem.codePoint === selectedCodePoint);
 
@@ -117,6 +123,40 @@ export const LayerPanel = (): React.JSX.Element | null => {
     }
   }
 
+  function handleDrop(targetId: string, position: 'above' | 'below'): void {
+    if (!glyph || !dragSourceId || dragSourceId === targetId) {
+      return;
+    }
+
+    const fromIndex = glyph.layers.findIndex((layer) => layer.id === dragSourceId);
+    const targetIndex = glyph.layers.findIndex((layer) => layer.id === targetId);
+
+    if (fromIndex === -1 || targetIndex === -1) {
+      return;
+    }
+
+    // Panel is rendered top-to-bottom over the reversed layers array, so
+    // "above the target row" means a higher array index, "below" means lower.
+    let toIndex = position === 'above' ? targetIndex + 1 : targetIndex;
+
+    if (fromIndex < toIndex) {
+      // After splicing the source out, indices above it shift down by one.
+      toIndex -= 1;
+    }
+
+    if (fromIndex === toIndex) {
+      return;
+    }
+
+    const next = reorderLayers(glyph, fromIndex, toIndex);
+
+    if (next === glyph) {
+      return;
+    }
+
+    commit({ ...next, isDirty: true });
+  }
+
   // Render top-to-bottom: visually the topmost layer (last in array) appears at the top of the panel.
   const renderedLayers = [...glyph.layers].reverse();
   const atCap = glyph.layers.length >= MAX_LAYERS_PER_GLYPH;
@@ -143,17 +183,68 @@ export const LayerPanel = (): React.JSX.Element | null => {
         {renderedLayers.map((layer) => {
           const isSelected =
             layer.id === activeLayerId || multiSelectLayerIds.includes(layer.id);
+          const isDragging = dragSourceId === layer.id;
+          const isDropAbove =
+            dropIndicator?.targetId === layer.id && dropIndicator.position === 'above';
+          const isDropBelow =
+            dropIndicator?.targetId === layer.id && dropIndicator.position === 'below';
 
           return (
             <li
               key={layer.id}
+              draggable
               className={cn(
                 'border-border/40 hover:bg-accent/40 flex cursor-pointer items-center gap-1.5 border-b px-2 py-1.5 text-xs',
                 isSelected && 'bg-accent/60 hover:bg-accent/60',
+                isDragging && 'opacity-50',
+                isDropAbove && 'border-t-primary border-t-2',
+                isDropBelow && 'border-b-primary border-b-2',
               )}
               onClick={(event) =>
                 handleSelectLayer(layer.id, event.shiftKey || event.metaKey || event.ctrlKey)
               }
+              onDragStart={(event) => {
+                event.dataTransfer.effectAllowed = 'move';
+                setDragSourceId(layer.id);
+              }}
+              onDragOver={(event) => {
+                if (!dragSourceId || dragSourceId === layer.id) {
+                  return;
+                }
+
+                event.preventDefault();
+                event.dataTransfer.dropEffect = 'move';
+
+                const rect = event.currentTarget.getBoundingClientRect();
+                const position: 'above' | 'below' =
+                  event.clientY < rect.top + rect.height / 2 ? 'above' : 'below';
+
+                if (
+                  dropIndicator?.targetId !== layer.id ||
+                  dropIndicator.position !== position
+                ) {
+                  setDropIndicator({ targetId: layer.id, position });
+                }
+              }}
+              onDragLeave={() => {
+                if (dropIndicator?.targetId === layer.id) {
+                  setDropIndicator(null);
+                }
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+
+                if (dropIndicator) {
+                  handleDrop(dropIndicator.targetId, dropIndicator.position);
+                }
+
+                setDragSourceId(null);
+                setDropIndicator(null);
+              }}
+              onDragEnd={() => {
+                setDragSourceId(null);
+                setDropIndicator(null);
+              }}
             >
               <Button
                 variant="ghost"
