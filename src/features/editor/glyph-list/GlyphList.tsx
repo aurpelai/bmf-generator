@@ -255,7 +255,7 @@ export const GlyphList = ({
                 aria-label={label}
                 className={cn(
                   'flex w-full cursor-pointer items-center px-2 py-1.5 transition-colors',
-                  isSelected ? 'bg-accent text-accent-foreground' : 'hover:bg-white/10',
+                  isSelected ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/40',
                 )}
               >
                 <div className="bg-background/30 border-border/40 relative flex h-8 w-8 shrink-0 items-center justify-center rounded border">
@@ -333,7 +333,7 @@ export const GlyphList = ({
                 aria-selected={isSelected}
                 className={cn(
                   'flex w-full items-center gap-2 px-2 py-1.5 transition-colors',
-                  isSelected ? 'bg-accent text-accent-foreground' : 'hover:bg-white/10',
+                  isSelected ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/40',
                 )}
               >
                 <button

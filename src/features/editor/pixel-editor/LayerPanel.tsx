@@ -140,24 +140,29 @@ export const LayerPanel = (): React.JSX.Element | null => {
       </header>
       <ul className="flex-1 overflow-y-auto" role="list">
         {renderedLayers.map((layer) => {
-          const isActive = layer.id === activeLayerId;
-          const isMultiSelected = multiSelectLayerIds.includes(layer.id);
+          const isSelected =
+            layer.id === activeLayerId || multiSelectLayerIds.includes(layer.id);
 
           return (
             <li
               key={layer.id}
               className={cn(
-                'border-border/40 flex items-center gap-1.5 border-b px-2 py-1.5 text-xs',
-                isActive && 'bg-accent/40',
-                isMultiSelected && 'bg-primary/20',
+                'border-border/40 hover:bg-accent/40 flex cursor-pointer items-center gap-1.5 border-b px-2 py-1.5 text-xs',
+                isSelected && 'bg-accent/60 hover:bg-accent/60',
               )}
+              onClick={(event) =>
+                handleSelectLayer(layer.id, event.shiftKey || event.metaKey || event.ctrlKey)
+              }
             >
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6 shrink-0"
                 title={layer.visible ? 'Hide layer' : 'Show layer'}
-                onClick={() => handleToggle(layer.id, 'visible')}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleToggle(layer.id, 'visible');
+                }}
               >
                 {layer.visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
               </Button>
@@ -166,31 +171,33 @@ export const LayerPanel = (): React.JSX.Element | null => {
                 size="icon"
                 className="h-6 w-6 shrink-0"
                 title={layer.preview ? 'Render as white (final look)' : 'Render in layer tint'}
-                onClick={() => handleToggle(layer.id, 'preview')}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleToggle(layer.id, 'preview');
+                }}
               >
                 <Palette
                   className="h-3.5 w-3.5"
                   style={{ color: layer.preview ? layer.color : 'currentColor' }}
                 />
               </Button>
-              <button
-                type="button"
+              <span
                 className={cn(
                   'flex-1 truncate text-left',
                   !layer.visible && 'text-muted-foreground',
                 )}
-                onClick={(event) =>
-                  handleSelectLayer(layer.id, event.shiftKey || event.metaKey || event.ctrlKey)
-                }
               >
                 {layer.name}
-              </button>
+              </span>
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6 shrink-0"
                 title={layer.locked ? 'Unlock layer' : 'Lock layer'}
-                onClick={() => handleToggle(layer.id, 'locked')}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleToggle(layer.id, 'locked');
+                }}
               >
                 {layer.locked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
               </Button>
@@ -200,7 +207,10 @@ export const LayerPanel = (): React.JSX.Element | null => {
                 className="h-6 w-6 shrink-0"
                 title="Delete layer"
                 disabled={glyph.layers.length <= 1}
-                onClick={() => handleRemoveLayer(layer.id)}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleRemoveLayer(layer.id);
+                }}
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
