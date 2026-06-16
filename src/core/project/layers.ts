@@ -2,13 +2,13 @@ import { DEFAULT_LAYER_PALETTE, MAX_LAYERS_PER_GLYPH } from '@/config';
 
 import type { Glyph, Layer } from './types';
 
-export function defaultLayerColor(index: number): string {
-  return DEFAULT_LAYER_PALETTE[index % DEFAULT_LAYER_PALETTE.length];
+export function layerColor(layer: Layer): string {
+  return DEFAULT_LAYER_PALETTE[layer.colorIndex % DEFAULT_LAYER_PALETTE.length];
 }
 
 interface MakeBlankLayerOptions {
   name?: string;
-  color?: string;
+  colorIndex?: number;
   index?: number;
 }
 
@@ -25,7 +25,7 @@ export function makeBlankLayer(options: MakeBlankLayerOptions = {}): Layer {
     yoffset: 0,
     visible: true,
     preview: true,
-    color: options.color ?? defaultLayerColor(index),
+    colorIndex: options.colorIndex ?? index,
     locked: false,
   };
 }
@@ -49,7 +49,7 @@ export function makeBaseLayerFromBitmap(input: MakeBaseLayerFromBitmapInput): La
     yoffset: input.yoffset,
     visible: true,
     preview: true,
-    color: defaultLayerColor(0),
+    colorIndex: 0,
     locked: false,
   };
 }
@@ -413,7 +413,7 @@ interface LayerPatch {
   name?: string;
   visible?: boolean;
   preview?: boolean;
-  color?: string;
+  colorIndex?: number;
   locked?: boolean;
   xoffset?: number;
   yoffset?: number;

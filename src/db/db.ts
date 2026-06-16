@@ -1,6 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie';
 
-import type { Glyph, Project } from '@/core/project';
+import type { Glyph, Layer, Project } from '@/core/project';
 import { makeBaseLayerFromBitmap } from '@/core/project/layers';
 
 interface FontFile {
@@ -29,6 +29,21 @@ export function upgradeGlyphV1ToV2(record: Glyph & { id: string }): void {
   ];
 }
 
+/**
+ * v2→v3 per-record upgrade: drop the stored `color` string from each layer and
+ * replace it with `colorIndex` derived from the layer's position. Old defaults
+ * always tracked the creation index, so position is an exact equivalent.
+ */
+export function upgradeGlyphV2ToV3(record: Glyph & { id: string }): void {
+  record.layers = record.layers.map((layer, index) => {
+    const next = { ...layer, colorIndex: index };
+
+    delete (next as Layer & { color?: string }).color;
+
+    return next;
+  });
+}
+
 class BmfDatabase extends Dexie {
   projects!: EntityTable<Project, 'id'>;
   glyphs!: EntityTable<Glyph & { id: string }, 'id'>;
@@ -55,6 +70,19 @@ class BmfDatabase extends Dexie {
           .table<Glyph & { id: string }>('glyphs')
           .toCollection()
           .modify((record) => upgradeGlyphV1ToV2(record)),
+      );
+
+    this.version(3)
+      .stores({
+        projects: 'id, updatedAt',
+        glyphs: '[projectId+codePoint], projectId, id',
+        fontFiles: 'id',
+      })
+      .upgrade((transaction) =>
+        transaction
+          .table<Glyph & { id: string }>('glyphs')
+          .toCollection()
+          .modify((record) => upgradeGlyphV2ToV3(record)),
       );
   }
 }

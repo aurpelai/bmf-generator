@@ -40,8 +40,8 @@ export interface Layer {
   visible: boolean;
   // When true the editor renders the layer in its tint colour; when false it renders white (final look).
   preview: boolean;
-  // Editor-only tint colour (e.g. CSS oklch string). Ignored at export time.
-  color: string;
+  // Editor-only tint slot — resolved through DEFAULT_LAYER_PALETTE at render time. Preserved across reorder.
+  colorIndex: number;
   locked: boolean;
 }
 

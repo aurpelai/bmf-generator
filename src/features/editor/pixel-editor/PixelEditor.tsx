@@ -21,6 +21,7 @@ import {
   cloneLayers,
   cycleHitLayer,
   hitTestLayer,
+  layerColor,
   syncLegacyFields,
   unionLayerBounds,
   updateLayerPixels,
@@ -262,7 +263,7 @@ export const PixelEditor = (): React.JSX.Element => {
         const beingMoved = layer.id in moveLayerOrigins;
         const layerOriginX = layer.xoffset + (beingMoved ? dx : 0);
         const layerOriginY = layer.yoffset + (beingMoved ? dy : 0);
-        const inkColor = layer.preview ? layer.color : 'rgb(255,255,255)';
+        const inkColor = layer.preview ? layerColor(layer) : 'rgb(255,255,255)';
 
         for (let row = 0; row < layer.height; row++) {
           for (let column = 0; column < layer.width; column++) {

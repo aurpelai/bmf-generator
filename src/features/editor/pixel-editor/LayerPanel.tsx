@@ -6,6 +6,7 @@ import { MAX_LAYERS_PER_GLYPH } from '@/config';
 import {
   addLayer,
   cloneLayers,
+  layerColor,
   removeLayer,
   updateLayer,
 } from '@/core/project/layers';
@@ -178,7 +179,7 @@ export const LayerPanel = (): React.JSX.Element | null => {
               >
                 <Palette
                   className="h-3.5 w-3.5"
-                  style={{ color: layer.preview ? layer.color : 'currentColor' }}
+                  style={{ color: layer.preview ? layerColor(layer) : 'currentColor' }}
                 />
               </Button>
               <span
