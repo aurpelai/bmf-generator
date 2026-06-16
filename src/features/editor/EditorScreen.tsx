@@ -21,6 +21,7 @@ import type { EditorTool } from '@/store/editorSlice';
 import { AtlasFloat } from './AtlasFloat';
 import { GlyphList } from './glyph-list/GlyphList';
 import { HelpOverlay } from './HelpOverlay';
+import { LayerPanel } from './pixel-editor/LayerPanel';
 import { PixelEditor } from './pixel-editor/PixelEditor';
 import { zoomToFitLevel } from './pixel-editor/zoom-helpers';
 import { PreviewFloat } from './PreviewFloat';
@@ -419,7 +420,10 @@ export const EditorScreen = (): React.JSX.Element => {
             onAtlasToggle={() => setAtlasOpen((value) => !value)}
             onPreviewToggle={() => setPreviewOpen((value) => !value)}
           />
-          <PixelEditor />
+          <div className="flex flex-1 overflow-hidden">
+            <PixelEditor />
+            <LayerPanel />
+          </div>
           <AtlasFloat open={atlasOpen} onClose={() => setAtlasOpen(false)} />
           <PreviewFloat open={previewOpen} onClose={() => setPreviewOpen(false)} />
         </div>
