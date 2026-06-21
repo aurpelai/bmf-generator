@@ -73,11 +73,14 @@ function sliceGlyphsFromAtlas(
   const mode = detectAtlasMode(data, atlasW, atlasH);
 
   return chars.map((char) => {
+    const bmf = { xoffset: char.xoffset, yoffset: char.yoffset, xadvance: char.xadvance };
+
     if (char.width === 0 || char.height === 0) {
       return {
         codePoint: char.id,
         fontId,
         layers: [makeBlankLayer()],
+        bmf,
         pixels: new Uint8Array(0),
         width: 0,
         height: 0,
@@ -104,6 +107,8 @@ function sliceGlyphsFromAtlas(
       }
     }
 
+    // Layer offsets are 0/0 — the BMF char-line nudge lives on `bmf`. The
+    // flatten origin reflects where ink sits inside the layer buffer.
     return {
       codePoint: char.id,
       fontId,
@@ -112,10 +117,11 @@ function sliceGlyphsFromAtlas(
           pixels,
           width: char.width,
           height: char.height,
-          xoffset: char.xoffset,
-          yoffset: char.yoffset,
+          xoffset: 0,
+          yoffset: 0,
         }),
       ],
+      bmf,
       pixels,
       width: char.width,
       height: char.height,
@@ -369,15 +375,23 @@ export const ImportWizard = ({ open, onOpenChange }: Props): React.JSX.Element =
         const glyphs: Glyph[] = (previewGlyphs as RasterizedGlyph[]).map((rasterizedGlyph) => ({
           codePoint: rasterizedGlyph.codePoint,
           fontId: font.id,
+          // TTF metrics (bearing-derived xoffset/yoffset) belong on `bmf`. The
+          // base layer starts at (0, 0); the rasterised bitmap is the layer's
+          // pixel buffer.
           layers: [
             makeBaseLayerFromBitmap({
               pixels: rasterizedGlyph.pixels,
               width: rasterizedGlyph.width,
               height: rasterizedGlyph.height,
-              xoffset: rasterizedGlyph.xoffset,
-              yoffset: rasterizedGlyph.yoffset,
+              xoffset: 0,
+              yoffset: 0,
             }),
           ],
+          bmf: {
+            xoffset: rasterizedGlyph.xoffset,
+            yoffset: rasterizedGlyph.yoffset,
+            xadvance: rasterizedGlyph.xadvance,
+          },
           pixels: rasterizedGlyph.pixels,
           width: rasterizedGlyph.width,
           height: rasterizedGlyph.height,

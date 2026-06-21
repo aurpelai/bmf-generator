@@ -11,6 +11,9 @@ export const LINE_HEIGHT_RATIO = 1.2;
 export const BASE_RATIO = 0.8;
 export const CAP_HEIGHT_RATIO = 0.7;
 
+// Default xadvance for a hand-drawn blank glyph, as a fraction of the cell width.
+export const DEFAULT_XADVANCE_RATIO = 0.7;
+
 // Bounds for the fontSize input in the wizards.
 export const FONT_SIZE_MIN = 4;
 export const FONT_SIZE_MAX = 256;

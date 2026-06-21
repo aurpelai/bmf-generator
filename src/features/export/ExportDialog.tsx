@@ -8,6 +8,7 @@ import { TOAST_DURATION_MS } from '@/config';
 import type { BmfGlyphData } from '@/core/bmf';
 import { serializeBmfText } from '@/core/bmf';
 import { exportPortableFont } from '@/core/font';
+import { flattenGlyph } from '@/core/font/layers';
 import { GlyphSelection } from '@/features/editor/GlyphSelection';
 import { useStore } from '@/store';
 
@@ -80,14 +81,15 @@ export const ExportDialog = ({ open, onOpenChange }: Props): React.JSX.Element =
             font: currentFont,
             glyphs: selectedPlacements.map((placement): BmfGlyphData => {
               const glyph = glyphs.find((glyphItem) => glyphItem.codePoint === placement.codePoint);
+              const flat = glyph ? flattenGlyph(glyph) : null;
 
               return {
                 placement,
-                glyph: {
-                  codePoint: placement.codePoint,
-                  xoffset: (glyph?.xoffset ?? 0) + placement.trimX,
-                  yoffset: (glyph?.yoffset ?? 0) + placement.trimY,
-                  xadvance: glyph?.xadvance ?? placement.width,
+                codePoint: placement.codePoint,
+                bmf: {
+                  xoffset: (glyph?.bmf.xoffset ?? 0) + (flat?.xoffset ?? 0) + placement.trimX,
+                  yoffset: (glyph?.bmf.yoffset ?? 0) + (flat?.yoffset ?? 0) + placement.trimY,
+                  xadvance: glyph?.bmf.xadvance ?? placement.width,
                 },
               };
             }),

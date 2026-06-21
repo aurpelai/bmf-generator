@@ -9,12 +9,25 @@ import { makeBlankGlyph } from './font/glyphs';
 import type { Glyph } from './font/types';
 
 function inkBlock(glyph: Glyph, x: number, y: number, width: number, height: number): Glyph {
+  const layer = glyph.layers[0];
+  // The base layer starts at width=0/height=0 — resize it to the glyph cell and ink the inner block.
+  const pixels = new Uint8Array(glyph.width * glyph.height);
+
   for (let row = y; row < y + height; row++) {
     for (let column = x; column < x + width; column++) {
-      glyph.pixels[row * glyph.width + column] = 255;
+      pixels[row * glyph.width + column] = 255;
     }
   }
 
+  layer.pixels = pixels;
+  layer.width = glyph.width;
+  layer.height = glyph.height;
+  layer.xoffset = 0;
+  layer.yoffset = 0;
+
+  // Mirror to legacy fields so packGlyphs (which still goes via flattenGlyph) sees the ink.
+  glyph.pixels = pixels;
+  glyph.bmf = { xoffset: 1, yoffset: 2, xadvance: glyph.width + 1 };
   glyph.xoffset = 1;
   glyph.yoffset = 2;
   glyph.xadvance = glyph.width + 1;
@@ -53,12 +66,8 @@ describe('pack → serialize → parse round-trip', () => {
 
       return {
         placement,
-        glyph: {
-          codePoint: sourceGlyph.codePoint,
-          xoffset: sourceGlyph.xoffset,
-          yoffset: sourceGlyph.yoffset,
-          xadvance: sourceGlyph.xadvance,
-        },
+        codePoint: sourceGlyph.codePoint,
+        bmf: sourceGlyph.bmf,
       };
     });
 
@@ -89,9 +98,9 @@ describe('pack → serialize → parse round-trip', () => {
       expect(parsedChar?.y).toBe(entry.placement.y);
       expect(parsedChar?.width).toBe(entry.placement.width);
       expect(parsedChar?.height).toBe(entry.placement.height);
-      expect(parsedChar?.xoffset).toBe(entry.glyph.xoffset);
-      expect(parsedChar?.yoffset).toBe(entry.glyph.yoffset);
-      expect(parsedChar?.xadvance).toBe(entry.glyph.xadvance);
+      expect(parsedChar?.xoffset).toBe(entry.bmf.xoffset);
+      expect(parsedChar?.yoffset).toBe(entry.bmf.yoffset);
+      expect(parsedChar?.xadvance).toBe(entry.bmf.xadvance);
     }
   });
 });

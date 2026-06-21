@@ -6,7 +6,7 @@ export interface PortableFont {
   font: Font;
   // Pixels serialized as base64 strings to survive JSON round-trip.
   // Layers are reconstructed from the legacy bitmap on import.
-  glyphs: Array<Omit<Glyph, 'pixels' | 'layers'> & { pixels: string }>;
+  glyphs: Array<Omit<Glyph, 'pixels' | 'layers' | 'bmf'> & { pixels: string }>;
 }
 
 function toBase64(buf: Uint8Array): string {
@@ -35,14 +35,14 @@ export function exportPortableFont(font: Font, glyphs: Glyph[]): string {
     version: 2,
     font,
     glyphs: glyphs.map((glyph) => {
-      const rest: Omit<Glyph, 'pixels' | 'layers'> = {
+      const rest: Omit<Glyph, 'pixels' | 'layers' | 'bmf'> = {
         codePoint: glyph.codePoint,
         fontId: glyph.fontId,
         width: glyph.width,
         height: glyph.height,
-        xoffset: glyph.xoffset,
-        yoffset: glyph.yoffset,
-        xadvance: glyph.xadvance,
+        xoffset: glyph.bmf.xoffset,
+        yoffset: glyph.bmf.yoffset,
+        xadvance: glyph.bmf.xadvance,
         isDirty: glyph.isDirty,
         alphaThreshold: glyph.alphaThreshold,
       };
@@ -67,17 +67,23 @@ export function importPortableFont(json: string): { font: Font; glyphs: Glyph[] 
 
   const glyphs: Glyph[] = data.glyphs.map((glyph) => {
     const pixels = fromBase64(glyph.pixels);
+    // v2 carries a single flat bitmap. The xoffset/yoffset stored on v2 are
+    // the BMF char-line metadata (conflated with the flatten origin in PR 1,
+    // de-conflated in PR 2). On import we treat them as `bmf` and keep the
+    // base layer at (0, 0).
+    const bmf = { xoffset: glyph.xoffset, yoffset: glyph.yoffset, xadvance: glyph.xadvance };
 
     return {
       ...glyph,
       pixels,
+      bmf,
       layers: [
         makeBaseLayerFromBitmap({
           pixels,
           width: glyph.width,
           height: glyph.height,
-          xoffset: glyph.xoffset,
-          yoffset: glyph.yoffset,
+          xoffset: 0,
+          yoffset: 0,
         }),
       ],
     };

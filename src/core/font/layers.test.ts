@@ -23,6 +23,7 @@ function makeGlyph(layers: Layer[]): Glyph {
     codePoint: 0x41,
     fontId: 'font-1',
     layers,
+    bmf: { xoffset: 0, yoffset: 0, xadvance: 0 },
     pixels: new Uint8Array(0),
     width: 0,
     height: 0,
@@ -33,7 +34,13 @@ function makeGlyph(layers: Layer[]): Glyph {
   };
 }
 
-function inkLayer(width: number, height: number, xoffset: number, yoffset: number, ink: number[]): Layer {
+function inkLayer(
+  width: number,
+  height: number,
+  xoffset: number,
+  yoffset: number,
+  ink: number[],
+): Layer {
   const pixels = new Uint8Array(width * height);
 
   ink.forEach((value, index) => {
@@ -266,15 +273,45 @@ describe('layer mutators', () => {
     expect(result.layers[0].xoffset).toBe(5);
   });
 
-  it('layer mutators keep the legacy fields in sync with flattenGlyph', () => {
+  it('layer mutators produce a glyph whose flattenGlyph reflects the change', () => {
     const layer = inkLayer(2, 1, 3, 4, [255, 128]);
     const result = updateLayer(makeGlyph([layer]), layer.id, { xoffset: 10 });
+    const flat = flattenGlyph(result);
 
-    expect(result.width).toBe(2);
-    expect(result.height).toBe(1);
-    expect(result.xoffset).toBe(10);
-    expect(result.yoffset).toBe(4);
-    expect(Array.from(result.pixels)).toEqual([255, 128]);
+    expect(flat.width).toBe(2);
+    expect(flat.height).toBe(1);
+    expect(flat.xoffset).toBe(10);
+    expect(flat.yoffset).toBe(4);
+    expect(Array.from(flat.pixels)).toEqual([255, 128]);
+  });
+});
+
+describe('flattenGlyph cache', () => {
+  it('returns the same FlattenedGlyph reference for repeat calls on the same glyph', () => {
+    const layer = inkLayer(2, 1, 0, 0, [255, 128]);
+    const glyph = makeGlyph([layer]);
+
+    expect(flattenGlyph(glyph)).toBe(flattenGlyph(glyph));
+  });
+
+  it('produces a fresh result when the glyph reference changes', () => {
+    const layer = inkLayer(2, 1, 0, 0, [255, 128]);
+    const glyph = makeGlyph([layer]);
+    const first = flattenGlyph(glyph);
+    const next = updateLayer(glyph, layer.id, { xoffset: 5 });
+
+    expect(flattenGlyph(next)).not.toBe(first);
+    expect(flattenGlyph(next).xoffset).toBe(5);
+  });
+
+  it('skips the cache for includeHidden: true', () => {
+    const visible = inkLayer(2, 1, 0, 0, [255, 128]);
+    const hidden = { ...inkLayer(2, 1, 0, 0, [50, 60]), visible: false };
+    const glyph = makeGlyph([visible, hidden]);
+
+    expect(flattenGlyph(glyph, { includeHidden: true })).not.toBe(
+      flattenGlyph(glyph, { includeHidden: true }),
+    );
   });
 });
 
@@ -344,6 +381,7 @@ describe('syncLegacyFields', () => {
       codePoint: 0x41,
       fontId: 'font-1',
       layers: [layer],
+      bmf: { xoffset: 0, yoffset: 0, xadvance: 0 },
       pixels: new Uint8Array([0, 0, 0, 0]),
       width: 9999,
       height: 9999,

@@ -9,6 +9,7 @@ import {
   PREVIEW_MISSING_GLYPH_ADVANCE_RATIO,
   PREVIEW_PLACEHOLDER_HEIGHT_RATIO,
 } from '@/config';
+import { flattenGlyph } from '@/core/font/layers';
 import { effectiveThreshold } from '@/core/font/threshold';
 import { useStore } from '@/store';
 
@@ -44,7 +45,7 @@ export const PreviewFloat = ({ open, onClose }: Props): React.JSX.Element => {
       const glyph = glyphMap.get(cp);
 
       totalWidth += glyph
-        ? glyph.xadvance + spacing.x
+        ? glyph.bmf.xadvance + spacing.x
         : Math.round(currentFont.settings.fontSize * PREVIEW_MISSING_GLYPH_ADVANCE_RATIO);
     }
 
@@ -65,13 +66,13 @@ export const PreviewFloat = ({ open, onClose }: Props): React.JSX.Element => {
 
     for (const cp of codePoints) {
       const glyph = glyphMap.get(cp);
+      const flat = glyph ? flattenGlyph(glyph) : null;
 
-      if (!glyph || glyph.width === 0 || glyph.height === 0) {
+      if (!glyph || !flat || flat.width === 0 || flat.height === 0) {
         const advance = glyph
-          ? glyph.xadvance
+          ? glyph.bmf.xadvance
           : Math.round(currentFont.settings.fontSize * PREVIEW_MISSING_GLYPH_ADVANCE_RATIO);
-        const placeholderHeight =
-          currentFont.settings.fontSize * PREVIEW_PLACEHOLDER_HEIGHT_RATIO;
+        const placeholderHeight = currentFont.settings.fontSize * PREVIEW_PLACEHOLDER_HEIGHT_RATIO;
 
         context.strokeStyle = 'rgba(255,255,255,0.2)';
         context.strokeRect(
@@ -85,14 +86,14 @@ export const PreviewFloat = ({ open, onClose }: Props): React.JSX.Element => {
         continue;
       }
 
-      const destX = x + glyph.xoffset;
-      const destY = glyph.yoffset;
+      const destX = x + glyph.bmf.xoffset + flat.xoffset;
+      const destY = glyph.bmf.yoffset + flat.yoffset;
 
-      const imageData = new ImageData(glyph.width, glyph.height);
+      const imageData = new ImageData(flat.width, flat.height);
       const threshold = effectiveThreshold(glyph, currentFont.settings);
 
-      for (let index = 0; index < glyph.pixels.length; index++) {
-        const ink = glyph.pixels[index] >= threshold ? 255 : 0;
+      for (let index = 0; index < flat.pixels.length; index++) {
+        const ink = flat.pixels[index] >= threshold ? 255 : 0;
 
         imageData.data[index * 4 + 0] = 255;
         imageData.data[index * 4 + 1] = 255;
@@ -102,13 +103,13 @@ export const PreviewFloat = ({ open, onClose }: Props): React.JSX.Element => {
 
       const offscreen = document.createElement('canvas');
 
-      offscreen.width = glyph.width;
-      offscreen.height = glyph.height;
+      offscreen.width = flat.width;
+      offscreen.height = flat.height;
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       offscreen.getContext('2d')!.putImageData(imageData, 0, 0); // offscreen canvas always has a 2D context
       context.drawImage(offscreen, destX, destY);
 
-      x += glyph.xadvance + spacing.x;
+      x += glyph.bmf.xadvance + spacing.x;
     }
   }, [text, glyphs, currentFont]);
 

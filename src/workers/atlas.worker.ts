@@ -1,4 +1,5 @@
 import { chooseAtlasSize, packGlyphs } from '@/core/atlas/pack';
+import { flattenGlyph } from '@/core/font/layers';
 import { effectiveThreshold } from '@/core/font/threshold';
 import type { Glyph, GlyphPlacement } from '@/core/font/types';
 
@@ -56,7 +57,8 @@ self.onmessage = (event: MessageEvent<AtlasWorkerRequest>) => {
         continue;
       }
 
-      // Render the trimmed region of the glyph's pixel buffer
+      // Render the trimmed region of the glyph's flattened bitmap.
+      const flat = flattenGlyph(glyph);
       const { trimX, trimY } = placement;
       const tw = placement.width;
       const th = placement.height;
@@ -65,7 +67,7 @@ self.onmessage = (event: MessageEvent<AtlasWorkerRequest>) => {
 
       for (let y = 0; y < th; y++) {
         for (let x = 0; x < tw; x++) {
-          const value = glyph.pixels[(trimY + y) * glyph.width + (trimX + x)];
+          const value = flat.pixels[(trimY + y) * flat.width + (trimX + x)];
           const ink = value >= threshold ? 255 : 0;
           const index = (y * tw + x) * 4;
 
