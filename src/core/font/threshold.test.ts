@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { effectiveThreshold } from './threshold';
 
 describe('effectiveThreshold', () => {
-  it('falls back to project setting when glyph has no override', () => {
+  it('falls back to font setting when glyph has no override', () => {
     expect(effectiveThreshold({ alphaThreshold: undefined }, { alphaThreshold: 128 })).toBe(128);
   });
 

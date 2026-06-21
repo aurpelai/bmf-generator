@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 
-import { cloneLayers, syncLegacyFields } from '@/core/project/layers';
+import { cloneLayers, syncLegacyFields } from '@/core/font/layers';
 import { saveGlyphs } from '@/db/glyphs';
 import { useStore } from '@/store';
 

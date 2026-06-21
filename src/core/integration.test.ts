@@ -4,9 +4,9 @@ import { packGlyphs } from './atlas/pack';
 import { parseBmfText } from './bmf/parse';
 import type { BmfGlyphData } from './bmf/serialize';
 import { serializeBmfText } from './bmf/serialize';
-import { makeBlankGlyph } from './project/glyphs';
-import { createProject } from './project/project';
-import type { Glyph } from './project/types';
+import { createFont } from './font/font';
+import { makeBlankGlyph } from './font/glyphs';
+import type { Glyph } from './font/types';
 
 function inkBlock(glyph: Glyph, x: number, y: number, width: number, height: number): Glyph {
   for (let row = y; row < y + height; row++) {
@@ -24,13 +24,13 @@ function inkBlock(glyph: Glyph, x: number, y: number, width: number, height: num
 
 describe('pack → serialize → parse round-trip', () => {
   it('preserves face name, common metrics, and char entries', () => {
-    const project = createProject('Integration', {
+    const font = createFont('Integration', {
       padding: { top: 1, right: 1, bottom: 1, left: 1 },
     });
 
     // 3 glyphs, each 8×8, ink in a 4×4 inner block so trimming has work to do
     const glyphs: Glyph[] = [0x41, 0x42, 0x43].map((codePoint) =>
-      inkBlock(makeBlankGlyph(project.id, codePoint, 8, 8), 2, 2, 4, 4),
+      inkBlock(makeBlankGlyph(font.id, codePoint, 8, 8), 2, 2, 4, 4),
     );
 
     const atlasWidth = 64;
@@ -63,7 +63,7 @@ describe('pack → serialize → parse round-trip', () => {
     });
 
     const fnt = serializeBmfText({
-      project,
+      font,
       glyphs: glyphData,
       atlasWidth,
       atlasHeight,
@@ -73,8 +73,8 @@ describe('pack → serialize → parse round-trip', () => {
     const parsed = parseBmfText(fnt);
 
     expect(parsed.info.face).toBe('Integration');
-    expect(parsed.info.size).toBe(project.settings.fontSize);
-    expect(parsed.info.padding).toEqual(project.settings.padding);
+    expect(parsed.info.size).toBe(font.settings.fontSize);
+    expect(parsed.info.padding).toEqual(font.settings.padding);
     expect(parsed.common.scaleW).toBe(atlasWidth);
     expect(parsed.common.scaleH).toBe(atlasHeight);
     expect(parsed.atlasFilename).toBe('Integration.png');

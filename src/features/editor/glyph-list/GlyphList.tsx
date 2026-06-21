@@ -23,9 +23,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import type { Glyph } from '@/core/project';
-import { makeBlankGlyph } from '@/core/project';
-import { cloneLayers, makeBaseLayerFromBitmap, syncLegacyFields } from '@/core/project/layers';
+import type { Glyph } from '@/core/font';
+import { makeBlankGlyph } from '@/core/font';
+import { cloneLayers, makeBaseLayerFromBitmap, syncLegacyFields } from '@/core/font/layers';
 import { deleteGlyph, getFontFile, saveGlyphs } from '@/db';
 import { useRasterize } from '@/hooks/useRasterize';
 import { cn } from '@/lib/utils';
@@ -77,13 +77,13 @@ export const GlyphList = ({
   const [resetting, setResetting] = useState(false);
 
   const glyphs = useStore((state) => state.glyphs);
-  const currentProject = useStore((state) => state.currentProject);
+  const currentFont = useStore((state) => state.currentFont);
   const selectedCodePoint = useStore((state) => state.selectedCodePoint);
   const setSelectedCodePoint = useStore((state) => state.setSelectedCodePoint);
   const upsertGlyph = useStore((state) => state.upsertGlyph);
   const pushUndo = useStore((state) => state.pushUndo);
   const removeGlyph = useStore((state) => state.removeGlyph);
-  const updateCurrentProject = useStore((state) => state.updateCurrentProject);
+  const updateCurrentFont = useStore((state) => state.updateCurrentFont);
   const { rasterize } = useRasterize();
 
   const sortedGlyphs = useMemo(() => sortGlyphs(glyphs), [glyphs]);
@@ -114,14 +114,14 @@ export const GlyphList = ({
   }
 
   async function handleResetToFont(): Promise<void> {
-    if (!selectedGlyph || !currentProject?.settings.sourceFontId) {
+    if (!selectedGlyph || !currentFont?.settings.sourceFontId) {
       return;
     }
 
     setResetting(true);
 
     try {
-      const buf = await getFontFile(currentProject.settings.sourceFontId);
+      const buf = await getFontFile(currentFont.settings.sourceFontId);
 
       if (!buf) {
         return;
@@ -130,7 +130,7 @@ export const GlyphList = ({
       const result = await rasterize(
         buf,
         [selectedGlyph.codePoint],
-        currentProject.settings.fontSize,
+        currentFont.settings.fontSize,
       );
       const rg = result.glyphs[0];
 
@@ -163,15 +163,15 @@ export const GlyphList = ({
   }
 
   async function confirmRemoveGlyph(): Promise<void> {
-    if (!selectedGlyph || !currentProject) {
+    if (!selectedGlyph || !currentFont) {
       return;
     }
 
     setRemoveOpen(false);
     removeGlyph(selectedGlyph.codePoint);
-    await deleteGlyph(currentProject.id, selectedGlyph.codePoint);
-    updateCurrentProject({
-      glyphs: currentProject.glyphs.filter((codePoint) => codePoint !== selectedGlyph.codePoint),
+    await deleteGlyph(currentFont.id, selectedGlyph.codePoint);
+    updateCurrentFont({
+      glyphs: currentFont.glyphs.filter((codePoint) => codePoint !== selectedGlyph.codePoint),
     });
     setSelectedCodePoint(null);
   }
@@ -201,14 +201,14 @@ export const GlyphList = ({
     await saveGlyphs([cleared]);
   }
 
-  if (!currentProject) {
+  if (!currentFont) {
     return null;
   }
 
-  const hasSourceFont = !!currentProject.settings.sourceFontId;
+  const hasSourceFont = !!currentFont.settings.sourceFontId;
 
   async function handleAddGlyph(codePoint: number): Promise<void> {
-    if (!currentProject) {
+    if (!currentFont) {
       return;
     }
 
@@ -218,15 +218,15 @@ export const GlyphList = ({
       return;
     }
 
-    const { fontSize, lineHeight } = currentProject.settings;
-    const glyph = makeBlankGlyph(currentProject.id, codePoint, fontSize, lineHeight);
+    const { fontSize, lineHeight } = currentFont.settings;
+    const glyph = makeBlankGlyph(currentFont.id, codePoint, fontSize, lineHeight);
 
     await saveGlyphs([glyph]);
     upsertGlyph(glyph);
 
-    // Add code point to project metadata if not already listed
-    if (!currentProject.glyphs.includes(codePoint)) {
-      updateCurrentProject({ glyphs: [...currentProject.glyphs, codePoint] });
+    // Add code point to font metadata if not already listed
+    if (!currentFont.glyphs.includes(codePoint)) {
+      updateCurrentFont({ glyphs: [...currentFont.glyphs, codePoint] });
     }
 
     setSelectedCodePoint(codePoint);
@@ -271,7 +271,7 @@ export const GlyphList = ({
                       pixels={glyph.pixels}
                       width={glyph.width}
                       height={glyph.height}
-                      threshold={glyph.alphaThreshold ?? currentProject.settings.alphaThreshold}
+                      threshold={glyph.alphaThreshold ?? currentFont.settings.alphaThreshold}
                     />
                   ) : (
                     <span className="text-muted-foreground text-xs">?</span>
@@ -353,7 +353,7 @@ export const GlyphList = ({
                         pixels={glyph.pixels}
                         width={glyph.width}
                         height={glyph.height}
-                        threshold={glyph.alphaThreshold ?? currentProject.settings.alphaThreshold}
+                        threshold={glyph.alphaThreshold ?? currentFont.settings.alphaThreshold}
                       />
                     ) : (
                       <span className="text-muted-foreground text-xs">?</span>
@@ -405,7 +405,7 @@ export const GlyphList = ({
                     <div className="flex items-center gap-2">
                       <Label className="text-muted-foreground shrink-0 text-[10px]">α cutoff</Label>
                       <Slider
-                        value={[glyph.alphaThreshold ?? currentProject.settings.alphaThreshold]}
+                        value={[glyph.alphaThreshold ?? currentFont.settings.alphaThreshold]}
                         min={0}
                         max={255}
                         step={1}
@@ -425,15 +425,15 @@ export const GlyphList = ({
                             : 'text-muted-foreground',
                         )}
                       >
-                        {glyph.alphaThreshold ?? currentProject.settings.alphaThreshold}
+                        {glyph.alphaThreshold ?? currentFont.settings.alphaThreshold}
                       </span>
                       {glyph.alphaThreshold !== undefined && (
                         <Button
                           variant="ghost"
                           size="icon-xs"
                           className="h-5 w-5 shrink-0"
-                          title="Reset to project default"
-                          aria-label="Reset alpha threshold to project default"
+                          title="Reset to font default"
+                          aria-label="Reset alpha threshold to font default"
                           onClick={() => setGlyphAlphaThreshold(glyph, undefined)}
                         >
                           <RotateCcw className="h-2.5 w-2.5" />

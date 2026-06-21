@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react';
 
-import type { RasterizeResult } from '@/core/font/rasterize';
+import type { RasterizeResult } from '@/core/rasterize/rasterize';
 import type { RasterizeWorkerRequest, RasterizeWorkerResponse } from '@/workers/rasterize.worker';
 
 export function useRasterize(): {

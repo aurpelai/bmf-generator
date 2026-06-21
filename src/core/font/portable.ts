@@ -1,11 +1,11 @@
 import { makeBaseLayerFromBitmap } from './layers';
-import type { Glyph, Project } from './types';
+import type { Font, Glyph } from './types';
 
-export interface PortableProject {
-  version: 1;
-  project: Project;
+export interface PortableFont {
+  version: 2;
+  font: Font;
   // Pixels serialized as base64 strings to survive JSON round-trip.
-  // Layers are intentionally not serialized in v1 — they're reconstructed from the legacy bitmap on import.
+  // Layers are reconstructed from the legacy bitmap on import.
   glyphs: Array<Omit<Glyph, 'pixels' | 'layers'> & { pixels: string }>;
 }
 
@@ -30,15 +30,14 @@ function fromBase64(b64: string): Uint8Array {
   return buf;
 }
 
-export function exportPortableProject(project: Project, glyphs: Glyph[]): string {
-  const portable: PortableProject = {
-    version: 1,
-    project,
+export function exportPortableFont(font: Font, glyphs: Glyph[]): string {
+  const portable: PortableFont = {
+    version: 2,
+    font,
     glyphs: glyphs.map((glyph) => {
-      // Drop `layers` from the serialized payload; v1 portable bundles store the legacy bitmap shape only.
       const rest: Omit<Glyph, 'pixels' | 'layers'> = {
         codePoint: glyph.codePoint,
-        projectId: glyph.projectId,
+        fontId: glyph.fontId,
         width: glyph.width,
         height: glyph.height,
         xoffset: glyph.xoffset,
@@ -55,15 +54,15 @@ export function exportPortableProject(project: Project, glyphs: Glyph[]): string
   return JSON.stringify(portable, null, 2);
 }
 
-export function importPortableProject(json: string): { project: Project; glyphs: Glyph[] } {
-  const data = JSON.parse(json) as PortableProject;
+export function importPortableFont(json: string): { font: Font; glyphs: Glyph[] } {
+  const data = JSON.parse(json) as PortableFont;
 
-  if (data.version !== 1) {
-    throw new Error(`Unsupported project version: ${String(data.version)}`);
+  if (data.version !== 2) {
+    throw new Error(`Unsupported font version: ${String(data.version)}`);
   }
 
-  if (!data.project?.id) {
-    throw new Error('Invalid project bundle: missing project data');
+  if (!data.font?.id) {
+    throw new Error('Invalid font bundle: missing font data');
   }
 
   const glyphs: Glyph[] = data.glyphs.map((glyph) => {
@@ -84,5 +83,5 @@ export function importPortableProject(json: string): { project: Project; glyphs:
     };
   });
 
-  return { project: data.project, glyphs };
+  return { font: data.font, glyphs };
 }

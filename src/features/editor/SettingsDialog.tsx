@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { saveProject } from '@/db';
+import { saveFont } from '@/db';
 import { FontMetricsFields } from '@/features/home/FontMetricsFields';
 import { PaddingFields } from '@/features/home/PaddingFields';
 import { SpacingFields } from '@/features/home/SpacingFields';
@@ -15,11 +15,11 @@ interface Props {
 }
 
 export const SettingsDialog = ({ open, onOpenChange }: Props): React.JSX.Element | null => {
-  const currentProject = useStore((state) => state.currentProject);
-  const updateCurrentProject = useStore((state) => state.updateCurrentProject);
+  const currentFont = useStore((state) => state.currentFont);
+  const updateCurrentFont = useStore((state) => state.updateCurrentFont);
 
-  const initialSettings = currentProject?.settings;
-  const [name, setName] = useState(currentProject?.name ?? '');
+  const initialSettings = currentFont?.settings;
+  const [name, setName] = useState(currentFont?.name ?? '');
   const [fontSize, setFontSize] = useState(initialSettings?.fontSize ?? 32);
   const [lineHeight, setLineHeight] = useState(initialSettings?.lineHeight ?? 36);
   const [base, setBase] = useState(initialSettings?.base ?? 28);
@@ -32,13 +32,13 @@ export const SettingsDialog = ({ open, onOpenChange }: Props): React.JSX.Element
   const [spacingY, setSpacingY] = useState(initialSettings?.spacing.y ?? 1);
 
   useEffect(() => {
-    if (!currentProject) {
+    if (!currentFont) {
       return;
     }
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setName(currentProject.name);
-    const settings = currentProject.settings;
+    setName(currentFont.name);
+    const settings = currentFont.settings;
 
     setFontSize(settings.fontSize);
     setLineHeight(settings.lineHeight);
@@ -51,21 +51,21 @@ export const SettingsDialog = ({ open, onOpenChange }: Props): React.JSX.Element
     setSpacingX(settings.spacing.x);
     setSpacingY(settings.spacing.y);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentProject?.id]);
+  }, [currentFont?.id]);
 
-  if (!currentProject) {
+  if (!currentFont) {
     return null;
   }
 
-  function commit(changes: Parameters<typeof updateCurrentProject>[0]): void {
-    updateCurrentProject(changes);
+  function commit(changes: Parameters<typeof updateCurrentFont>[0]): void {
+    updateCurrentFont(changes);
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    void saveProject({ ...currentProject!, ...changes, updatedAt: Date.now() }); // non-null: guarded above
+    void saveFont({ ...currentFont!, ...changes, updatedAt: Date.now() }); // non-null: guarded above
   }
 
-  function commitSettings(partial: Partial<NonNullable<typeof currentProject>['settings']>): void {
+  function commitSettings(partial: Partial<NonNullable<typeof currentFont>['settings']>): void {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    commit({ settings: { ...currentProject!.settings, ...partial } }); // non-null: guarded above
+    commit({ settings: { ...currentFont!.settings, ...partial } }); // non-null: guarded above
   }
 
   return (

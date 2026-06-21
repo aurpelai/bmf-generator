@@ -2,14 +2,14 @@ import { makeBlankLayer } from './layers';
 import type { Glyph } from './types';
 
 export function makeBlankGlyph(
-  projectId: string,
+  fontId: string,
   codePoint: number,
   width: number,
   height: number,
 ): Glyph {
   return {
     codePoint,
-    projectId,
+    fontId,
     layers: [makeBlankLayer()],
     pixels: new Uint8Array(width * height),
     width,
@@ -22,10 +22,10 @@ export function makeBlankGlyph(
 }
 
 export function initializeGlyphs(
-  projectId: string,
+  fontId: string,
   codePoints: number[],
   width: number,
   height: number,
 ): Glyph[] {
-  return codePoints.map((codePoint) => makeBlankGlyph(projectId, codePoint, width, height));
+  return codePoints.map((codePoint) => makeBlankGlyph(fontId, codePoint, width, height));
 }

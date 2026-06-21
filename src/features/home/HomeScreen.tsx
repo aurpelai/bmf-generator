@@ -4,20 +4,20 @@ import { useNavigate } from 'react-router';
 
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import type { Project } from '@/core/project';
-import { importPortableProject } from '@/core/project';
-import { deleteProject, getAllProjects, saveGlyphs, saveProject } from '@/db';
+import type { Font } from '@/core/font';
+import { importPortableFont } from '@/core/font';
+import { deleteFont, getAllFonts, saveFont,saveGlyphs } from '@/db';
 import { useStore } from '@/store';
 
-import { DeleteProjectDialog } from './DeleteProjectDialog';
+import { DeleteFontDialog } from './DeleteFontDialog';
 import { ImportWizard } from './ImportWizard';
 import { NewFontWizard } from './NewFontWizard';
 
 export const HomeScreen = (): React.JSX.Element => {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [newProjectOpen, setNewProjectOpen] = useState(false);
+  const [fonts, setFonts] = useState<Font[]>([]);
+  const [newFontOpen, setNewFontOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Font | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const renameInputRef = useRef<HTMLInputElement>(null);
@@ -26,16 +26,16 @@ export const HomeScreen = (): React.JSX.Element => {
   const jsonInputRef = useRef<HTMLInputElement>(null);
 
   const navigate = useNavigate();
-  const setCurrentProject = useStore((state) => state.setCurrentProject);
+  const setCurrentFont = useStore((state) => state.setCurrentFont);
   const setGlyphs = useStore((state) => state.setGlyphs);
 
-  async function loadProjects(): Promise<void> {
-    setProjects(await getAllProjects());
+  async function loadFonts(): Promise<void> {
+    setFonts(await getAllFonts());
   }
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void loadProjects();
+    void loadFonts();
   }, []);
 
   useEffect(() => {
@@ -44,30 +44,30 @@ export const HomeScreen = (): React.JSX.Element => {
     }
   }, [renamingId]);
 
-  function openProject(project: Project): void {
-    setCurrentProject(project);
+  function openFont(font: Font): void {
+    setCurrentFont(font);
     void navigate('/editor');
   }
 
-  function startRename(project: Project): void {
-    setRenamingId(project.id);
-    setRenameValue(project.name);
+  function startRename(font: Font): void {
+    setRenamingId(font.id);
+    setRenameValue(font.name);
   }
 
-  async function commitRename(project: Project): Promise<void> {
-    const name = renameValue.trim() || project.name;
+  async function commitRename(font: Font): Promise<void> {
+    const name = renameValue.trim() || font.name;
     // eslint-disable-next-line react-hooks/purity
-    const updated = { ...project, name, updatedAt: Date.now() }; // Date.now() is intentional for timestamp
+    const updated = { ...font, name, updatedAt: Date.now() }; // Date.now() is intentional for timestamp
 
-    await saveProject(updated);
+    await saveFont(updated);
     setRenamingId(null);
-    void loadProjects();
+    void loadFonts();
   }
 
-  async function handleDelete(project: Project): Promise<void> {
-    await deleteProject(project.id);
+  async function handleDelete(font: Font): Promise<void> {
+    await deleteFont(font.id);
     setDeleteTarget(null);
-    void loadProjects();
+    void loadFonts();
   }
 
   async function handleJsonImport(file: File): Promise<void> {
@@ -75,15 +75,15 @@ export const HomeScreen = (): React.JSX.Element => {
 
     try {
       const json = await file.text();
-      const { project, glyphs } = importPortableProject(json);
+      const { font, glyphs } = importPortableFont(json);
 
-      await saveProject(project);
+      await saveFont(font);
       await saveGlyphs(glyphs);
-      setCurrentProject(project);
+      setCurrentFont(font);
       setGlyphs(glyphs);
       void navigate('/editor');
     } catch (err) {
-      setJsonImportError(err instanceof Error ? err.message : 'Failed to import project');
+      setJsonImportError(err instanceof Error ? err.message : 'Failed to import font');
     }
   }
 
@@ -104,7 +104,7 @@ export const HomeScreen = (): React.JSX.Element => {
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8">
         {/* Actions */}
         <div className="mb-8 flex gap-3">
-          <Button onClick={() => setNewProjectOpen(true)}>
+          <Button onClick={() => setNewFontOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             New font
           </Button>
@@ -137,8 +137,8 @@ export const HomeScreen = (): React.JSX.Element => {
 
         <Separator className="mb-6" />
 
-        {/* Project list */}
-        {projects.length === 0 ? (
+        {/* Font list */}
+        {fonts.length === 0 ? (
           <div className="text-muted-foreground py-16 text-center text-sm">
             <p>No fonts yet.</p>
             <p className="mt-1">
@@ -150,33 +150,33 @@ export const HomeScreen = (): React.JSX.Element => {
             <h2 className="text-muted-foreground mb-2 text-xs font-medium tracking-wider uppercase">
               Recent fonts
             </h2>
-            {projects.map((project) => (
+            {fonts.map((font) => (
               <div
-                key={project.id}
+                key={font.id}
                 role="button"
                 tabIndex={0}
                 className="border-border bg-card group flex cursor-pointer items-center gap-3 rounded-md border px-4 py-3 transition-colors hover:bg-white/10"
-                onClick={() => openProject(project)}
+                onClick={() => openFont(font)}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault();
-                    openProject(project);
+                    openFont(font);
                   }
                 }}
               >
                 <div className="min-w-0 flex-1">
-                  {renamingId === project.id ? (
+                  {renamingId === font.id ? (
                     <input
                       ref={renameInputRef}
                       className="bg-input text-foreground w-full rounded px-1 py-0.5 text-sm outline-none"
                       value={renameValue}
                       onChange={(event) => setRenameValue(event.target.value)}
                       onBlur={() => {
-                        void commitRename(project);
+                        void commitRename(font);
                       }}
                       onKeyDown={(event) => {
                         if (event.key === 'Enter') {
-                          void commitRename(project);
+                          void commitRename(font);
                         }
 
                         if (event.key === 'Escape') {
@@ -188,11 +188,11 @@ export const HomeScreen = (): React.JSX.Element => {
                       onClick={(event) => event.stopPropagation()}
                     />
                   ) : (
-                    <p className="truncate text-sm font-medium">{project.name}</p>
+                    <p className="truncate text-sm font-medium">{font.name}</p>
                   )}
                   <p className="text-muted-foreground mt-0.5 text-xs">
-                    {project.settings.fontSize}px · {project.glyphs.length} glyphs ·{' '}
-                    {formatDate(project.updatedAt)}
+                    {font.settings.fontSize}px · {font.glyphs.length} glyphs ·{' '}
+                    {formatDate(font.updatedAt)}
                   </p>
                 </div>
                 <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
@@ -202,7 +202,7 @@ export const HomeScreen = (): React.JSX.Element => {
                     className="h-7 w-7 hover:bg-white/20"
                     onClick={(event) => {
                       event.stopPropagation();
-                      startRename(project);
+                      startRename(font);
                     }}
                   >
                     <Pencil className="h-3.5 w-3.5" />
@@ -213,7 +213,7 @@ export const HomeScreen = (): React.JSX.Element => {
                     className="text-destructive hover:text-destructive h-7 w-7 hover:bg-white/20"
                     onClick={(event) => {
                       event.stopPropagation();
-                      setDeleteTarget(project);
+                      setDeleteTarget(font);
                     }}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -226,12 +226,12 @@ export const HomeScreen = (): React.JSX.Element => {
       </main>
 
       <NewFontWizard
-        open={newProjectOpen}
+        open={newFontOpen}
         onOpenChange={(open) => {
-          setNewProjectOpen(open);
+          setNewFontOpen(open);
 
           if (!open) {
-            void loadProjects();
+            void loadFonts();
           }
         }}
       />
@@ -241,13 +241,13 @@ export const HomeScreen = (): React.JSX.Element => {
           setImportOpen(open);
 
           if (!open) {
-            void loadProjects();
+            void loadFonts();
           }
         }}
       />
       {deleteTarget && (
-        <DeleteProjectDialog
-          projectName={deleteTarget.name}
+        <DeleteFontDialog
+          fontName={deleteTarget.name}
           open={!!deleteTarget}
           onOpenChange={(open) => !open && setDeleteTarget(null)}
           onConfirm={() => {

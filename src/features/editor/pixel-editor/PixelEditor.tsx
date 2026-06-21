@@ -25,9 +25,9 @@ import {
   syncLegacyFields,
   unionLayerBounds,
   updateLayerPixels,
-} from '@/core/project/layers';
-import { effectiveThreshold } from '@/core/project/threshold';
-import type { Glyph, Layer } from '@/core/project/types';
+} from '@/core/font/layers';
+import { effectiveThreshold } from '@/core/font/threshold';
+import type { Glyph, Layer } from '@/core/font/types';
 import { saveGlyphs } from '@/db/glyphs';
 import { useStore } from '@/store';
 
@@ -61,7 +61,7 @@ export const PixelEditor = (): React.JSX.Element => {
   const upsertGlyph = useStore((state) => state.upsertGlyph);
   const pushUndo = useStore((state) => state.pushUndo);
   const addToast = useStore((state) => state.addToast);
-  const currentProject = useStore((state) => state.currentProject);
+  const currentFont = useStore((state) => state.currentFont);
   const activeLayerId = useStore((state) => state.activeLayerId);
   const setActiveLayerId = useStore((state) => state.setActiveLayerId);
   const multiSelectLayerIds = useStore((state) => state.multiSelectLayerIds);
@@ -161,15 +161,15 @@ export const PixelEditor = (): React.JSX.Element => {
   const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     const currentGlyph = stateRef.current.glyph;
-    const project = currentProject;
+    const font = currentFont;
 
-    if (!canvas || !project) {
+    if (!canvas || !font) {
       return;
     }
 
     const zoom = stateRef.current.zoomLevel;
     const grid = stateRef.current.showGrid;
-    const { fontSize, lineHeight, base, capHeight } = project.settings;
+    const { fontSize, lineHeight, base, capHeight } = font.settings;
 
     // During a move drag the store is not updated — offsets live only in stateRef.
     // Only the layers being dragged are shifted by (dx, dy); other layers stay put.
@@ -199,7 +199,7 @@ export const PixelEditor = (): React.JSX.Element => {
           }
       : null;
     const layout = computeCanvasLayout(
-      project.settings,
+      font.settings,
       dragBounds,
       zoom,
       container ? { width: container.clientWidth, height: container.clientHeight } : null,
@@ -253,7 +253,7 @@ export const PixelEditor = (): React.JSX.Element => {
     // Glyph pixels — render each visible layer bottom-up.
     // Layers being dragged are shifted by (dx, dy); other layers stay at rest.
     if (currentGlyph) {
-      const threshold = effectiveThreshold(currentGlyph, project.settings);
+      const threshold = effectiveThreshold(currentGlyph, font.settings);
 
       for (const layer of currentGlyph.layers) {
         if (!layer.visible || layer.width === 0 || layer.height === 0) {
@@ -399,7 +399,7 @@ export const PixelEditor = (): React.JSX.Element => {
       context.strokeRect(bx, by, bw, bw);
       context.restore();
     }
-  }, [currentProject]);
+  }, [currentFont]);
 
   useEffect(() => {
     drawCanvas();
@@ -497,19 +497,19 @@ export const PixelEditor = (): React.JSX.Element => {
   const recenterCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     const container = containerRef.current;
-    const project = currentProject;
+    const font = currentFont;
 
-    if (!canvas || !container || !project) {
+    if (!canvas || !container || !font) {
       return;
     }
 
     const zoom = stateRef.current.zoomLevel;
     const currentGlyph = stateRef.current.glyph;
-    const { fontSize, lineHeight } = project.settings;
+    const { fontSize, lineHeight } = font.settings;
     // Shared layout math with drawCanvas — single source of truth for where
     // the cell sits within the (possibly overscan-padded) canvas.
     const { originX, originY } = computeCanvasLayout(
-      project.settings,
+      font.settings,
       currentGlyph
         ? {
             xoffset: currentGlyph.xoffset,
@@ -526,7 +526,7 @@ export const PixelEditor = (): React.JSX.Element => {
 
     container.scrollLeft = Math.max(0, cellCenterX - container.clientWidth / 2);
     container.scrollTop = Math.max(0, cellCenterY - container.clientHeight / 2);
-  }, [currentProject]);
+  }, [currentFont]);
 
   // Native non-passive wheel listener:
   //  - Shift+wheel        → adjust brush size (existing behavior)
@@ -665,9 +665,9 @@ export const PixelEditor = (): React.JSX.Element => {
     clientY: number,
   ): { col: number; row: number } | null {
     const canvas = canvasRef.current;
-    const project = currentProject;
+    const font = currentFont;
 
-    if (!canvas || !project) {
+    if (!canvas || !font) {
       return null;
     }
 
@@ -696,9 +696,9 @@ export const PixelEditor = (): React.JSX.Element => {
    */
   function moveGrabLayerIds(cell: { col: number; row: number } | null): string[] {
     const currentGlyph = stateRef.current.glyph;
-    const project = currentProject;
+    const font = currentFont;
 
-    if (!cell || !currentGlyph || !project) {
+    if (!cell || !currentGlyph || !font) {
       return [];
     }
 
@@ -706,7 +706,7 @@ export const PixelEditor = (): React.JSX.Element => {
       return stateRef.current.multiSelectLayerIds;
     }
 
-    const threshold = effectiveThreshold(currentGlyph, project.settings);
+    const threshold = effectiveThreshold(currentGlyph, font.settings);
     const hit = hitTestLayer(currentGlyph, cell.col, cell.row, threshold);
 
     return hit ? [hit.id] : [];
@@ -737,9 +737,9 @@ export const PixelEditor = (): React.JSX.Element => {
 
   function applyPaint(cell: { col: number; row: number } | null): void {
     const currentGlyph = stateRef.current.glyph;
-    const project = currentProject;
+    const font = currentFont;
 
-    if (!currentGlyph || !cell || !project) {
+    if (!currentGlyph || !cell || !font) {
       return;
     }
 
@@ -763,7 +763,7 @@ export const PixelEditor = (): React.JSX.Element => {
     // Eraser is a no-op outside the existing buffer — nothing to erase there.
     // Pencil grows the buffer to include any in-cell footprint pixels that fall
     // outside the current rect. We never grow beyond the editable cell area.
-    const { fontSize, lineHeight } = project.settings;
+    const { fontSize, lineHeight } = font.settings;
 
     // Clip brush to the cell — painting outside the cell is dropped (matches the
     // existing in-cell vs out-of-cell rendering distinction).
@@ -881,7 +881,7 @@ export const PixelEditor = (): React.JSX.Element => {
     if (stateRef.current.activeTool === 'move') {
       const cell = cellFromEvent(event);
       let targetIds = moveGrabLayerIds(cell);
-      const project = currentProject;
+      const font = currentFont;
 
       // Alt+click cycles to the next layer underneath the current pick (Figma-like
       // "click through"). Only meaningful when not in multi-select mode.
@@ -889,11 +889,11 @@ export const PixelEditor = (): React.JSX.Element => {
         targetIds.length === 1 &&
         event.altKey &&
         currentGlyph &&
-        project &&
+        font &&
         cell &&
         stateRef.current.multiSelectLayerIds.length === 0
       ) {
-        const threshold = effectiveThreshold(currentGlyph, project.settings);
+        const threshold = effectiveThreshold(currentGlyph, font.settings);
         const next = cycleHitLayer(currentGlyph, cell.col, cell.row, threshold, targetIds[0]);
 
         if (next) {
@@ -1113,8 +1113,8 @@ export const PixelEditor = (): React.JSX.Element => {
     stateRef.current.moveDelta = { dx: 0, dy: 0 };
   }
 
-  // No project open at all
-  if (!currentProject) {
+  // No font open at all
+  if (!currentFont) {
     return (
       <div className="flex flex-1 items-center justify-center">
         <span className="text-muted-foreground text-sm">Select a glyph to edit</span>

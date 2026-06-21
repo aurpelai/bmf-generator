@@ -13,17 +13,12 @@ import {
 } from '@/config';
 import type { BmfParseResult } from '@/core/bmf/parse';
 import { parseBmfText } from '@/core/bmf/parse';
-import type { RasterizedGlyph } from '@/core/font/rasterize';
-import {
-  createProject,
-  makeBaseLayerFromBitmap,
-  makeBlankGlyph,
-  makeBlankLayer,
-} from '@/core/project';
-import { GLYPH_SETS } from '@/core/project/glyphSets';
-import type { Glyph } from '@/core/project/types';
+import { createFont, makeBaseLayerFromBitmap, makeBlankGlyph, makeBlankLayer } from '@/core/font';
+import { GLYPH_SETS } from '@/core/font/glyphSets';
+import type { Glyph } from '@/core/font/types';
+import type { RasterizedGlyph } from '@/core/rasterize/rasterize';
+import { saveFont } from '@/db/fonts';
 import { saveFontFile, saveGlyphs } from '@/db/glyphs';
-import { saveProject } from '@/db/projects';
 import { useRasterize } from '@/hooks/useRasterize';
 import { useStore } from '@/store';
 import type { ImportPreset } from '@/store/exportSlice';
@@ -72,7 +67,7 @@ function detectAtlasMode(data: Uint8ClampedArray, width: number, height: number)
 function sliceGlyphsFromAtlas(
   imageData: ImageData,
   chars: BmfParseResult['chars'],
-  projectId: string,
+  fontId: string,
 ): Glyph[] {
   const { data, width: atlasW, height: atlasH } = imageData;
   const mode = detectAtlasMode(data, atlasW, atlasH);
@@ -81,7 +76,7 @@ function sliceGlyphsFromAtlas(
     if (char.width === 0 || char.height === 0) {
       return {
         codePoint: char.id,
-        projectId,
+        fontId,
         layers: [makeBlankLayer()],
         pixels: new Uint8Array(0),
         width: 0,
@@ -111,7 +106,7 @@ function sliceGlyphsFromAtlas(
 
     return {
       codePoint: char.id,
-      projectId,
+      fontId,
       layers: [
         makeBaseLayerFromBitmap({
           pixels,
@@ -142,7 +137,7 @@ export const ImportWizard = ({ open, onOpenChange }: Props): React.JSX.Element =
   const [ttfFile, setTtfFile] = useState<File | null>(null);
   const [fntFile, setFntFile] = useState<File | null>(null);
   const [pngFile, setPngFile] = useState<File | null>(null);
-  const [projectName, setProjectName] = useState('');
+  const [fontName, setFontName] = useState('');
   const [importPreset, setImportPreset] = useState<ImportPreset>('all');
   const [nameError, setNameError] = useState('');
 
@@ -176,7 +171,7 @@ export const ImportWizard = ({ open, onOpenChange }: Props): React.JSX.Element =
 
   const { rasterize } = useRasterize();
   const navigate = useNavigate();
-  const setCurrentProject = useStore((state) => state.setCurrentProject);
+  const setCurrentFont = useStore((state) => state.setCurrentFont);
   const setStoreGlyphs = useStore((state) => state.setGlyphs);
 
   // --- Step 1 file handlers ---
@@ -188,8 +183,8 @@ export const ImportWizard = ({ open, onOpenChange }: Props): React.JSX.Element =
       setTtfFile(file);
       setFormat('ttf');
 
-      if (!projectName) {
-        setProjectName(file.name.replace(/\.[^.]+$/, ''));
+      if (!fontName) {
+        setFontName(file.name.replace(/\.[^.]+$/, ''));
       }
 
       const reader = new FileReader();
@@ -207,8 +202,8 @@ export const ImportWizard = ({ open, onOpenChange }: Props): React.JSX.Element =
     setFntFile(file);
     setFormat('bmf');
 
-    if (!projectName) {
-      setProjectName(file.name.replace(/\.fnt$/i, ''));
+    if (!fontName) {
+      setFontName(file.name.replace(/\.fnt$/i, ''));
     }
 
     // Read the atlas filename from the .fnt so we can hint it on the PNG drop zone
@@ -227,7 +222,7 @@ export const ImportWizard = ({ open, onOpenChange }: Props): React.JSX.Element =
   // --- Step 1 → 2 transition: parse BMF early to pre-populate settings ---
 
   async function goToSettings(): Promise<void> {
-    if (!projectName.trim()) {
+    if (!fontName.trim()) {
       setNameError('Font name is required');
 
       return;
@@ -360,7 +355,7 @@ export const ImportWizard = ({ open, onOpenChange }: Props): React.JSX.Element =
 
         const fontId = crypto.randomUUID();
         const filteredCodePoints = filterCodePointsByPreset(importPreset, foundGlyphSet.codePoints);
-        const project = createProject(projectName || 'Untitled', {
+        const font = createFont(fontName || 'Untitled', {
           sourceFontId: fontId,
           fontSize,
           padding,
@@ -370,10 +365,10 @@ export const ImportWizard = ({ open, onOpenChange }: Props): React.JSX.Element =
           capHeight,
         });
 
-        project.glyphs = filteredCodePoints;
+        font.glyphs = filteredCodePoints;
         const glyphs: Glyph[] = (previewGlyphs as RasterizedGlyph[]).map((rasterizedGlyph) => ({
           codePoint: rasterizedGlyph.codePoint,
-          projectId: project.id,
+          fontId: font.id,
           layers: [
             makeBaseLayerFromBitmap({
               pixels: rasterizedGlyph.pixels,
@@ -394,9 +389,9 @@ export const ImportWizard = ({ open, onOpenChange }: Props): React.JSX.Element =
 
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         await saveFontFile(fontId, ttfBufferRef.current, ttfFile!.name); // ttfFile is set when format === 'ttf'
-        await saveProject(project);
+        await saveFont(font);
         await saveGlyphs(glyphs);
-        setCurrentProject(project);
+        setCurrentFont(font);
         setStoreGlyphs(glyphs);
       } else {
         if (!bmfParsedRef.current || !bmfImageDataRef.current) {
@@ -405,8 +400,8 @@ export const ImportWizard = ({ open, onOpenChange }: Props): React.JSX.Element =
 
         const parsed = bmfParsedRef.current;
         const imageData = bmfImageDataRef.current;
-        const name = projectName.trim() || parsed.info.face || 'Imported Font';
-        const project = createProject(name, {
+        const name = fontName.trim() || parsed.info.face || 'Imported Font';
+        const font = createFont(name, {
           sourceFontId: null,
           fontSize,
           padding,
@@ -416,26 +411,26 @@ export const ImportWizard = ({ open, onOpenChange }: Props): React.JSX.Element =
           capHeight,
         });
 
-        project.glyphs = foundGlyphSet.codePoints;
+        font.glyphs = foundGlyphSet.codePoints;
         const allFntCodePoints = parsed.chars.map((bmfChar) => bmfChar.id);
         const filteredCodePoints = filterCodePointsByPreset(importPreset, allFntCodePoints);
         const filteredSet = new Set(filteredCodePoints);
         const importedGlyphs = sliceGlyphsFromAtlas(
           imageData,
           parsed.chars.filter((bmfChar) => filteredSet.has(bmfChar.id)),
-          project.id,
+          font.id,
         );
         const importedSet = new Set(importedGlyphs.map((glyph) => glyph.codePoint));
         const blankGlyphs = foundGlyphSet.codePoints
           .filter((codePoint) => !importedSet.has(codePoint))
           .map((codePoint) =>
-            makeBlankGlyph(project.id, codePoint, fontSize, parsed.common.lineHeight),
+            makeBlankGlyph(font.id, codePoint, fontSize, parsed.common.lineHeight),
           );
         const allGlyphs = [...importedGlyphs, ...blankGlyphs];
 
-        await saveProject(project);
+        await saveFont(font);
         await saveGlyphs(allGlyphs);
-        setCurrentProject(project);
+        setCurrentFont(font);
         setStoreGlyphs(allGlyphs);
       }
 
@@ -458,7 +453,7 @@ export const ImportWizard = ({ open, onOpenChange }: Props): React.JSX.Element =
       setTtfFile(null);
       setFntFile(null);
       setPngFile(null);
-      setProjectName('');
+      setFontName('');
       setNameError('');
       setImportPreset('all');
       setFontSize(DEFAULT_FONT_SIZE);
@@ -569,11 +564,11 @@ export const ImportWizard = ({ open, onOpenChange }: Props): React.JSX.Element =
               <Label htmlFor="imp-name">Font name</Label>
               <Input
                 id="imp-name"
-                value={projectName}
+                value={fontName}
                 placeholder="Untitled"
                 className={nameError ? 'border-destructive' : ''}
                 onChange={(event) => {
-                  setProjectName(event.target.value);
+                  setFontName(event.target.value);
 
                   if (event.target.value.trim()) {
                     setNameError('');

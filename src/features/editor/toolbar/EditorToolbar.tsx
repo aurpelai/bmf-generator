@@ -18,7 +18,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { DEFAULT_ALPHA_THRESHOLD, MAX_BRUSH_SIZE, ZOOM_PRESETS, ZOOM_REFERENCE } from '@/config';
-import { saveProject } from '@/db';
+import { saveFont } from '@/db';
 import { zoomToFitLevel } from '@/features/editor/pixel-editor/zoom-helpers';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { cn } from '@/lib/utils';
@@ -46,9 +46,9 @@ export const EditorToolbar = ({
   const requestRecenter = useStore((state) => state.requestRecenter);
   const showGrid = useStore((state) => state.showGrid);
   const setShowGrid = useStore((state) => state.setShowGrid);
-  const currentProject = useStore((state) => state.currentProject);
-  const updateCurrentProject = useStore((state) => state.updateCurrentProject);
-  const alphaThreshold = currentProject?.settings.alphaThreshold ?? DEFAULT_ALPHA_THRESHOLD;
+  const currentFont = useStore((state) => state.currentFont);
+  const updateCurrentFont = useStore((state) => state.updateCurrentFont);
+  const alphaThreshold = currentFont?.settings.alphaThreshold ?? DEFAULT_ALPHA_THRESHOLD;
   const { undo, redo, canUndo, canRedo } = useUndoRedo();
 
   function zoomIn(): void {
@@ -73,7 +73,7 @@ export const EditorToolbar = ({
   }
 
   function zoomToFit(): void {
-    if (!currentProject) {
+    if (!currentFont) {
       return;
     }
 
@@ -82,7 +82,7 @@ export const EditorToolbar = ({
       ? { width: container.clientWidth, height: container.clientHeight }
       : { width: window.innerWidth, height: window.innerHeight };
 
-    setZoomLevel(zoomToFitLevel(currentProject.settings, viewport));
+    setZoomLevel(zoomToFitLevel(currentFont.settings, viewport));
     requestRecenter();
   }
 
@@ -236,7 +236,7 @@ export const EditorToolbar = ({
         <Grid2x2 className="h-3.5 w-3.5" />
       </Button>
 
-      {currentProject?.settings.sourceFontId && (
+      {currentFont?.settings.sourceFontId && (
         <>
           <div className="bg-border mx-1 h-5 w-px" />
 
@@ -252,15 +252,15 @@ export const EditorToolbar = ({
                 max={255}
                 step={1}
                 onValueChange={(value: number | readonly number[]) => {
-                  if (!currentProject) {
+                  if (!currentFont) {
                     return;
                   }
 
                   const next = typeof value === 'number' ? value : value[0];
-                  const settings = { ...currentProject.settings, alphaThreshold: next };
+                  const settings = { ...currentFont.settings, alphaThreshold: next };
 
-                  updateCurrentProject({ settings });
-                  void saveProject({ ...currentProject, settings, updatedAt: Date.now() });
+                  updateCurrentFont({ settings });
+                  void saveFont({ ...currentFont, settings, updatedAt: Date.now() });
                 }}
                 aria-label="Alpha threshold"
               />

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { createProject } from '../project/project';
+import { createFont } from '../font/font';
 import type { BmfGlyphData } from './serialize';
 import { serializeBmfText } from './serialize';
 
@@ -19,9 +19,9 @@ function makeGlyphData(
 
 describe('serializeBmfText', () => {
   it('produces an info line', () => {
-    const project = createProject('TestFont');
+    const font = createFont('TestFont');
     const output = serializeBmfText({
-      project,
+      font,
       glyphs: [],
       atlasWidth: 256,
       atlasHeight: 256,
@@ -33,9 +33,9 @@ describe('serializeBmfText', () => {
   });
 
   it('produces a common line with correct dimensions', () => {
-    const project = createProject('TestFont');
+    const font = createFont('TestFont');
     const output = serializeBmfText({
-      project,
+      font,
       glyphs: [],
       atlasWidth: 512,
       atlasHeight: 256,
@@ -49,9 +49,9 @@ describe('serializeBmfText', () => {
   });
 
   it('produces a page line with the atlas filename', () => {
-    const project = createProject('TestFont');
+    const font = createFont('TestFont');
     const output = serializeBmfText({
-      project,
+      font,
       glyphs: [],
       atlasWidth: 256,
       atlasHeight: 256,
@@ -62,10 +62,10 @@ describe('serializeBmfText', () => {
   });
 
   it('produces a chars count line', () => {
-    const project = createProject('TestFont');
+    const font = createFont('TestFont');
     const glyphs = [makeGlyphData(65, 0, 0, 8, 12), makeGlyphData(66, 8, 0, 8, 12)];
     const output = serializeBmfText({
-      project,
+      font,
       glyphs,
       atlasWidth: 256,
       atlasHeight: 256,
@@ -76,10 +76,10 @@ describe('serializeBmfText', () => {
   });
 
   it('produces a char line per glyph with correct fields', () => {
-    const project = createProject('TestFont');
+    const font = createFont('TestFont');
     const glyphs = [makeGlyphData(65, 4, 8, 10, 14)];
     const output = serializeBmfText({
-      project,
+      font,
       glyphs,
       atlasWidth: 256,
       atlasHeight: 256,
@@ -92,11 +92,11 @@ describe('serializeBmfText', () => {
   });
 
   it('includes padding in the info line', () => {
-    const project = createProject('TestFont', {
+    const font = createFont('TestFont', {
       padding: { top: 2, right: 2, bottom: 2, left: 2 },
     });
     const output = serializeBmfText({
-      project,
+      font,
       glyphs: [],
       atlasWidth: 256,
       atlasHeight: 256,
@@ -107,9 +107,9 @@ describe('serializeBmfText', () => {
   });
 
   it('ends with a newline', () => {
-    const project = createProject('TestFont');
+    const font = createFont('TestFont');
     const output = serializeBmfText({
-      project,
+      font,
       glyphs: [],
       atlasWidth: 256,
       atlasHeight: 256,

@@ -9,7 +9,7 @@ import {
   PREVIEW_MISSING_GLYPH_ADVANCE_RATIO,
   PREVIEW_PLACEHOLDER_HEIGHT_RATIO,
 } from '@/config';
-import { effectiveThreshold } from '@/core/project/threshold';
+import { effectiveThreshold } from '@/core/font/threshold';
 import { useStore } from '@/store';
 
 interface Props {
@@ -22,16 +22,16 @@ export const PreviewFloat = ({ open, onClose }: Props): React.JSX.Element => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const glyphs = useStore((state) => state.glyphs);
-  const currentProject = useStore((state) => state.currentProject);
+  const currentFont = useStore((state) => state.currentFont);
 
   useEffect(() => {
     const canvas = canvasRef.current;
 
-    if (!canvas || !currentProject) {
+    if (!canvas || !currentFont) {
       return;
     }
 
-    const { lineHeight, base, spacing } = currentProject.settings;
+    const { lineHeight, base, spacing } = currentFont.settings;
     const glyphMap = new Map(glyphs.map((glyph) => [glyph.codePoint, glyph]));
     const scale = PREVIEW_CANVAS_SCALE;
 
@@ -45,7 +45,7 @@ export const PreviewFloat = ({ open, onClose }: Props): React.JSX.Element => {
 
       totalWidth += glyph
         ? glyph.xadvance + spacing.x
-        : Math.round(currentProject.settings.fontSize * PREVIEW_MISSING_GLYPH_ADVANCE_RATIO);
+        : Math.round(currentFont.settings.fontSize * PREVIEW_MISSING_GLYPH_ADVANCE_RATIO);
     }
 
     totalWidth = Math.max(totalWidth, 1);
@@ -69,9 +69,9 @@ export const PreviewFloat = ({ open, onClose }: Props): React.JSX.Element => {
       if (!glyph || glyph.width === 0 || glyph.height === 0) {
         const advance = glyph
           ? glyph.xadvance
-          : Math.round(currentProject.settings.fontSize * PREVIEW_MISSING_GLYPH_ADVANCE_RATIO);
+          : Math.round(currentFont.settings.fontSize * PREVIEW_MISSING_GLYPH_ADVANCE_RATIO);
         const placeholderHeight =
-          currentProject.settings.fontSize * PREVIEW_PLACEHOLDER_HEIGHT_RATIO;
+          currentFont.settings.fontSize * PREVIEW_PLACEHOLDER_HEIGHT_RATIO;
 
         context.strokeStyle = 'rgba(255,255,255,0.2)';
         context.strokeRect(
@@ -89,7 +89,7 @@ export const PreviewFloat = ({ open, onClose }: Props): React.JSX.Element => {
       const destY = glyph.yoffset;
 
       const imageData = new ImageData(glyph.width, glyph.height);
-      const threshold = effectiveThreshold(glyph, currentProject.settings);
+      const threshold = effectiveThreshold(glyph, currentFont.settings);
 
       for (let index = 0; index < glyph.pixels.length; index++) {
         const ink = glyph.pixels[index] >= threshold ? 255 : 0;
@@ -110,7 +110,7 @@ export const PreviewFloat = ({ open, onClose }: Props): React.JSX.Element => {
 
       x += glyph.xadvance + spacing.x;
     }
-  }, [text, glyphs, currentProject]);
+  }, [text, glyphs, currentFont]);
 
   return (
     <div
@@ -134,10 +134,10 @@ export const PreviewFloat = ({ open, onClose }: Props): React.JSX.Element => {
           placeholder="Type preview text…"
         />
         <div className="bg-muted border-border/50 flex items-center justify-center overflow-x-auto rounded border p-2">
-          {currentProject ? (
+          {currentFont ? (
             <canvas ref={canvasRef} style={{ imageRendering: 'pixelated', display: 'block' }} />
           ) : (
-            <span className="text-muted-foreground text-xs">No project open.</span>
+            <span className="text-muted-foreground text-xs">No font open.</span>
           )}
         </div>
       </div>

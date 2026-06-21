@@ -9,7 +9,7 @@ import {
   ZOOM_DEFAULT,
   ZOOM_MAX,
 } from '@/config';
-import type { Layer } from '@/core/project';
+import type { Layer } from '@/core/font';
 
 export type EditorTool = 'pencil' | 'eraser' | 'move' | 'zoom';
 

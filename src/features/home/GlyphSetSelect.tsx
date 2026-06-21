@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { GLYPH_SETS } from '@/core/project/glyphSets';
+import { GLYPH_SETS } from '@/core/font/glyphSets';
 
 export const GlyphSetSelect = ({
   id,

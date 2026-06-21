@@ -1,7 +1,7 @@
 import { useCallback, useRef } from 'react';
 
-import { flattenGlyph } from '@/core/project/layers';
-import type { Glyph, GlyphPlacement } from '@/core/project/types';
+import { flattenGlyph } from '@/core/font/layers';
+import type { Glyph, GlyphPlacement } from '@/core/font/types';
 import type { AtlasWorkerRequest, AtlasWorkerResponse } from '@/workers/atlas.worker';
 
 export interface AtlasResult {

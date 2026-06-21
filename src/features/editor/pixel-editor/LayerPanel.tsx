@@ -20,7 +20,7 @@ import {
   removeLayer,
   reorderLayers,
   updateLayer,
-} from '@/core/project/layers';
+} from '@/core/font/layers';
 import { saveGlyphs } from '@/db/glyphs';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/store';

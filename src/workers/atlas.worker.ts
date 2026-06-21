@@ -1,6 +1,6 @@
 import { chooseAtlasSize, packGlyphs } from '@/core/atlas/pack';
-import { effectiveThreshold } from '@/core/project/threshold';
-import type { Glyph, GlyphPlacement } from '@/core/project/types';
+import { effectiveThreshold } from '@/core/font/threshold';
+import type { Glyph, GlyphPlacement } from '@/core/font/types';
 
 export interface AtlasWorkerRequest {
   id: string;
@@ -9,7 +9,7 @@ export interface AtlasWorkerRequest {
   atlasWidth: number;
   atlasHeight: number;
   padding: number;
-  /** Project-wide alpha cutoff (0–255); glyphs may override individually. */
+  /** Font-wide alpha cutoff (0–255); glyphs may override individually. */
   defaultAlphaThreshold: number;
 }
 

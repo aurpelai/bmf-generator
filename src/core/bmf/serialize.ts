@@ -1,4 +1,4 @@
-import type { Glyph, GlyphPlacement, Project } from '../project/types';
+import type { Font,Glyph, GlyphPlacement } from '../font/types';
 
 export interface BmfGlyphData {
   placement: GlyphPlacement;
@@ -6,7 +6,7 @@ export interface BmfGlyphData {
 }
 
 export interface BmfSerializeInput {
-  project: Project;
+  font: Font;
   glyphs: BmfGlyphData[];
   atlasWidth: number;
   atlasHeight: number;
@@ -14,8 +14,8 @@ export interface BmfSerializeInput {
 }
 
 export function serializeBmfText(input: BmfSerializeInput): string {
-  const { project, glyphs, atlasWidth, atlasHeight, atlasFilename } = input;
-  const { settings, name } = project;
+  const { font, glyphs, atlasWidth, atlasHeight, atlasFilename } = input;
+  const { settings, name } = font;
   const lines: string[] = [];
 
   lines.push(
