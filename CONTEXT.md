@@ -15,8 +15,8 @@ Font-wide BMF metrics (`fontSize`, `padding`, `spacing`, `lineHeight`, `base`, `
 _Avoid_: Config, options, metrics.
 
 **Source Font**:
-A user-uploaded TTF/OTF used to rasterise glyphs. Optional — a font can be drawn from scratch without one. Persisted as a `FontFile` blob in IndexedDB and referenced by `FontSettings.sourceFontId`.
-_Avoid_: Upload, font file (the on-disk persisted name is `FontFile`, but the concept is "source font").
+A user-uploaded TTF/OTF used to rasterise glyphs. Optional — a font can be drawn from scratch without one. Referenced by `FontSettings.sourceFontId`; the blob itself lives in the `FontFile` store, an implementation detail of how the file is persisted.
+_Avoid_: Upload, font file.
 
 **Code Point**:
 A Unicode scalar identifying a glyph within a font. The canonical identifier across the editor, storage, and export — BMF's `char id` is the same number.
@@ -48,7 +48,7 @@ _Avoid_: Cutoff, ink threshold.
 A pixel that passes the alpha threshold. Used informally — there is no `ink` field; "ink pixels" means "pixels ≥ threshold".
 
 **Cell**:
-A single square in the pixel-editor grid at the current zoom. The editor canvas is sized in cells; glyphs are rendered into it at their `xoffset`/`yoffset`.
+A single square in the pixel-editor grid at the current zoom. The editor canvas is sized in cells; each layer is rendered into it at the layer's own `xoffset`/`yoffset`.
 
 ### Pipeline
 
@@ -86,5 +86,5 @@ _Avoid_: Manifest, fnt file (use "descriptor" or ".fnt" explicitly).
 The `char id=… x=… y=… …` line in the descriptor. Use only when talking about the output text format; for the in-memory editable artefact use **Glyph**.
 
 **Portable Font**:
-A self-contained JSON export of a font plus its glyphs, used for sharing/importing fonts between browsers. Distinct from the BMF export (which produces `.fnt` + PNG). Wire format is at v2 — v1 bundles (which used the legacy "project" naming) are no longer accepted.
+A self-contained JSON export of a font plus its glyphs, used for sharing/importing fonts between browsers. Distinct from the BMF export (which produces `.fnt` + PNG).
 _Avoid_: Backup, dump, save file.
