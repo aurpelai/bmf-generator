@@ -25,7 +25,12 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import type { Glyph } from '@/core/font';
 import { makeBlankGlyph } from '@/core/font';
-import { cloneLayers, makeBaseLayerFromBitmap, syncLegacyFields } from '@/core/font/layers';
+import {
+  cloneLayers,
+  flattenGlyph,
+  makeBaseLayerFromBitmap,
+  syncLegacyFields,
+} from '@/core/font/layers';
 import { deleteGlyph, getFontFile, saveGlyphs } from '@/db';
 import { useRasterize } from '@/hooks/useRasterize';
 import { cn } from '@/lib/utils';
@@ -91,7 +96,7 @@ export const GlyphList = ({
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setXadvance(selectedGlyph?.xadvance ?? 0);
+    setXadvance(selectedGlyph?.bmf.xadvance ?? 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCodePoint]);
 
@@ -100,7 +105,11 @@ export const GlyphList = ({
       return;
     }
 
-    const updated: Glyph = { ...selectedGlyph, xadvance: value };
+    const updated: Glyph = {
+      ...selectedGlyph,
+      bmf: { ...selectedGlyph.bmf, xadvance: value },
+      xadvance: value,
+    };
 
     upsertGlyph(updated);
     void saveGlyphs([updated]);
@@ -127,18 +136,16 @@ export const GlyphList = ({
         return;
       }
 
-      const result = await rasterize(
-        buf,
-        [selectedGlyph.codePoint],
-        currentFont.settings.fontSize,
-      );
+      const result = await rasterize(buf, [selectedGlyph.codePoint], currentFont.settings.fontSize);
       const rg = result.glyphs[0];
 
       if (!rg) {
         return;
       }
 
-      // Reset from the source font discards all user-edited layers and replaces them with one fresh base layer.
+      // Reset from the source font discards all user-edited layers and replaces them with one
+      // fresh base layer. TTF metrics (xoffset/yoffset bearings) go onto `bmf`; the layer starts
+      // at (0, 0).
       const updated: Glyph = syncLegacyFields({
         ...selectedGlyph,
         layers: [
@@ -146,10 +153,11 @@ export const GlyphList = ({
             pixels: rg.pixels,
             width: rg.width,
             height: rg.height,
-            xoffset: rg.xoffset,
-            yoffset: rg.yoffset,
+            xoffset: 0,
+            yoffset: 0,
           }),
         ],
+        bmf: { xoffset: rg.xoffset, yoffset: rg.yoffset, xadvance: rg.xadvance },
         xadvance: rg.xadvance,
         isDirty: false,
       });
@@ -251,6 +259,7 @@ export const GlyphList = ({
           {sortedGlyphs.map((glyph) => {
             const isSelected = glyph.codePoint === selectedCodePoint;
             const label = `${String.fromCodePoint(glyph.codePoint)} U+${glyph.codePoint.toString(16).toUpperCase().padStart(4, '0')}`;
+            const flat = flattenGlyph(glyph);
 
             return (
               <button
@@ -266,11 +275,11 @@ export const GlyphList = ({
                 )}
               >
                 <div className="bg-background/30 border-border/40 relative flex h-8 w-8 shrink-0 items-center justify-center rounded border">
-                  {glyph.width > 0 && glyph.height > 0 ? (
+                  {flat.width > 0 && flat.height > 0 ? (
                     <GlyphThumbnail
-                      pixels={glyph.pixels}
-                      width={glyph.width}
-                      height={glyph.height}
+                      pixels={flat.pixels}
+                      width={flat.width}
+                      height={flat.height}
                       threshold={glyph.alphaThreshold ?? currentFont.settings.alphaThreshold}
                     />
                   ) : (
@@ -331,6 +340,7 @@ export const GlyphList = ({
           const char = glyphDisplayName(glyph.codePoint);
           const isSelected = glyph.codePoint === selectedCodePoint;
           const label = `${char} U+${glyph.codePoint.toString(16).toUpperCase().padStart(4, '0')}`;
+          const flat = flattenGlyph(glyph);
 
           return (
             <div key={glyph.codePoint}>
@@ -348,11 +358,11 @@ export const GlyphList = ({
                   className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left"
                 >
                   <div className="bg-background/30 border-border/40 relative flex h-8 w-8 shrink-0 items-center justify-center rounded border">
-                    {glyph.width > 0 && glyph.height > 0 ? (
+                    {flat.width > 0 && flat.height > 0 ? (
                       <GlyphThumbnail
-                        pixels={glyph.pixels}
-                        width={glyph.width}
-                        height={glyph.height}
+                        pixels={flat.pixels}
+                        width={flat.width}
+                        height={flat.height}
                         threshold={glyph.alphaThreshold ?? currentFont.settings.alphaThreshold}
                       />
                     ) : (

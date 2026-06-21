@@ -1,8 +1,9 @@
-import type { Font,Glyph, GlyphPlacement } from '../font/types';
+import type { BmfGlyphMetadata, Font, GlyphPlacement } from '../font/types';
 
 export interface BmfGlyphData {
   placement: GlyphPlacement;
-  glyph: Pick<Glyph, 'codePoint' | 'xoffset' | 'yoffset' | 'xadvance'>;
+  codePoint: number;
+  bmf: BmfGlyphMetadata;
 }
 
 export interface BmfSerializeInput {
@@ -33,11 +34,11 @@ export function serializeBmfText(input: BmfSerializeInput): string {
   lines.push(`page id=0 file="${atlasFilename}"`);
   lines.push(`chars count=${glyphs.length}`);
 
-  for (const { placement: p, glyph: g } of glyphs) {
+  for (const { placement: p, bmf } of glyphs) {
     lines.push(
       `char id=${p.codePoint}` +
         ` x=${p.x} y=${p.y} width=${p.width} height=${p.height}` +
-        ` xoffset=${g.xoffset} yoffset=${g.yoffset} xadvance=${g.xadvance}` +
+        ` xoffset=${bmf.xoffset} yoffset=${bmf.yoffset} xadvance=${bmf.xadvance}` +
         ` page=0 chnl=15`,
     );
   }

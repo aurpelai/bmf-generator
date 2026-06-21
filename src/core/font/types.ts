@@ -45,17 +45,34 @@ export interface Layer {
   locked: boolean;
 }
 
+/**
+ * BMF char-line metadata. `xoffset`/`yoffset` are the source-font positioning nudge
+ * (from TTF bearings or a parsed .fnt) — independent of where ink sits in the layer
+ * buffer. `xadvance` is the pen-advance in pixels. Exported as the `char` line's
+ * xoffset/yoffset/xadvance fields, summed with the flatten origin and placement trim.
+ */
+export interface BmfGlyphMetadata {
+  xoffset: number;
+  yoffset: number;
+  xadvance: number;
+}
+
 export interface Glyph {
   codePoint: number;
   fontId: string;
-  // Stage A invariant: layers[0] mirrors the legacy top-level pixel fields exactly.
-  // Stage B will make layers authoritative and drop the legacy fields.
   layers: Layer[];
+  bmf: BmfGlyphMetadata;
+  /** @deprecated PR 2 removes this. Use `flattenGlyph(glyph).pixels`. */
   pixels: Uint8Array;
+  /** @deprecated PR 2 removes this. Use `flattenGlyph(glyph).width`. */
   width: number;
+  /** @deprecated PR 2 removes this. Use `flattenGlyph(glyph).height`. */
   height: number;
+  /** @deprecated PR 2 removes this. Use `flattenGlyph(glyph).xoffset` for layout or `glyph.bmf.xoffset` for export. */
   xoffset: number;
+  /** @deprecated PR 2 removes this. Use `flattenGlyph(glyph).yoffset` for layout or `glyph.bmf.yoffset` for export. */
   yoffset: number;
+  /** @deprecated PR 2 removes this. Use `glyph.bmf.xadvance`. */
   xadvance: number;
   isDirty: boolean;
   alphaThreshold?: number;

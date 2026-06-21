@@ -13,7 +13,8 @@ function makeGlyphData(
 ): BmfGlyphData {
   return {
     placement: { codePoint, x, y, width: w, height: h, trimX: 0, trimY: 0 },
-    glyph: { codePoint, xoffset: 0, yoffset: 0, xadvance: w + 1 },
+    codePoint,
+    bmf: { xoffset: 0, yoffset: 0, xadvance: w + 1 },
   };
 }
 

@@ -66,6 +66,13 @@ interface FlattenOptions {
   includeHidden?: boolean;
 }
 
+// Memoise flattenGlyph by Glyph reference. Every mutation produces a new Glyph
+// object (replaceLayer / addLayer / etc.), so reference identity tracks "did
+// the layers change?" exactly. The WeakMap drops entries when the Glyph is GC'd.
+// `includeHidden: true` is the rare path and isn't worth caching — it skips
+// the cache entirely.
+const flattenCache = new WeakMap<Glyph, FlattenedGlyph>();
+
 /**
  * Composite a glyph's layers into the legacy single-bitmap shape that the export pipeline consumes.
  *
@@ -75,12 +82,33 @@ interface FlattenOptions {
  */
 export function flattenGlyph(glyph: Glyph, options: FlattenOptions = {}): FlattenedGlyph {
   const includeHidden = options.includeHidden ?? false;
+
+  if (!includeHidden) {
+    const cached = flattenCache.get(glyph);
+
+    if (cached) {
+      return cached;
+    }
+  }
+
   const contributing = glyph.layers.filter(
     (layer) => (includeHidden || layer.visible) && layer.width > 0 && layer.height > 0,
   );
 
   if (contributing.length === 0) {
-    return { pixels: new Uint8Array(0), width: 0, height: 0, xoffset: 0, yoffset: 0 };
+    const empty: FlattenedGlyph = {
+      pixels: new Uint8Array(0),
+      width: 0,
+      height: 0,
+      xoffset: 0,
+      yoffset: 0,
+    };
+
+    if (!includeHidden) {
+      flattenCache.set(glyph, empty);
+    }
+
+    return empty;
   }
 
   let minX = Infinity;
@@ -136,7 +164,13 @@ export function flattenGlyph(glyph: Glyph, options: FlattenOptions = {}): Flatte
     }
   }
 
-  return { pixels, width, height, xoffset: minX, yoffset: minY };
+  const result: FlattenedGlyph = { pixels, width, height, xoffset: minX, yoffset: minY };
+
+  if (!includeHidden) {
+    flattenCache.set(glyph, result);
+  }
+
+  return result;
 }
 
 export interface LayerBounds {
@@ -177,13 +211,21 @@ export function unionLayerBounds(
     const layerRight = layerLeft + layer.width;
     const layerBottom = layerTop + layer.height;
 
-    if (layerLeft < left) {left = layerLeft;}
+    if (layerLeft < left) {
+      left = layerLeft;
+    }
 
-    if (layerTop < top) {top = layerTop;}
+    if (layerTop < top) {
+      top = layerTop;
+    }
 
-    if (layerRight > right) {right = layerRight;}
+    if (layerRight > right) {
+      right = layerRight;
+    }
 
-    if (layerBottom > bottom) {bottom = layerBottom;}
+    if (layerBottom > bottom) {
+      bottom = layerBottom;
+    }
 
     found = true;
   }
@@ -218,13 +260,21 @@ export function trimLayerToInk(layer: Layer): Layer {
         continue;
       }
 
-      if (column < minX) {minX = column;}
+      if (column < minX) {
+        minX = column;
+      }
 
-      if (column > maxX) {maxX = column;}
+      if (column > maxX) {
+        maxX = column;
+      }
 
-      if (row < minY) {minY = row;}
+      if (row < minY) {
+        minY = row;
+      }
 
-      if (row > maxY) {maxY = row;}
+      if (row > maxY) {
+        maxY = row;
+      }
     }
   }
 
@@ -289,7 +339,12 @@ export function syncLegacyFields(glyph: Glyph): Glyph {
 }
 
 /** Returns the topmost visible inked layer under the given cell (in glyph cell-space), or null. */
-export function hitTestLayer(glyph: Glyph, cellX: number, cellY: number, threshold: number): Layer | null {
+export function hitTestLayer(
+  glyph: Glyph,
+  cellX: number,
+  cellY: number,
+  threshold: number,
+): Layer | null {
   for (let layerIndex = glyph.layers.length - 1; layerIndex >= 0; layerIndex--) {
     const layer = glyph.layers[layerIndex];
 
@@ -458,4 +513,3 @@ export function updateLayerPixels(glyph: Glyph, layerId: string, patch: LayerPix
 
   return replaceLayer(glyph, layerId, trimmed);
 }
-

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { DEFAULT_XADVANCE_RATIO } from '@/config';
+
 import { initializeGlyphs, makeBlankGlyph } from './glyphs';
 
 describe('makeBlankGlyph', () => {
@@ -25,12 +27,12 @@ describe('makeBlankGlyph', () => {
     }
   });
 
-  it('defaults xadvance to 0.7× the cell width, rounded', () => {
+  it('defaults xadvance to DEFAULT_XADVANCE_RATIO × the cell width, rounded', () => {
     const glyph = makeBlankGlyph('font-1', 0x41, 8, 12);
 
-    expect(glyph.xadvance).toBe(Math.round(8 * 0.7));
-    expect(glyph.xoffset).toBe(0);
-    expect(glyph.yoffset).toBe(0);
+    expect(glyph.bmf.xadvance).toBe(Math.round(8 * DEFAULT_XADVANCE_RATIO));
+    expect(glyph.bmf.xoffset).toBe(0);
+    expect(glyph.bmf.yoffset).toBe(0);
   });
 
   it('is not marked dirty', () => {
