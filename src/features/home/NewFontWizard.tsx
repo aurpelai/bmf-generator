@@ -11,9 +11,9 @@ import {
   DIALOG_RESET_DELAY_MS,
   LINE_HEIGHT_RATIO,
 } from '@/config';
-import { createProject, initializeGlyphs } from '@/core/project';
-import { GLYPH_SETS } from '@/core/project/glyphSets';
-import { saveGlyphs, saveProject } from '@/db';
+import { createFont, initializeGlyphs } from '@/core/font';
+import { GLYPH_SETS } from '@/core/font/glyphSets';
+import { saveFont,saveGlyphs } from '@/db';
 import { useStore } from '@/store';
 
 import { FontMetricsFields } from './FontMetricsFields';
@@ -51,7 +51,7 @@ export const NewFontWizard = ({ open, onOpenChange }: Props): React.JSX.Element 
   const [nameError, setNameError] = useState('');
 
   const navigate = useNavigate();
-  const setCurrentProject = useStore((state) => state.setCurrentProject);
+  const setCurrentFont = useStore((state) => state.setCurrentFont);
   const setGlyphs = useStore((state) => state.setGlyphs);
 
   async function handleCreate(): Promise<void> {
@@ -60,7 +60,7 @@ export const NewFontWizard = ({ open, onOpenChange }: Props): React.JSX.Element 
     try {
       const glyphSet =
         GLYPH_SETS.find((glyphSetItem) => glyphSetItem.id === glyphSetId) ?? GLYPH_SETS[0];
-      const project = createProject(name || 'Untitled', {
+      const font = createFont(name || 'Untitled', {
         fontSize,
         padding: { top: paddingTop, right: paddingRight, bottom: paddingBottom, left: paddingLeft },
         spacing: { x: spacingX, y: spacingY },
@@ -69,17 +69,17 @@ export const NewFontWizard = ({ open, onOpenChange }: Props): React.JSX.Element 
         capHeight,
       });
 
-      project.glyphs = glyphSet.codePoints;
+      font.glyphs = glyphSet.codePoints;
       const glyphs = initializeGlyphs(
-        project.id,
+        font.id,
         glyphSet.codePoints,
         fontSize,
         Math.round(fontSize * LINE_HEIGHT_RATIO),
       );
 
-      await saveProject(project);
+      await saveFont(font);
       await saveGlyphs(glyphs);
-      setCurrentProject(project);
+      setCurrentFont(font);
       setGlyphs(glyphs);
       void navigate('/editor');
       onOpenChange(false);

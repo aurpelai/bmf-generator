@@ -21,7 +21,7 @@ import type { Glyph, Layer } from './types';
 function makeGlyph(layers: Layer[]): Glyph {
   return {
     codePoint: 0x41,
-    projectId: 'project-1',
+    fontId: 'font-1',
     layers,
     pixels: new Uint8Array(0),
     width: 0,
@@ -342,7 +342,7 @@ describe('syncLegacyFields', () => {
     const layer = inkLayer(2, 1, 7, 8, [99, 100]);
     const stale: Glyph = {
       codePoint: 0x41,
-      projectId: 'project-1',
+      fontId: 'font-1',
       layers: [layer],
       pixels: new Uint8Array([0, 0, 0, 0]),
       width: 9999,

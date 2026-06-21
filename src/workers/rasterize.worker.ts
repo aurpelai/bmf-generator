@@ -1,4 +1,8 @@
-import { rasterizeFont, type RasterizeRequest, type RasterizeResult } from '@/core/font/rasterize';
+import {
+  rasterizeFont,
+  type RasterizeRequest,
+  type RasterizeResult,
+} from '@/core/rasterize/rasterize';
 
 export interface RasterizeWorkerRequest extends RasterizeRequest {
   id: string;

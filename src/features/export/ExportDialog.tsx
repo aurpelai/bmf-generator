@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { TOAST_DURATION_MS } from '@/config';
 import type { BmfGlyphData } from '@/core/bmf';
 import { serializeBmfText } from '@/core/bmf';
-import { exportPortableProject } from '@/core/project';
+import { exportPortableFont } from '@/core/font';
 import { GlyphSelection } from '@/features/editor/GlyphSelection';
 import { useStore } from '@/store';
 
@@ -55,7 +55,7 @@ export const ExportDialog = ({ open, onOpenChange }: Props): React.JSX.Element =
   const [exporting, setExporting] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const currentProject = useStore((state) => state.currentProject);
+  const currentFont = useStore((state) => state.currentFont);
   const glyphs = useStore((state) => state.glyphs);
   const atlasPlacements = useStore((state) => state.atlasPlacements);
   const addToast = useStore((state) => state.addToast);
@@ -64,7 +64,7 @@ export const ExportDialog = ({ open, onOpenChange }: Props): React.JSX.Element =
   const atlasHeight = useStore((state) => state.atlasHeight);
   const exportSelection = useStore((state) => state.exportSelection);
 
-  const baseName = currentProject ? safeName(currentProject.name) : 'font';
+  const baseName = currentFont ? safeName(currentFont.name) : 'font';
   const atlasFilename = `${baseName}.png`;
 
   // Only include placements that are in the current selection
@@ -75,9 +75,9 @@ export const ExportDialog = ({ open, onOpenChange }: Props): React.JSX.Element =
 
   const fntText = useMemo(
     () =>
-      currentProject && selectedPlacements.length > 0
+      currentFont && selectedPlacements.length > 0
         ? serializeBmfText({
-            project: currentProject,
+            font: currentFont,
             glyphs: selectedPlacements.map((placement): BmfGlyphData => {
               const glyph = glyphs.find((glyphItem) => glyphItem.codePoint === placement.codePoint);
 
@@ -96,7 +96,7 @@ export const ExportDialog = ({ open, onOpenChange }: Props): React.JSX.Element =
             atlasFilename,
           })
         : '',
-    [currentProject, selectedPlacements, glyphs, atlasWidth, atlasHeight, atlasFilename],
+    [currentFont, selectedPlacements, glyphs, atlasWidth, atlasHeight, atlasFilename],
   );
 
   // Scroll textarea to top when content changes
@@ -147,11 +147,11 @@ export const ExportDialog = ({ open, onOpenChange }: Props): React.JSX.Element =
   }
 
   function handleExportJson(): void {
-    if (!currentProject) {
+    if (!currentFont) {
       return;
     }
 
-    const json = exportPortableProject(currentProject, glyphs);
+    const json = exportPortableFont(currentFont, glyphs);
 
     download(new Blob([json], { type: 'application/json' }), `${baseName}.bmffont.json`);
     addToast(`Exported ${baseName}.bmffont.json`, 'success');
@@ -163,7 +163,7 @@ export const ExportDialog = ({ open, onOpenChange }: Props): React.JSX.Element =
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[80vh] flex-col sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Export — {currentProject?.name}</DialogTitle>
+          <DialogTitle>Export — {currentFont?.name}</DialogTitle>
         </DialogHeader>
 
         <div className="flex min-h-0 flex-1 flex-col gap-3">
@@ -213,7 +213,7 @@ export const ExportDialog = ({ open, onOpenChange }: Props): React.JSX.Element =
               size="sm"
               className="text-xs"
               onClick={handleExportJson}
-              disabled={!currentProject}
+              disabled={!currentFont}
             >
               <FileJson className="mr-1.5 h-3.5 w-3.5" />
               Download .json

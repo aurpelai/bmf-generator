@@ -1,6 +1,6 @@
 import type { StateCreator } from 'zustand';
 
-import type { Glyph } from '@/core/project';
+import type { Glyph } from '@/core/font';
 
 export interface GlyphSlice {
   glyphs: Glyph[];

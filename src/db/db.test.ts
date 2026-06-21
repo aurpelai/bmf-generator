@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { Glyph } from '@/core/project/types';
+import type { Glyph } from '@/core/font/types';
 
 import { upgradeGlyphV1ToV2 } from './db';
 
@@ -9,9 +9,9 @@ function makeV1Record(): Glyph & { id: string } {
 
   // Cast through unknown to model a real v1 record (no `layers` field present).
   return {
-    id: 'project-1:65',
+    id: 'font-1:65',
     codePoint: 65,
-    projectId: 'project-1',
+    fontId: 'font-1',
     pixels,
     width: 3,
     height: 2,

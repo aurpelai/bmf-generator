@@ -1,8 +1,8 @@
 import { ATLAS_CANDIDATES } from '@/config';
 
-import { flattenGlyph } from '../project/layers';
-import { effectiveThreshold } from '../project/threshold';
-import type { FontSettings, Glyph, GlyphPlacement } from '../project/types';
+import { flattenGlyph } from '../font/layers';
+import { effectiveThreshold } from '../font/threshold';
+import type { FontSettings, Glyph, GlyphPlacement } from '../font/types';
 import { pack } from './maxrects';
 
 export interface PackGlyphsOptions {

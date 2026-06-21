@@ -27,7 +27,7 @@ export const AtlasFloat = ({ open, onClose }: Props): React.JSX.Element => {
   const [packing, setPacking] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const currentProject = useStore((state) => state.currentProject);
+  const currentFont = useStore((state) => state.currentFont);
   const glyphs = useStore((state) => state.glyphs);
   const atlasImageData = useStore((state) => state.atlasImageData);
   const atlasWidth = useStore((state) => state.atlasWidth);
@@ -47,7 +47,7 @@ export const AtlasFloat = ({ open, onClose }: Props): React.JSX.Element => {
   const debouncedSelected = useDebounce(selectedGlyphs, ATLAS_REPACK_DEBOUNCE_MS);
 
   async function runPack(glyphsToPack = selectedGlyphs): Promise<void> {
-    if (!currentProject || glyphsToPack.length === 0) {
+    if (!currentFont || glyphsToPack.length === 0) {
       return;
     }
 
@@ -63,8 +63,8 @@ export const AtlasFloat = ({ open, onClose }: Props): React.JSX.Element => {
         unpacked,
       } = await packAtlas(
         glyphsToPack,
-        currentProject.settings.padding.top,
-        currentProject.settings.alphaThreshold,
+        currentFont.settings.padding.top,
+        currentFont.settings.alphaThreshold,
       );
 
       if (unpacked.length > 0) {

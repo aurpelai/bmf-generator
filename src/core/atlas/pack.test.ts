@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { makeBaseLayerFromBitmap } from '../project/layers';
-import type { Glyph } from '../project/types';
+import { makeBaseLayerFromBitmap } from '../font/layers';
+import type { Glyph } from '../font/types';
 import { chooseAtlasSize, packGlyphs } from './pack';
 
 function makeGlyph(
@@ -18,7 +18,7 @@ function makeGlyph(
 
   return {
     codePoint,
-    projectId: 'project-1',
+    fontId: 'font-1',
     layers: [makeBaseLayerFromBitmap({ pixels, width, height, xoffset: 0, yoffset: 0 })],
     pixels,
     width,
@@ -35,7 +35,7 @@ function filledGlyph(codePoint: number, width: number, height: number): Glyph {
 
   return {
     codePoint,
-    projectId: 'project-1',
+    fontId: 'font-1',
     layers: [makeBaseLayerFromBitmap({ pixels, width, height, xoffset: 0, yoffset: 0 })],
     pixels,
     width,

@@ -20,7 +20,7 @@ export interface FontSettings {
   alphaThreshold: number;
 }
 
-export interface Project {
+export interface Font {
   id: string;
   name: string;
   createdAt: number;
@@ -47,7 +47,7 @@ export interface Layer {
 
 export interface Glyph {
   codePoint: number;
-  projectId: string;
+  fontId: string;
   // Stage A invariant: layers[0] mirrors the legacy top-level pixel fields exactly.
   // Stage B will make layers authoritative and drop the legacy fields.
   layers: Layer[];

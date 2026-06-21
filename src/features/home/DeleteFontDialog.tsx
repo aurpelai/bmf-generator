@@ -12,14 +12,14 @@ import {
 } from '@/components/ui/alert-dialog';
 
 interface Props {
-  projectName: string;
+  fontName: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
 }
 
-export const DeleteProjectDialog = ({
-  projectName,
+export const DeleteFontDialog = ({
+  fontName,
   open,
   onOpenChange,
   onConfirm,
@@ -30,7 +30,7 @@ export const DeleteProjectDialog = ({
         <AlertDialogHeader>
           <AlertDialogTitle>Delete Font?</AlertDialogTitle>
           <AlertDialogDescription>
-            <span className="text-foreground font-medium">{projectName}</span> will be permanently
+            <span className="text-foreground font-medium">{fontName}</span> will be permanently
             deleted. This cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>

@@ -1,6 +1,6 @@
 import type { StateCreator } from 'zustand';
 
-import type { GlyphPlacement } from '@/core/project/types';
+import type { GlyphPlacement } from '@/core/font/types';
 
 export interface AtlasSlice {
   atlasPlacements: GlyphPlacement[];

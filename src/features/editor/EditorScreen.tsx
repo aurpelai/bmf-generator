@@ -10,8 +10,8 @@ import {
   GLYPH_LIST_MIN_WIDTH_PX,
   ZOOM_REFERENCE,
 } from '@/config';
-import { cloneLayers, syncLegacyFields, trimLayerToInk } from '@/core/project/layers';
-import { getGlyphsForProject } from '@/db/glyphs';
+import { cloneLayers, syncLegacyFields, trimLayerToInk } from '@/core/font/layers';
+import { getGlyphsForFont } from '@/db/glyphs';
 import { saveGlyphs } from '@/db/glyphs';
 import { ExportDialog } from '@/features/export/ExportDialog';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
@@ -94,7 +94,7 @@ export const EditorScreen = (): React.JSX.Element => {
   }, []);
 
   const navigate = useNavigate();
-  const currentProject = useStore((state) => state.currentProject);
+  const currentFont = useStore((state) => state.currentFont);
   const setGlyphs = useStore((state) => state.setGlyphs);
   const activeTool = useStore((state) => state.activeTool);
   const setActiveTool = useStore((state) => state.setActiveTool);
@@ -111,13 +111,13 @@ export const EditorScreen = (): React.JSX.Element => {
   // Track the tool to restore after Space/Alt temporary overrides
   const toolBeforeOverride = useRef<EditorTool | null>(null);
 
-  // Load glyphs from IndexedDB whenever the active project changes
+  // Load glyphs from IndexedDB whenever the active font changes
   useEffect(() => {
-    if (!currentProject) {
+    if (!currentFont) {
       return;
     }
 
-    void getGlyphsForProject(currentProject.id).then((loaded) =>
+    void getGlyphsForFont(currentFont.id).then((loaded) =>
       // Re-tighten every layer's buffer to its inked bounds on load — repairs
       // any glyphs saved before the trim-on-write fix in updateLayerPixels.
       setGlyphs(
@@ -130,7 +130,7 @@ export const EditorScreen = (): React.JSX.Element => {
       ),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentProject?.id]);
+  }, [currentFont?.id]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -227,13 +227,13 @@ export const EditorScreen = (): React.JSX.Element => {
         if (e.key === '1') {
           setZoomLevel(ZOOM_REFERENCE);
           requestRecenter();
-        } else if (currentProject) {
+        } else if (currentFont) {
           const container = document.querySelector<HTMLElement>('[data-editor-canvas-container]');
           const viewport = container
             ? { width: container.clientWidth, height: container.clientHeight }
             : { width: window.innerWidth, height: window.innerHeight };
 
-          setZoomLevel(zoomToFitLevel(currentProject.settings, viewport));
+          setZoomLevel(zoomToFitLevel(currentFont.settings, viewport));
           requestRecenter();
         }
 
@@ -358,10 +358,10 @@ export const EditorScreen = (): React.JSX.Element => {
     layerPanelCollapsed,
     atlasOpen,
     previewOpen,
-    currentProject,
+    currentFont,
   ]);
 
-  if (!currentProject) {
+  if (!currentFont) {
     return <Navigate to="/" replace />;
   }
 
@@ -373,9 +373,9 @@ export const EditorScreen = (): React.JSX.Element => {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <FileType className="text-muted-foreground h-4 w-4" />
-        <span className="text-sm font-medium">{currentProject?.name ?? 'Untitled'}</span>
+        <span className="text-sm font-medium">{currentFont?.name ?? 'Untitled'}</span>
         <span className="text-muted-foreground text-xs">
-          {currentProject?.settings.fontSize}px · {currentProject?.glyphs.length} glyphs
+          {currentFont?.settings.fontSize}px · {currentFont?.glyphs.length} glyphs
         </span>
         <div className="ml-auto flex items-center gap-2">
           <span className="text-muted-foreground text-xs">Auto-saved</span>
