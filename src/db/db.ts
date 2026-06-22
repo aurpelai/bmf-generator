@@ -10,14 +10,29 @@ interface FontFile {
   createdAt: number;
 }
 
+// v1 records carried a single flat bitmap at the top level. v2 wraps that
+// bitmap in a single base layer. The legacy top-level fields are read here
+// via a loosely-typed view because the `Glyph` interface no longer declares
+// them — they only exist on records persisted before the schema change.
+interface LegacyV1Fields {
+  pixels: Uint8Array;
+  width: number;
+  height: number;
+  xoffset: number;
+  yoffset: number;
+  xadvance: number;
+}
+
 export function upgradeGlyphV1ToV2(record: Glyph & { id: string }): void {
+  const legacy = record as unknown as LegacyV1Fields;
+
   record.layers = [
     makeBaseLayerFromBitmap({
-      pixels: record.pixels,
-      width: record.width,
-      height: record.height,
-      xoffset: record.xoffset,
-      yoffset: record.yoffset,
+      pixels: legacy.pixels,
+      width: legacy.width,
+      height: legacy.height,
+      xoffset: legacy.xoffset,
+      yoffset: legacy.yoffset,
     }),
   ];
 }
@@ -80,6 +95,12 @@ class BmfDatabase extends Dexie {
     // `glyphs`; v5 recreates `glyphs` with the new key and restores the records
     // with the field rewritten. Both versions are required — Dexie processes
     // them sequentially even when a user jumps from v3 straight to v5.
+    //
+    // v6 finalises the layers-only Glyph shape: the legacy top-level
+    // `pixels`/`width`/`height`/`xoffset`/`yoffset`/`xadvance` fields are
+    // dropped, and the `bmf` sub-object becomes the only source of BMF
+    // metadata. The migration backfills `bmf` from the legacy fields if a
+    // record predates PR 1's `bmf` introduction.
     this.version(4)
       .stores({
         projects: null,
@@ -121,6 +142,32 @@ class BmfDatabase extends Dexie {
         if (stashed.length > 0) {
           await transaction.table('glyphs').bulkAdd(stashed);
         }
+      });
+
+    this.version(6)
+      .stores({ glyphs: '[fontId+codePoint], fontId, id' })
+      .upgrade(async (transaction) => {
+        await transaction
+          .table<Glyph & { id: string }>('glyphs')
+          .toCollection()
+          .modify((record) => {
+            const legacy = record as unknown as Partial<LegacyV1Fields>;
+
+            if (!record.bmf) {
+              record.bmf = {
+                xoffset: legacy.xoffset ?? 0,
+                yoffset: legacy.yoffset ?? 0,
+                xadvance: legacy.xadvance ?? 0,
+              };
+            }
+
+            delete legacy.pixels;
+            delete legacy.width;
+            delete legacy.height;
+            delete legacy.xoffset;
+            delete legacy.yoffset;
+            delete legacy.xadvance;
+          });
       });
   }
 }

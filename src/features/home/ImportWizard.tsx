@@ -15,6 +15,7 @@ import type { BmfParseResult } from '@/core/bmf/parse';
 import { parseBmfText } from '@/core/bmf/parse';
 import { createFont, makeBaseLayerFromBitmap, makeBlankGlyph, makeBlankLayer } from '@/core/font';
 import { GLYPH_SETS } from '@/core/font/glyphSets';
+import { flattenGlyph } from '@/core/font/layers';
 import type { Glyph } from '@/core/font/types';
 import type { RasterizedGlyph } from '@/core/rasterize/rasterize';
 import { saveFont } from '@/db/fonts';
@@ -81,12 +82,6 @@ function sliceGlyphsFromAtlas(
         fontId,
         layers: [makeBlankLayer()],
         bmf,
-        pixels: new Uint8Array(0),
-        width: 0,
-        height: 0,
-        xoffset: char.xoffset,
-        yoffset: char.yoffset,
-        xadvance: char.xadvance,
         isDirty: false,
       };
     }
@@ -122,12 +117,6 @@ function sliceGlyphsFromAtlas(
         }),
       ],
       bmf,
-      pixels,
-      width: char.width,
-      height: char.height,
-      xoffset: char.xoffset,
-      yoffset: char.yoffset,
-      xadvance: char.xadvance,
       isDirty: false,
     };
   });
@@ -392,12 +381,6 @@ export const ImportWizard = ({ open, onOpenChange }: Props): React.JSX.Element =
             yoffset: rasterizedGlyph.yoffset,
             xadvance: rasterizedGlyph.xadvance,
           },
-          pixels: rasterizedGlyph.pixels,
-          width: rasterizedGlyph.width,
-          height: rasterizedGlyph.height,
-          xoffset: rasterizedGlyph.xoffset,
-          yoffset: rasterizedGlyph.yoffset,
-          xadvance: rasterizedGlyph.xadvance,
           isDirty: false,
         }));
 
@@ -437,9 +420,7 @@ export const ImportWizard = ({ open, onOpenChange }: Props): React.JSX.Element =
         const importedSet = new Set(importedGlyphs.map((glyph) => glyph.codePoint));
         const blankGlyphs = foundGlyphSet.codePoints
           .filter((codePoint) => !importedSet.has(codePoint))
-          .map((codePoint) =>
-            makeBlankGlyph(font.id, codePoint, fontSize, parsed.common.lineHeight),
-          );
+          .map((codePoint) => makeBlankGlyph(font.id, codePoint, fontSize));
         const allGlyphs = [...importedGlyphs, ...blankGlyphs];
 
         await saveFont(font);
@@ -634,7 +615,20 @@ export const ImportWizard = ({ open, onOpenChange }: Props): React.JSX.Element =
             loading={processing}
             loadingMessage={format === 'ttf' ? 'Rasterising glyphs…' : 'Loading glyphs…'}
             error={processError}
-            glyphs={previewGlyphs}
+            glyphs={previewGlyphs.map((previewItem) => {
+              if ('layers' in previewItem) {
+                const flat = flattenGlyph(previewItem);
+
+                return {
+                  codePoint: previewItem.codePoint,
+                  pixels: flat.pixels,
+                  width: flat.width,
+                  height: flat.height,
+                };
+              }
+
+              return previewItem;
+            })}
             summary={previewSummary}
           />
         )}

@@ -13,7 +13,7 @@ import {
 } from '@/config';
 import { createFont, initializeGlyphs } from '@/core/font';
 import { GLYPH_SETS } from '@/core/font/glyphSets';
-import { saveFont,saveGlyphs } from '@/db';
+import { saveFont, saveGlyphs } from '@/db';
 import { useStore } from '@/store';
 
 import { FontMetricsFields } from './FontMetricsFields';
@@ -70,12 +70,7 @@ export const NewFontWizard = ({ open, onOpenChange }: Props): React.JSX.Element 
       });
 
       font.glyphs = glyphSet.codePoints;
-      const glyphs = initializeGlyphs(
-        font.id,
-        glyphSet.codePoints,
-        fontSize,
-        Math.round(fontSize * LINE_HEIGHT_RATIO),
-      );
+      const glyphs = initializeGlyphs(font.id, glyphSet.codePoints, fontSize);
 
       await saveFont(font);
       await saveGlyphs(glyphs);

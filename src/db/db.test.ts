@@ -44,24 +44,33 @@ describe('upgradeGlyphV1ToV2', () => {
 
   it('preserves legacy fields for one-shot rollback safety', () => {
     const record = makeV1Record();
-    const originalPixelsRef = record.pixels;
+    const legacy = record as unknown as {
+      pixels: Uint8Array;
+      width: number;
+      height: number;
+      xoffset: number;
+      yoffset: number;
+      xadvance: number;
+    };
+    const originalPixelsRef = legacy.pixels;
 
     upgradeGlyphV1ToV2(record);
 
-    expect(record.pixels).toBe(originalPixelsRef);
-    expect(record.width).toBe(3);
-    expect(record.height).toBe(2);
-    expect(record.xoffset).toBe(4);
-    expect(record.yoffset).toBe(7);
-    expect(record.xadvance).toBe(9);
+    expect(legacy.pixels).toBe(originalPixelsRef);
+    expect(legacy.width).toBe(3);
+    expect(legacy.height).toBe(2);
+    expect(legacy.xoffset).toBe(4);
+    expect(legacy.yoffset).toBe(7);
+    expect(legacy.xadvance).toBe(9);
     expect(record.isDirty).toBe(true);
   });
 
   it('detaches the layer bitmap from the legacy buffer so later edits do not desync mid-transaction', () => {
     const record = makeV1Record();
+    const legacy = record as unknown as { pixels: Uint8Array };
 
     upgradeGlyphV1ToV2(record);
-    record.pixels[0] = 255;
+    legacy.pixels[0] = 255;
 
     expect(record.layers[0].pixels[0]).toBe(10);
   });

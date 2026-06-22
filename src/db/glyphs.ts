@@ -11,25 +11,8 @@ export async function saveGlyphs(glyphs: Glyph[]): Promise<void> {
   await db.glyphs.bulkPut(records);
 }
 
-// Records persisted before PR 1 lack the `bmf` sub-object. Synthesise it from
-// the legacy top-level fields so the in-memory shape is always complete.
-// PR 2 introduces a v6 DB migration that does this on disk and lets us drop
-// this defensive normalisation.
-function normaliseBmf(record: Glyph): Glyph {
-  if (record.bmf) {
-    return record;
-  }
-
-  return {
-    ...record,
-    bmf: { xoffset: record.xoffset, yoffset: record.yoffset, xadvance: record.xadvance },
-  };
-}
-
 export async function getGlyphsForFont(fontId: string): Promise<Glyph[]> {
-  const records = await db.glyphs.where('fontId').equals(fontId).toArray();
-
-  return records.map(normaliseBmf);
+  return db.glyphs.where('fontId').equals(fontId).toArray();
 }
 
 export async function deleteGlyph(fontId: string, codePoint: number): Promise<void> {

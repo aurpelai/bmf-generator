@@ -21,12 +21,6 @@ function makeGlyph(
     fontId: 'font-1',
     layers: [makeBaseLayerFromBitmap({ pixels, width, height, xoffset: 0, yoffset: 0 })],
     bmf: { xoffset: 0, yoffset: 0, xadvance: width },
-    pixels,
-    width,
-    height,
-    xoffset: 0,
-    yoffset: 0,
-    xadvance: width,
     isDirty: false,
   };
 }
@@ -39,12 +33,6 @@ function filledGlyph(codePoint: number, width: number, height: number): Glyph {
     fontId: 'font-1',
     layers: [makeBaseLayerFromBitmap({ pixels, width, height, xoffset: 0, yoffset: 0 })],
     bmf: { xoffset: 0, yoffset: 0, xadvance: width },
-    pixels,
-    width,
-    height,
-    xoffset: 0,
-    yoffset: 0,
-    xadvance: width,
     isDirty: false,
   };
 }

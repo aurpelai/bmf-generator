@@ -20,9 +20,9 @@ import {
 import {
   cloneLayers,
   cycleHitLayer,
+  flattenGlyph,
   hitTestLayer,
   layerColor,
-  syncLegacyFields,
   unionLayerBounds,
   updateLayerPixels,
 } from '@/core/font/layers';
@@ -177,25 +177,26 @@ export const PixelEditor = (): React.JSX.Element => {
     const movingLayerIds = Object.keys(moveLayerOrigins);
     const dragging = movingLayerIds.length > 0;
     const { dx, dy } = stateRef.current.moveDelta;
-    const layoutXoffset = currentGlyph?.xoffset ?? 0;
-    const layoutYoffset = currentGlyph?.yoffset ?? 0;
+    const flatBounds = currentGlyph ? flattenGlyph(currentGlyph) : null;
+    const layoutXoffset = flatBounds?.xoffset ?? 0;
+    const layoutYoffset = flatBounds?.yoffset ?? 0;
     // dragBounds expands the layout to cover both the original and dragged glyph
     // positions so panning during a drag never reveals empty canvas. We use the
     // glyph-level (flat) bounds shifted by (dx, dy) as a slightly loose upper bound.
     const container = containerRef.current;
-    const dragBounds = currentGlyph
+    const dragBounds = flatBounds
       ? dragging
         ? {
             xoffset: Math.min(layoutXoffset, layoutXoffset + dx),
             yoffset: Math.min(layoutYoffset, layoutYoffset + dy),
-            width: currentGlyph.width + Math.abs(dx),
-            height: currentGlyph.height + Math.abs(dy),
+            width: flatBounds.width + Math.abs(dx),
+            height: flatBounds.height + Math.abs(dy),
           }
         : {
             xoffset: layoutXoffset,
             yoffset: layoutYoffset,
-            width: currentGlyph.width,
-            height: currentGlyph.height,
+            width: flatBounds.width,
+            height: flatBounds.height,
           }
       : null;
     const layout = computeCanvasLayout(
@@ -278,10 +279,7 @@ export const PixelEditor = (): React.JSX.Element => {
             const canvasX = (cellColumn - originX) * zoom;
             const canvasY = (cellRow - originY) * zoom;
             const inCell =
-              cellColumn >= 0 &&
-              cellColumn < fontSize &&
-              cellRow >= 0 &&
-              cellRow < lineHeight;
+              cellColumn >= 0 && cellColumn < fontSize && cellRow >= 0 && cellRow < lineHeight;
 
             context.globalAlpha = inCell ? 1 : 0.35;
             context.fillStyle = inkColor;
@@ -508,14 +506,15 @@ export const PixelEditor = (): React.JSX.Element => {
     const { fontSize, lineHeight } = font.settings;
     // Shared layout math with drawCanvas — single source of truth for where
     // the cell sits within the (possibly overscan-padded) canvas.
+    const flatBounds = currentGlyph ? flattenGlyph(currentGlyph) : null;
     const { originX, originY } = computeCanvasLayout(
       font.settings,
-      currentGlyph
+      flatBounds
         ? {
-            xoffset: currentGlyph.xoffset,
-            yoffset: currentGlyph.yoffset,
-            width: currentGlyph.width,
-            height: currentGlyph.height,
+            xoffset: flatBounds.xoffset,
+            yoffset: flatBounds.yoffset,
+            width: flatBounds.width,
+            height: flatBounds.height,
           }
         : null,
       zoom,
@@ -1074,11 +1073,11 @@ export const PixelEditor = (): React.JSX.Element => {
 
           return { ...layer, xoffset: origin.xoffset + dx, yoffset: origin.yoffset + dy };
         });
-        const updated: Glyph = syncLegacyFields({
+        const updated: Glyph = {
           ...currentGlyph,
           layers: shiftedLayers,
           isDirty: true,
-        });
+        };
 
         upsertGlyph(updated);
         void saveGlyphs([updated]);
