@@ -2,13 +2,17 @@ import { describe, expect, it } from 'vitest';
 
 import { createFont } from './font';
 import { makeBlankGlyph } from './glyphs';
+import { flattenGlyph } from './layers';
 import { exportPortableFont, importPortableFont } from './portable';
 import type { Glyph } from './types';
 
 function inkedGlyph(fontId: string, codePoint: number, bytes: number[]): Glyph {
-  const glyph = makeBlankGlyph(fontId, codePoint, 4, 4);
+  const glyph = makeBlankGlyph(fontId, codePoint, 4);
 
-  glyph.pixels.set(bytes);
+  // Ink the base layer to a 4x4 buffer carrying the test pattern.
+  glyph.layers[0].pixels = new Uint8Array(bytes);
+  glyph.layers[0].width = 4;
+  glyph.layers[0].height = 4;
 
   return glyph;
 }
@@ -16,7 +20,7 @@ function inkedGlyph(fontId: string, codePoint: number, bytes: number[]): Glyph {
 describe('portable font round-trip', () => {
   it('preserves font fields through export → import', () => {
     const font = createFont('Round Trip');
-    const glyphs: Glyph[] = [makeBlankGlyph(font.id, 0x41, 4, 4)];
+    const glyphs: Glyph[] = [makeBlankGlyph(font.id, 0x41, 4)];
 
     const json = exportPortableFont(font, glyphs);
     const restored = importPortableFont(json);
@@ -30,17 +34,20 @@ describe('portable font round-trip', () => {
     const glyphs: Glyph[] = [inkedGlyph(font.id, 0x41, pattern)];
 
     const restored = importPortableFont(exportPortableFont(font, glyphs));
+    const flat = flattenGlyph(restored.glyphs[0]);
 
-    expect(Array.from(restored.glyphs[0].pixels)).toEqual(pattern);
+    expect(Array.from(flat.pixels)).toEqual(pattern);
   });
 
   it('restores pixels as Uint8Array, not a plain array', () => {
     const font = createFont('Type');
-    const glyphs: Glyph[] = [makeBlankGlyph(font.id, 0x41, 4, 4)];
+    const glyphs: Glyph[] = [
+      inkedGlyph(font.id, 0x41, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]),
+    ];
 
     const restored = importPortableFont(exportPortableFont(font, glyphs));
 
-    expect(restored.glyphs[0].pixels).toBeInstanceOf(Uint8Array);
+    expect(restored.glyphs[0].layers[0].pixels).toBeInstanceOf(Uint8Array);
   });
 
   it('handles bytes across the full 0–255 range', () => {
@@ -49,16 +56,17 @@ describe('portable font round-trip', () => {
     const glyphs: Glyph[] = [inkedGlyph(font.id, 0x41, bytes)];
 
     const restored = importPortableFont(exportPortableFont(font, glyphs));
+    const flat = flattenGlyph(restored.glyphs[0]);
 
-    expect(Array.from(restored.glyphs[0].pixels)).toEqual(bytes);
+    expect(Array.from(flat.pixels)).toEqual(bytes);
   });
 
   it('preserves multiple glyphs in order', () => {
     const font = createFont('Order');
     const glyphs: Glyph[] = [
-      makeBlankGlyph(font.id, 0x41, 4, 4),
-      makeBlankGlyph(font.id, 0x42, 4, 4),
-      makeBlankGlyph(font.id, 0x43, 4, 4),
+      makeBlankGlyph(font.id, 0x41, 4),
+      makeBlankGlyph(font.id, 0x42, 4),
+      makeBlankGlyph(font.id, 0x43, 4),
     ];
 
     const restored = importPortableFont(exportPortableFont(font, glyphs));

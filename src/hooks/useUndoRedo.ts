@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 
-import { cloneLayers, syncLegacyFields } from '@/core/font/layers';
+import { cloneLayers } from '@/core/font/layers';
 import { saveGlyphs } from '@/db/glyphs';
 import { useStore } from '@/store';
 
@@ -44,11 +44,11 @@ export function useUndoRedo(): UseUndoRedoResult {
       return;
     }
 
-    const updated = syncLegacyFields({
+    const updated = {
       ...glyph,
       layers: snapshot.layers,
       isDirty: true,
-    });
+    };
 
     upsertGlyph(updated);
     void saveGlyphs([updated]);
@@ -71,11 +71,11 @@ export function useUndoRedo(): UseUndoRedoResult {
       return;
     }
 
-    const updated = syncLegacyFields({
+    const updated = {
       ...glyph,
       layers: snapshot.layers,
       isDirty: true,
-    });
+    };
 
     upsertGlyph(updated);
     void saveGlyphs([updated]);

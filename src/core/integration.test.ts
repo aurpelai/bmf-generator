@@ -8,29 +8,32 @@ import { createFont } from './font/font';
 import { makeBlankGlyph } from './font/glyphs';
 import type { Glyph } from './font/types';
 
-function inkBlock(glyph: Glyph, x: number, y: number, width: number, height: number): Glyph {
+function inkBlock(
+  glyph: Glyph,
+  cellWidth: number,
+  cellHeight: number,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+): Glyph {
   const layer = glyph.layers[0];
   // The base layer starts at width=0/height=0 — resize it to the glyph cell and ink the inner block.
-  const pixels = new Uint8Array(glyph.width * glyph.height);
+  const pixels = new Uint8Array(cellWidth * cellHeight);
 
   for (let row = y; row < y + height; row++) {
     for (let column = x; column < x + width; column++) {
-      pixels[row * glyph.width + column] = 255;
+      pixels[row * cellWidth + column] = 255;
     }
   }
 
   layer.pixels = pixels;
-  layer.width = glyph.width;
-  layer.height = glyph.height;
+  layer.width = cellWidth;
+  layer.height = cellHeight;
   layer.xoffset = 0;
   layer.yoffset = 0;
 
-  // Mirror to legacy fields so packGlyphs (which still goes via flattenGlyph) sees the ink.
-  glyph.pixels = pixels;
-  glyph.bmf = { xoffset: 1, yoffset: 2, xadvance: glyph.width + 1 };
-  glyph.xoffset = 1;
-  glyph.yoffset = 2;
-  glyph.xadvance = glyph.width + 1;
+  glyph.bmf = { xoffset: 1, yoffset: 2, xadvance: cellWidth + 1 };
 
   return glyph;
 }
@@ -43,7 +46,7 @@ describe('pack → serialize → parse round-trip', () => {
 
     // 3 glyphs, each 8×8, ink in a 4×4 inner block so trimming has work to do
     const glyphs: Glyph[] = [0x41, 0x42, 0x43].map((codePoint) =>
-      inkBlock(makeBlankGlyph(font.id, codePoint, 8, 8), 2, 2, 4, 4),
+      inkBlock(makeBlankGlyph(font.id, codePoint, 8), 8, 8, 2, 2, 4, 4),
     );
 
     const atlasWidth = 64;

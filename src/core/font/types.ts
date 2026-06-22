@@ -62,18 +62,6 @@ export interface Glyph {
   fontId: string;
   layers: Layer[];
   bmf: BmfGlyphMetadata;
-  /** @deprecated PR 2 removes this. Use `flattenGlyph(glyph).pixels`. */
-  pixels: Uint8Array;
-  /** @deprecated PR 2 removes this. Use `flattenGlyph(glyph).width`. */
-  width: number;
-  /** @deprecated PR 2 removes this. Use `flattenGlyph(glyph).height`. */
-  height: number;
-  /** @deprecated PR 2 removes this. Use `flattenGlyph(glyph).xoffset` for layout or `glyph.bmf.xoffset` for export. */
-  xoffset: number;
-  /** @deprecated PR 2 removes this. Use `flattenGlyph(glyph).yoffset` for layout or `glyph.bmf.yoffset` for export. */
-  yoffset: number;
-  /** @deprecated PR 2 removes this. Use `glyph.bmf.xadvance`. */
-  xadvance: number;
   isDirty: boolean;
   alphaThreshold?: number;
 }

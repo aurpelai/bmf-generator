@@ -25,12 +25,7 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import type { Glyph } from '@/core/font';
 import { makeBlankGlyph } from '@/core/font';
-import {
-  cloneLayers,
-  flattenGlyph,
-  makeBaseLayerFromBitmap,
-  syncLegacyFields,
-} from '@/core/font/layers';
+import { cloneLayers, flattenGlyph, makeBaseLayerFromBitmap } from '@/core/font/layers';
 import { deleteGlyph, getFontFile, saveGlyphs } from '@/db';
 import { useRasterize } from '@/hooks/useRasterize';
 import { cn } from '@/lib/utils';
@@ -108,7 +103,6 @@ export const GlyphList = ({
     const updated: Glyph = {
       ...selectedGlyph,
       bmf: { ...selectedGlyph.bmf, xadvance: value },
-      xadvance: value,
     };
 
     upsertGlyph(updated);
@@ -146,7 +140,7 @@ export const GlyphList = ({
       // Reset from the source font discards all user-edited layers and replaces them with one
       // fresh base layer. TTF metrics (xoffset/yoffset bearings) go onto `bmf`; the layer starts
       // at (0, 0).
-      const updated: Glyph = syncLegacyFields({
+      const updated: Glyph = {
         ...selectedGlyph,
         layers: [
           makeBaseLayerFromBitmap({
@@ -158,9 +152,8 @@ export const GlyphList = ({
           }),
         ],
         bmf: { xoffset: rg.xoffset, yoffset: rg.yoffset, xadvance: rg.xadvance },
-        xadvance: rg.xadvance,
         isDirty: false,
-      });
+      };
 
       upsertGlyph(updated);
       await saveGlyphs([updated]);
@@ -199,11 +192,11 @@ export const GlyphList = ({
       xoffset: 0,
       yoffset: 0,
     }));
-    const cleared: Glyph = syncLegacyFields({
+    const cleared: Glyph = {
       ...selectedGlyph,
       layers: clearedLayers,
       isDirty: true,
-    });
+    };
 
     upsertGlyph(cleared);
     await saveGlyphs([cleared]);
@@ -226,8 +219,8 @@ export const GlyphList = ({
       return;
     }
 
-    const { fontSize, lineHeight } = currentFont.settings;
-    const glyph = makeBlankGlyph(currentFont.id, codePoint, fontSize, lineHeight);
+    const { fontSize } = currentFont.settings;
+    const glyph = makeBlankGlyph(currentFont.id, codePoint, fontSize);
 
     await saveGlyphs([glyph]);
     upsertGlyph(glyph);

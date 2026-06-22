@@ -10,7 +10,7 @@ import {
   GLYPH_LIST_MIN_WIDTH_PX,
   ZOOM_REFERENCE,
 } from '@/config';
-import { cloneLayers, syncLegacyFields, trimLayerToInk } from '@/core/font/layers';
+import { cloneLayers, trimLayerToInk } from '@/core/font/layers';
 import { getGlyphsForFont } from '@/db/glyphs';
 import { saveGlyphs } from '@/db/glyphs';
 import { ExportDialog } from '@/features/export/ExportDialog';
@@ -121,12 +121,10 @@ export const EditorScreen = (): React.JSX.Element => {
       // Re-tighten every layer's buffer to its inked bounds on load — repairs
       // any glyphs saved before the trim-on-write fix in updateLayerPixels.
       setGlyphs(
-        loaded.map((loadedGlyph) =>
-          syncLegacyFields({
-            ...loadedGlyph,
-            layers: loadedGlyph.layers.map((layer) => trimLayerToInk(layer)),
-          }),
-        ),
+        loaded.map((loadedGlyph) => ({
+          ...loadedGlyph,
+          layers: loadedGlyph.layers.map((layer) => trimLayerToInk(layer)),
+        })),
       ),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -198,8 +196,7 @@ export const EditorScreen = (): React.JSX.Element => {
       // Cmd+' — toggle all non-editor elements
       if (ctrl && e.key === "'") {
         e.preventDefault();
-        const anyVisible =
-          !glyphListCollapsed || !layerPanelCollapsed || atlasOpen || previewOpen;
+        const anyVisible = !glyphListCollapsed || !layerPanelCollapsed || atlasOpen || previewOpen;
 
         if (anyVisible) {
           setGlyphListCollapsed(true);
@@ -272,11 +269,11 @@ export const EditorScreen = (): React.JSX.Element => {
           xoffset: layer.xoffset + dx,
           yoffset: layer.yoffset + dy,
         }));
-        const updated = syncLegacyFields({
+        const updated = {
           ...glyph,
           layers: shiftedLayers,
           isDirty: true,
-        });
+        };
 
         upsertGlyph(updated);
         void saveGlyphs([updated]);

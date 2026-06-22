@@ -11,7 +11,6 @@ import {
   makeBlankLayer,
   removeLayer,
   reorderLayers,
-  syncLegacyFields,
   trimLayerToInk,
   updateLayer,
   updateLayerPixels,
@@ -24,12 +23,6 @@ function makeGlyph(layers: Layer[]): Glyph {
     fontId: 'font-1',
     layers,
     bmf: { xoffset: 0, yoffset: 0, xadvance: 0 },
-    pixels: new Uint8Array(0),
-    width: 0,
-    height: 0,
-    xoffset: 0,
-    yoffset: 0,
-    xadvance: 0,
     isDirty: false,
   };
 }
@@ -371,31 +364,5 @@ describe('trimLayerToInk', () => {
     const result = trimLayerToInk(layer);
 
     expect(result).toBe(layer);
-  });
-});
-
-describe('syncLegacyFields', () => {
-  it('rewrites the legacy bitmap fields to match the layer stack', () => {
-    const layer = inkLayer(2, 1, 7, 8, [99, 100]);
-    const stale: Glyph = {
-      codePoint: 0x41,
-      fontId: 'font-1',
-      layers: [layer],
-      bmf: { xoffset: 0, yoffset: 0, xadvance: 0 },
-      pixels: new Uint8Array([0, 0, 0, 0]),
-      width: 9999,
-      height: 9999,
-      xoffset: 9999,
-      yoffset: 9999,
-      xadvance: 0,
-      isDirty: false,
-    };
-    const result = syncLegacyFields(stale);
-
-    expect(result.width).toBe(2);
-    expect(result.height).toBe(1);
-    expect(result.xoffset).toBe(7);
-    expect(result.yoffset).toBe(8);
-    expect(Array.from(result.pixels)).toEqual([99, 100]);
   });
 });

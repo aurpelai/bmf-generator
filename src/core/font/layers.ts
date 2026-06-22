@@ -318,26 +318,6 @@ export function trimLayerToInk(layer: Layer): Layer {
   };
 }
 
-/**
- * Refresh the legacy top-level pixel fields on a Glyph from its `layers` array.
- *
- * Maintains the Stage A invariant: every Glyph in memory and at rest has its
- * legacy fields equal to flattenGlyph(glyph). Will be removed in Stage B once
- * the editor and export pipeline read `layers` directly.
- */
-export function syncLegacyFields(glyph: Glyph): Glyph {
-  const flat = flattenGlyph(glyph);
-
-  return {
-    ...glyph,
-    pixels: flat.pixels,
-    width: flat.width,
-    height: flat.height,
-    xoffset: flat.xoffset,
-    yoffset: flat.yoffset,
-  };
-}
-
 /** Returns the topmost visible inked layer under the given cell (in glyph cell-space), or null. */
 export function hitTestLayer(
   glyph: Glyph,
@@ -415,10 +395,10 @@ export function cycleHitLayer(
 }
 
 function replaceLayer(glyph: Glyph, layerId: string, replacement: Layer): Glyph {
-  return syncLegacyFields({
+  return {
     ...glyph,
     layers: glyph.layers.map((layer) => (layer.id === layerId ? replacement : layer)),
-  });
+  };
 }
 
 export function addLayer(glyph: Glyph): Glyph {
@@ -428,7 +408,7 @@ export function addLayer(glyph: Glyph): Glyph {
 
   const newLayer = makeBlankLayer({ index: glyph.layers.length });
 
-  return syncLegacyFields({ ...glyph, layers: [...glyph.layers, newLayer] });
+  return { ...glyph, layers: [...glyph.layers, newLayer] };
 }
 
 export function removeLayer(glyph: Glyph, layerId: string): Glyph {
@@ -442,7 +422,7 @@ export function removeLayer(glyph: Glyph, layerId: string): Glyph {
     return glyph;
   }
 
-  return syncLegacyFields({ ...glyph, layers: next });
+  return { ...glyph, layers: next };
 }
 
 export function reorderLayers(glyph: Glyph, fromIndex: number, toIndex: number): Glyph {
@@ -461,7 +441,7 @@ export function reorderLayers(glyph: Glyph, fromIndex: number, toIndex: number):
 
   next.splice(toIndex, 0, moved);
 
-  return syncLegacyFields({ ...glyph, layers: next });
+  return { ...glyph, layers: next };
 }
 
 interface LayerPatch {
